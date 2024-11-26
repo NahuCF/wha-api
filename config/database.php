@@ -31,6 +31,22 @@ return [
 
     'connections' => [
 
+        'tenant' => [
+            'driver' => env('DB_DRIVER'),
+            'database' => null,
+            'host' => '127.0.0.1',
+            'username' => env('TENANT_DB_USERNAME', 'root'),
+            'password' => env('TENANT_DB_PASSWORD', ''),
+        ],
+
+        'landlord' => [
+            'driver' => env('DB_DRIVER'),
+            'database' => env('LANDLORD_DB_DATABASE', null),
+            'host' => '127.0.0.1',
+            'username' => env('LANDLORD_DB_USERNAME', 'root'),
+            'password' => env('LARDLORD_DB_PASSWORD', ''),
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
