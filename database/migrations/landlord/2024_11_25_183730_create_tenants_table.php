@@ -14,11 +14,17 @@ return new class extends Migration
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('business_name');
             $table->string('email')->unique();
             $table->string('database')->unique();
             $table->boolean('verified_email')->default(false);
             $table->boolean('account_active')->default(false);
             $table->timestamps();
         });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('tenants');
     }
 };
