@@ -7,7 +7,6 @@ use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -19,7 +18,7 @@ class AuthController extends Controller
             'name' => ['required', 'string'],
             'cellphone' => ['required', 'string'],
             'cellphone_prefix' => ['required', 'string'],
-            'work_email' => ['required', 'email'],
+            'work_email' => ['required', 'email', 'unique:tenants,email'],
             'password' => ['required', 'string'],
         ]);
 
@@ -30,16 +29,6 @@ class AuthController extends Controller
         $cellphonePrefix = data_get($input, 'cellphone_prefix');
         $workEmail = data_get($input, 'work_email');
         $password = data_get($input, 'password');
-
-        $tenantFullEmail = Tenant::query()
-            ->orWhere('email', $workEmail)
-            ->first();
-
-        if ($tenantFullEmail) {
-            throw ValidationException::withMessages([
-                'email' => ['The email has already been taken.'],
-            ]);
-        }
 
         $randomString = substr(str_shuffle('abcdefghijklmnopqrstuvwxyz'), 0, 6);
         $databaseName = $randomString.'_'.strtolower($businessName);
