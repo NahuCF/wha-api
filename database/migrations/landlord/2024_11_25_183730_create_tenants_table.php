@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('business_name');
+            $table->string('website');
             $table->string('email')->unique();
             $table->string('database')->unique();
             $table->boolean('verified_email')->default(false);
