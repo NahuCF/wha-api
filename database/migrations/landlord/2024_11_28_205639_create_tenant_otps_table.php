@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('otp_tenants', function (Blueprint $table) {
+        Schema::create('tenant_otps', function (Blueprint $table) {
             $table->id();
+            $table->boolean('is_verified')->default(false);
+            $table->timestamp('expire_at')->nullable();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('code', 6);
             $table->timestamps();
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('otp_codes');
+        Schema::dropIfExists('otps');
     }
 };
