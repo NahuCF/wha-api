@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Passport\ClientRepository;
+use Spatie\Multitenancy\Jobs\NotTenantAware;
 
-class CreateTenant implements ShouldQueue
+class CreateTenant implements NotTenantAware, ShouldQueue
 {
     use Queueable;
 
@@ -31,6 +32,10 @@ class CreateTenant implements ShouldQueue
      */
     public function handle(): void
     {
+        $dbName = $this->tenant->database;
+        DB::statement("CREATE DATABASE $dbName");
+
+        $this->tenant->makeCurrent();
         DB::setDefaultConnection('tenant');
 
         Artisan::call('migrate', [

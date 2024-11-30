@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Mail\SendOTPCode as SendOTPCodeMail;
-use App\Models\OtpTenant;
 use App\Models\Tenant;
+use App\Models\TenantOtp;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -29,9 +29,9 @@ class SendOTPCode implements NotTenantAware, ShouldQueue
     {
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        OtpTenant::where('tenant_id', $this->tenant->id)->delete();
+        TenantOtp::where('tenant_id', $this->tenant->id)->delete();
 
-        OtpTenant::create([
+        TenantOtp::create([
             'tenant_id' => $this->tenant->id,
             'code' => $otp,
         ]);

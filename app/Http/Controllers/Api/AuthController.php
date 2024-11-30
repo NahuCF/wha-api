@@ -7,7 +7,7 @@ use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -36,16 +36,8 @@ class AuthController extends Controller
             ->first();
 
         if ($tenantFullEmail) {
-            return response()->json(['data' => $tenantFullEmail]);
-        }
-
-        $tenantSameBusiness = Tenant::query()
-            ->orWhere('email', 'LIKE', '%@'.explode('@', $workEmail)[1])
-            ->first();
-
-        if ($tenantSameBusiness) {
-            return response()->json([
-                'data' => $tenantSameBusiness,
+            throw ValidationException::withMessages([
+                'email' => ['The email has already been taken.'],
             ]);
         }
 
@@ -62,9 +54,6 @@ class AuthController extends Controller
 
         SendOTPCode::dispatch(tenant: $tenant);
 
-        DB::statement("CREATE DATABASE $tenant->database");
-
-        $tenant->makeCurrent();
         CreateTenant::dispatch(
             tenant: $tenant,
             password: $password,
