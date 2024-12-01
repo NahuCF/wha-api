@@ -90,5 +90,7 @@ class AuthController extends Controller
         }
 
         SendOTPCode::dispatch(tenant: $tenant);
+
+        return response()->noContent();
     }
 }
