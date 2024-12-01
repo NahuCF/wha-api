@@ -34,6 +34,8 @@ class SendOTPCode implements NotTenantAware, ShouldQueue
         TenantOtp::create([
             'tenant_id' => $this->tenant->id,
             'code' => $otp,
+            'expire_at' => now()->addDay(),
+            'sent_at' => now(),
         ]);
 
         Mail::to($this->tenant->email)->send(new SendOTPCodeMail($otp));

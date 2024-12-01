@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TenantResource;
 use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
 use App\Models\Tenant;
+use App\Models\TenantOtp;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -51,6 +54,41 @@ class AuthController extends Controller
             cellphonePrefix: $cellphonePrefix
         );
 
-        return response()->json($tenant);
+        return TenantResource::make($tenant);
+    }
+
+    public function sendOtp(Request $request)
+    {
+        $input = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $email = data_get($input, 'email');
+
+        $tenant = Tenant::query()
+            ->where('email', $email)
+            ->first();
+
+        if (! $tenant) {
+            throw new \Exception('Tenant not found');
+        }
+
+        $otp = TenantOtp::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if ($otp && $otp->expire_at->lessThan(now())) {
+            throw ValidationException::withMessages([
+                'cannot_send' => 'OTP code has been expired',
+            ]);
+        }
+
+        if ($otp && $otp->sent_at->diffInSeconds(now()) < 60) {
+            throw ValidationException::withMessages([
+                'cannot_send' => 'Can not send OTP code again',
+            ]);
+        }
+
+        SendOTPCode::dispatch(tenant: $tenant);
     }
 }
