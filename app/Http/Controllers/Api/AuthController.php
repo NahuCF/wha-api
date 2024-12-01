@@ -93,4 +93,49 @@ class AuthController extends Controller
 
         return response()->noContent();
     }
+
+    public function verifyOtp(Request $request)
+    {
+        $input = $request->validate([
+            'email' => ['required', 'email'],
+            'code' => ['required', 'string'],
+        ]);
+
+        $email = data_get($input, 'email');
+        $code = data_get($input, 'code');
+
+        $tenant = Tenant::query()
+            ->where('email', $email)
+            ->first();
+
+        if (! $tenant) {
+            throw new \Exception('Tenant not found');
+        }
+
+        $otp = TenantOtp::query()
+            ->where('tenant_id', $tenant->id)
+            ->first();
+
+        if (! $otp) {
+            throw new \Exception('OTP code not found');
+        }
+
+        if ($otp->code !== $code) {
+            throw ValidationException::withMessages([
+                'code' => 'Invalid code',
+            ]);
+        }
+
+        if ($otp->expire_at->lessThan(now())) {
+            throw ValidationException::withMessages([
+                'code' => 'OTP code has expired',
+            ]);
+        }
+
+        $tenant->update([
+            'verified_email' => true,
+        ]);
+
+        return TenantResource::make($tenant);
+    }
 }
