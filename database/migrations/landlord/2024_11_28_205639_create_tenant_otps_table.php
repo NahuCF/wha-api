@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('tenant_otps', function (Blueprint $table) {
             $table->id();
             $table->boolean('is_verified')->default(false);
-            $table->timestamp('expire_at')->nullable();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->timestamp('expire_at');
+            $table->foreignUuid('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('code', 6);
+            $table->timestamp('sent_at');
             $table->timestamps();
         });
     }
