@@ -73,15 +73,15 @@ class AuthController extends Controller
             throw new \Exception('Tenant not found');
         }
 
+        if ($tenant->verified_email) {
+            throw ValidationException::withMessages([
+                'is_verified' => 'Email already verified',
+            ]);
+        }
+
         $otp = TenantOtp::query()
             ->where('tenant_id', $tenant->id)
             ->first();
-
-        if ($otp && $otp->expire_at->lessThan(now())) {
-            throw ValidationException::withMessages([
-                'cannot_send' => 'OTP code has been expired',
-            ]);
-        }
 
         if ($otp && $otp->sent_at->diffInSeconds(now()) < 60) {
             throw ValidationException::withMessages([
