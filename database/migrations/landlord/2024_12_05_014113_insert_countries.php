@@ -10,7 +10,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
         $countries = [
             ['name' => 'Afghanistan', 'code' => 'AFG'],
             ['name' => 'Albania', 'code' => 'ALB'],
