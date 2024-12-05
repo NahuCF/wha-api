@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantOtp;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Multitenancy\Jobs\NotTenantAware;
 
@@ -27,6 +28,8 @@ class SendOTPCode implements NotTenantAware, ShouldQueue
      */
     public function handle(): void
     {
+        DB::setDefaultConnection('landlord');
+
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         TenantOtp::where('tenant_id', $this->tenant->id)->delete();
