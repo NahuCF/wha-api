@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('website');
             $table->string('email')->unique();
             $table->string('database')->unique();
+            $table->foreignId('country_id')->nullable()->constrained();
+            $table->foreignId('currency_id')->nullable()->constrained();
             $table->boolean('verified_email')->default(false);
             $table->boolean('account_active')->default(false);
             $table->timestamps();
