@@ -8,6 +8,7 @@ use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
+use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -44,14 +45,16 @@ class AuthController extends Controller
             'database' => $databaseName,
         ]);
 
-        SendOTPCode::dispatch(tenant: $tenant);
+        JobDispatcherService::dispatch(new SendOTPCode($tenant));
 
-        CreateTenant::dispatch(
-            tenant: $tenant,
-            password: $password,
-            email: $workEmail,
-            cellphoneNumber: $cellphone,
-            cellphonePrefix: $cellphonePrefix
+        JobDispatcherService::dispatch(
+            new CreateTenant(
+                tenant: $tenant,
+                password: $password,
+                email: $workEmail,
+                cellphoneNumber: $cellphone,
+                cellphonePrefix: $cellphonePrefix
+            )
         );
 
         return TenantResource::make($tenant);
@@ -89,7 +92,7 @@ class AuthController extends Controller
             ]);
         }
 
-        SendOTPCode::dispatch(tenant: $tenant);
+        JobDispatcherService::dispatch(new SendOTPCode($tenant));
 
         return response()->noContent();
     }
