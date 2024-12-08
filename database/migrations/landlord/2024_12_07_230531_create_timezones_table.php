@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('currencies', function (Blueprint $table) {
+        Schema::create('timezones', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code', 10);
+            $table->string('deviation');
         });
     }
 
@@ -23,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('currencies');
+        Schema::dropIfExists('timezones');
     }
 };

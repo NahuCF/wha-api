@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\TenantOtp;
 use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -58,6 +59,33 @@ class AuthController extends Controller
         );
 
         return TenantResource::make($tenant);
+    }
+
+    public function storeBasicInformation(Request $request, Tenant $tenant)
+    {
+        $input = $request->validate([
+            'country_id' => ['required', 'integer'],
+            'currency_id' => ['required', 'integer'],
+            'timezone_id' => ['required', 'integer'],
+            'employees_amount' => ['required', 'integer'],
+            'known_place_id' => ['required', 'integer'],    
+        ]);
+
+        $countryId = data_get($input, 'country_id');
+        $currencyId = data_get($input, 'currency_id');
+        $timezoneId = data_get($input, 'timezone_id');
+        $employeesAmount = data_get($input, 'employees_amount');
+        $knownUs = data_get($input, 'known_place_id');
+
+        $tenant->update([
+            'country_id' => $countryId,
+            'currency_id' => $currencyId,
+            'timezone_id' => $timezoneId,
+            'employees_amount' => $employeesAmount,
+            'known_place_id' => $knownUs,
+        ]);
+
+        return response()->noContent();
     }
 
     public function sendOtp(Request $request)

@@ -20,6 +20,9 @@ return new class extends Migration
             $table->string('database')->unique();
             $table->foreignId('country_id')->nullable()->constrained();
             $table->foreignId('currency_id')->nullable()->constrained();
+            $table->foreignId('timezone_id')->nullable()->constrained();
+            $table->integer('employees_amount')->nullable();
+            $table->foreignId('known_place_id')->nullable()->constrained();
             $table->boolean('verified_email')->default(false);
             $table->boolean('account_active')->default(false);
             $table->timestamps();
