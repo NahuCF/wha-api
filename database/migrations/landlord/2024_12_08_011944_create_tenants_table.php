@@ -24,7 +24,8 @@ return new class extends Migration
             $table->integer('employees_amount')->nullable();
             $table->foreignId('known_place_id')->nullable()->constrained();
             $table->boolean('verified_email')->default(false);
-            $table->boolean('account_active')->default(false);
+            $table->boolean('filled_basic_information')->default(false);
+            $table->boolean('verified_whatsapp')->default(false);
             $table->timestamps();
         });
     }

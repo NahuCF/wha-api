@@ -14,6 +14,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::put('/store-basic-information/{tenant}', [AuthController::class, 'storeBasicInformation']);
 Route::post('/resend-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::get('/tenant-user', [AuthController::class, 'tenantUser']);
 
 Route::get('/countries', [CountryController::class, 'index']);
 Route::get('/currencies', [CurrencyController::class, 'index']);

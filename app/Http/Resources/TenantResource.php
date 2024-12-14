@@ -21,7 +21,8 @@ class TenantResource extends JsonResource
             'email' => $this->email,
             'business_name' => $this->business_name,
             'verified_email' => $this->verified_email,
-            'account_active' => $this->account_active,
+            'verified_whatsapp' => $this->verified_whatsapp,
+            'filled_basic_information' => $this->filled_basic_information,
         ];
     }
 }

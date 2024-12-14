@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
+use App\Http\Resources\UserResource;
 use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
+use App\Models\User;
 use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -68,8 +71,14 @@ class AuthController extends Controller
             'currency_id' => ['required', 'integer'],
             'timezone_id' => ['required', 'integer'],
             'employees_amount' => ['required', 'integer'],
-            'known_place_id' => ['required', 'integer'],    
+            'known_place_id' => ['required', 'integer'],
         ]);
+
+        if ($tenant->filled_basic_information) {
+            throw ValidationException::withMessages([
+                'filled_basic_information' => 'Basic information already filled',
+            ]);
+        }
 
         $countryId = data_get($input, 'country_id');
         $currencyId = data_get($input, 'currency_id');
@@ -83,9 +92,10 @@ class AuthController extends Controller
             'timezone_id' => $timezoneId,
             'employees_amount' => $employeesAmount,
             'known_place_id' => $knownUs,
+            'filled_basic_information' => true,
         ]);
 
-        return response()->noContent();
+        return TenantResource::make($tenant);
     }
 
     public function sendOtp(Request $request)
@@ -168,5 +178,15 @@ class AuthController extends Controller
         ]);
 
         return TenantResource::make($tenant);
+    }
+
+    public function tenantUser(Request $request)
+    {
+        Log::info([DB::connection()->getDatabaseName(), DB::getDefaultConnection()]);
+        $user = User::query()
+            ->where('email', Tenant::current()->email)
+            ->first();
+
+        return UserResource::make($user);
     }
 }

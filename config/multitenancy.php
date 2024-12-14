@@ -2,6 +2,8 @@
 
 use App\Models\Tenant;
 use App\Multitenancy\TokenTenantFinder;
+use App\Services\SwitchTenantDatabaseTaskService;
+use App\Services\TenantFinderService;
 use Illuminate\Broadcasting\BroadcastEvent;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Mail\SendQueuedMailable;
@@ -22,7 +24,7 @@ return [
      * This class should extend `Spatie\Multitenancy\TenantFinder\TenantFinder`
      *
      */
-    'tenant_finder' => null, //TokenTenantFinder::class,
+    'tenant_finder' => TenantFinderService::class, //TokenTenantFinder::class,
 
     /*
      * These fields are used by tenant:artisan command to match one or more tenant.
@@ -38,7 +40,7 @@ return [
      */
     'switch_tenant_tasks' => [
         // \Spatie\Multitenancy\Tasks\PrefixCacheTask::class,
-        \Spatie\Multitenancy\Tasks\SwitchTenantDatabaseTask::class,
+        SwitchTenantDatabaseTaskService::class,
         // \Spatie\Multitenancy\Tasks\SwitchRouteCacheTask::class,
     ],
 
@@ -55,7 +57,7 @@ return [
      * will be automatically set on the job. When the job is executed, the set
      * tenant on the job will be made current.
      */
-    'queues_are_tenant_aware_by_default' => true,
+    'queues_are_tenant_aware_by_default' => false,
 
     /*
      * The connection name to reach the tenant database.
@@ -67,7 +69,7 @@ return [
     /*
      * The connection name to reach the landlord database.
      */
-    'landlord_database_connection_name' => null,
+    'landlord_database_connection_name' => 'landlord',
 
     /*
      * This key will be used to associate the current tenant in the context
