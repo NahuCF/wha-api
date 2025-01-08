@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Models\Tenant;
 use Stancl\Tenancy\Database\Models\Domain;
 
 return [
-    'tenant_model' => Tenant::class,
+    'tenant_model' => \App\Models\Tenant::class,
     'id_generator' => Stancl\Tenancy\UUIDGenerator::class,
 
     'domain_model' => Domain::class,
@@ -19,7 +18,7 @@ return [
     'central_domains' => [
         '127.0.0.1',
         'localhost',
-        'wha.test'
+        'wha.test',
     ],
 
     /**
@@ -40,7 +39,7 @@ return [
      * Database tenancy config. Used by DatabaseTenancyBootstrapper.
      */
     'database' => [
-        'central_connection' => env('DB_CONNECTION', 'central'),
+        'central_connection' => env('DB_CONNECTION', 'landlord'),
 
         /**
          * Connection used as a "template" for the dynamically created tenant database connection.
@@ -52,7 +51,7 @@ return [
          * Tenant database names are created like this:
          * prefix + tenant_id + suffix.
          */
-        'prefix' => 'tenant',
+        'prefix' => 'tenant_',
         'suffix' => '',
 
         /**
