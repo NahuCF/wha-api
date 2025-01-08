@@ -16,10 +16,7 @@ class CreateTenantsTable extends Migration
         Schema::create('tenants', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
-            $table->string('business_name');
-            $table->string('website');
             $table->string('email')->unique();
-            $table->string('database')->unique();
             $table->foreignId('country_id')->nullable()->constrained();
             $table->foreignId('currency_id')->nullable()->constrained();
             $table->foreignId('timezone_id')->nullable()->constrained();
