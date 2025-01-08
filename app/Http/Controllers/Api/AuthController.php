@@ -49,17 +49,19 @@ class AuthController extends Controller
             'database' => $databaseName,
         ]);
 
-        JobDispatcherService::dispatch(new SendOTPCode($tenant));
+        return response()->json(123);
 
-        JobDispatcherService::dispatch(
-            new CreateTenant(
-                tenant: $tenant,
-                password: $password,
-                email: $workEmail,
-                cellphoneNumber: $cellphone,
-                cellphonePrefix: $cellphonePrefix
-            )
-        );
+        //JobDispatcherService::dispatch(new SendOTPCode($tenant));
+
+        //JobDispatcherService::dispatch(
+        //new CreateTenant(
+        //tenant: $tenant,
+        //password: $password,
+        //email: $workEmail,
+        //cellphoneNumber: $cellphone,
+        //cellphonePrefix: $cellphonePrefix
+        //)
+        //);
 
         return TenantResource::make($tenant);
     }
