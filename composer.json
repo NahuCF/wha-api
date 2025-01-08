@@ -9,7 +9,6 @@
         "laravel/framework": "^11.9",
         "laravel/passport": "^12.3",
         "laravel/tinker": "^2.9",
-        "spatie/laravel-multitenancy": "^4.0",
         "stancl/tenancy": "^3.8"
     },
     "require-dev": {
