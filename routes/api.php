@@ -12,6 +12,7 @@ Route::get('/up', fn () => response('', 200));
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/send-verify-account', [AuthController::class, 'sendVerifyAccount']);
+Route::post('/verify-account', [AuthController::class, 'verifyAccount']);
 Route::put('/store-basic-information/{tenant}', [AuthController::class, 'storeBasicInformation']);
 Route::post('/resend-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);

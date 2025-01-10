@@ -90,6 +90,30 @@ class AuthController extends Controller
         return response()->json([], 200);
     }
 
+    public function verifyAccount(Request $request)
+    {
+        $input = $request->validate([
+            'token' => ['required'],
+        ]);
+
+        $token = data_get($input, 'token');
+
+        $tenant = TenantVerificationEmail::query()
+            ->where('token', $token)
+            ->first();
+
+        if ($tenant) {
+            Tenant::query()
+                ->where('id', $tenant->tenant_id)
+                ->update([
+
+                    'verified_email' => true,
+                ]);
+        }
+
+        return response()->json([], 200);
+    }
+
     public function storeBasicInformation(Request $request, Tenant $tenant)
     {
         $input = $request->validate([
