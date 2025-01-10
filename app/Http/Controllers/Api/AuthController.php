@@ -5,15 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
-use App\Jobs\CreateTenant;
 use App\Jobs\SendOTPCode;
+use App\Jobs\SendVerifyAccountEmail;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
+use App\Models\TenantVerificationEmail;
 use App\Models\User;
 use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -34,13 +37,57 @@ class AuthController extends Controller
         $workEmail = data_get($input, 'work_email');
         $password = data_get($input, 'password');
 
-
         $tenant = Tenant::create([
             'name' => $name,
             'email' => $workEmail,
         ]);
 
         return TenantResource::make($tenant);
+    }
+
+    public function sendVerifyAccount(Request $request)
+    {
+        $input = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $email = data_get($input, 'email');
+
+        $tenant = Tenant::query()
+            ->where('email', $email)
+            ->where('verified_email', false)
+            ->first();
+
+        if (! $tenant) {
+            return response()->json([], 200);
+        }
+
+        $latestEmail = TenantVerificationEmail::query()
+            ->where('tenant_id', $tenant->id)
+            ->latest('id')
+            ->first();
+
+        if ($latestEmail && Carbon::parse($latestEmail->sent_at)->diffInSeconds(now()) < 60) {
+            return response()->json([], 200);
+        }
+
+        $token = (string) Str::uuid();
+
+        TenantVerificationEmail::query()
+            ->create([
+                'tenant_id' => $tenant->id,
+                'token' => $token,
+                'sent_at' => now(),
+            ]);
+
+        $link = env('CLIENT_URL').'/verify-account?token='.$token;
+
+        JobDispatcherService::dispatch(new SendVerifyAccountEmail(
+            email: $tenant->email,
+            link: $link
+        ));
+
+        return response()->json([], 200);
     }
 
     public function storeBasicInformation(Request $request, Tenant $tenant)
