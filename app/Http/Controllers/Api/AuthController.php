@@ -15,12 +15,52 @@ use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function login(Request $request)
+    {
+        $input = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $email = data_get($input, 'email');
+        $password = data_get($input, 'password');
+
+        $tenant = Tenant::query()
+            ->where('email', $email)
+            ->first();
+
+        if (! $tenant) {
+            throw ValidationException::withMessages([
+                'credentials' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        tenancy()->initialize($tenant);
+
+        $user = User::query()
+            ->where('email', $email)
+            ->first();
+
+        if (! $user || ! Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'credentials' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        return TenantResource::make($tenant)->additional([
+            'meta' => [
+                'user' => UserResource::make($user),
+            ],
+        ]);
+    }
+
     public function register(Request $request)
     {
         $input = $request->validate([
@@ -41,6 +81,16 @@ class AuthController extends Controller
             'name' => $name,
             'email' => $workEmail,
         ]);
+
+        $tenant->run(function () use ($name, $cellphone, $cellphonePrefix, $workEmail, $password) {
+            User::create([
+                'name' => $name,
+                'email' => $workEmail,
+                'cellphone_number' => $cellphone,
+                'cellphone_prefix' => $cellphonePrefix,
+                'password' => bcrypt($password),
+            ]);
+        });
 
         return TenantResource::make($tenant);
     }
