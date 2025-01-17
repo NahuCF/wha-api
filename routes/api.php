@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\TimezoneController;
+use App\Models\Callback;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/up', fn () => response('', 200));
@@ -25,3 +26,10 @@ Route::get('/currencies', [CurrencyController::class, 'index']);
 Route::get('/timezones', [TimezoneController::class, 'index']);
 Route::get('/known-places', [KnownPlaceController::class, 'index']);
 Route::get('/industries', [IndustryController::class, 'index']);
+
+Route::any('waba/callback', function () {
+    Callback::query()
+        ->create([
+            'data' => json_encode(request()->all()),
+        ]);
+});
