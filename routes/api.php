@@ -27,9 +27,27 @@ Route::get('/timezones', [TimezoneController::class, 'index']);
 Route::get('/known-places', [KnownPlaceController::class, 'index']);
 Route::get('/industries', [IndustryController::class, 'index']);
 
-Route::any('waba/callback', function () {
+Route::get('waba/callback', function () {
+    $request = request();
+
+    $mode = $request->query('hub_mode');
+    $token = $request->query('hub_verify_token');
+    $challenge = $request->query('hub_challenge');
+
+    if ($mode === 'subscribe' && $token === 'test') {
+        // Tokens match, return the challenge
+        return response($challenge, 200);
+    }
+
+    // Tokens do not match
+    return response('Forbidden', 403);
+});
+
+Route::post('waba/callback', function () {
     Callback::query()
         ->create([
             'data' => json_encode(request()->all()),
         ]);
+
+    return response('', 200);
 });
