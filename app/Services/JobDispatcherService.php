@@ -17,4 +17,14 @@ class JobDispatcherService
             return Queue::connection('database')->push($job, [], $queue);
         }
     }
+
+    public static function displayToFastQueue($job)
+    {
+        self::dispatch($job, 'fast');
+    }
+    
+    public static function displayToHeavyQueue($job)
+    {
+        self::dispatch($job, 'heavy');
+    }
 }
