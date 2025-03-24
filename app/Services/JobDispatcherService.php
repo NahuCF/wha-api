@@ -22,7 +22,7 @@ class JobDispatcherService
     {
         self::dispatch($job, 'fast');
     }
-    
+
     public static function displayToHeavyQueue($job)
     {
         self::dispatch($job, 'heavy');

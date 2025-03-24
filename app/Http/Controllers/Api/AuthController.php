@@ -7,6 +7,7 @@ use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
 use App\Jobs\SendOTPCode;
 use App\Jobs\SendVerifyAccountEmail;
+use App\Jobs\StopThread;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
 use App\Models\TenantVerificationEmail;
@@ -132,10 +133,12 @@ class AuthController extends Controller
 
         $link = env('CLIENT_URL').'/verify-account?token='.$token;
 
-        JobDispatcherService::dispatch(new SendVerifyAccountEmail(
-            email: $tenant->email,
-            link: $link
-        ));
+        JobDispatcherService::displayToFastQueue(
+            new SendVerifyAccountEmail(
+                email: $tenant->email,
+                link: $link
+            )
+        );
 
         return response()->json([], 200);
     }
