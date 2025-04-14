@@ -7,7 +7,6 @@ use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
 use App\Jobs\SendOTPCode;
 use App\Jobs\SendVerifyAccountEmail;
-use App\Jobs\StopThread;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
 use App\Models\TenantVerificationEmail;

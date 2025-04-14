@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TemplateResource;
 use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -11,6 +12,14 @@ use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
 {
+    public function index(Request $request)
+    {
+        $templates = Template::query()
+            ->paginate(100);
+
+        return TemplateResource::collection($templates);
+    }
+
     public function store(Request $request)
     {
         $input = $request->validate([
