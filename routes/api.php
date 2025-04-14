@@ -62,5 +62,5 @@ Route::post('waba/callback', function () {
 });
 
 Route::group(['middleware' => [InitializeTenancyByRequestData::class]], function () {
-    Route::post('templates/create', [TemplateController::class, 'store']);
+    Route::post('templates', [TemplateController::class, 'store']);
 });
