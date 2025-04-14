@@ -21,4 +21,5 @@ jobs:
             git pull origin main
             composer install
             php artisan migrate
+            php artisan tenants:migrate
             php artisan optimize
