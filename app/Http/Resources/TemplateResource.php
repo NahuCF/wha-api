@@ -19,6 +19,7 @@ class TemplateResource extends JsonResource
             'name' => $this->name,
             'language' => $this->language,
             'category' => $this->category,
+            'status' => $this->status,
             'components' => [
                 'header' => [
                     'type' => $this->header_type,
