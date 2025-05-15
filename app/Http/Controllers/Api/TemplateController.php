@@ -80,6 +80,7 @@ class TemplateController extends Controller
                 'language' => $language->code,
                 'header_type' => $header['type'],
                 'header_text' => $header['text'],
+                'status' => 'PENDING',
             ]);
 
         if($buttons) {

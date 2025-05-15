@@ -26,6 +26,8 @@ return new class extends Migration
             $table->string('header_text')->nullable(); 
             $table->string('header_media_url')->nullable();
 
+            $table->string('status')->default('DRAFT');
+
             $table->timestamps();
         });
     }
