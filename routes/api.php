@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Models\Callback;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,6 @@ Route::post('waba/callback', function () {
 });
 
 Route::group(['middleware' => [InitializeTenancyByRequestData::class]], function () {
-    Route::get('templates', [TemplateController::class, 'index']);
-    Route::post('templates', [TemplateController::class, 'store']);
+    Route::post('tenants/access-token', [TenantController::class, 'storeAccessToken']);
+    Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
 });

@@ -2,43 +2,47 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\TemplateResource;
 use App\Models\Template;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use App\Models\TemplateButton;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
+use App\Http\Resources\TemplateResource;
+use App\Http\Requests\StoreTemplateRequest;
 use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
 {
     public function index(Request $request)
     {
+        $input = $request->validate([
+            'rows_per_page' => ['sometimes', 'integer'],         
+        ]);
+
+        $rowsPerPage = data_get($input, 'rows_per_page', 10);
+
         $templates = Template::query()
-            ->paginate(100);
+            ->paginate($rowsPerPage);
 
         return TemplateResource::collection($templates);
     }
 
-    public function store(Request $request)
+    public function store(StoreTemplateRequest $request)
     {
-        $input = $request->validate([
-            'name' => ['required', 'string', 'max:512'],
-            'body' => ['required', 'string', 'max:1024'],
-            'footer' => ['sometimes', 'string', 'max:60'],
-            'language_id' => ['required', 'integer'],
-            'template_category_id' => ['required', 'integer'],
-        ]);
+        $input = $request->validated();
 
         $name = data_get($input, 'name');
-        $body = data_get($input, 'body');
-        $footer = data_get($input, 'footer', '');
         $languageId = data_get($input, 'language_id');
         $templateCategoryId = data_get($input, 'template_category_id');
+        $header = data_get($input, 'components.header');
+        $body = data_get($input, 'components.body');
+        $footer = data_get($input, 'components.footer', '');
+        $buttons = collect(data_get($input, 'components.buttons', []));
 
         $templateWithName = Template::query()
             ->where('name', $name)
-            ->first();
+            ->exists();
 
         if ($templateWithName) {
             throw ValidationException::withMessages([
@@ -66,15 +70,35 @@ class TemplateController extends Controller
                     ->first();
             }
         );
-
+        
         $template = Template::query()
             ->create([
                 'name' => $name,
-                'body' => $body,
+                'body' => $body['text'],
                 'footer' => $footer,
                 'category' => strtoupper($category->name),
                 'language' => $language->code,
+                'header_type' => $header['type'],
+                'header_text' => $header['text'],
             ]);
+
+        if($buttons) {
+            $buttonsData = $buttons->map(function ($button) use ($template){
+                return [
+                    'type' => $button['type'],
+                    'text' => $button['text'],
+                    'url' => data_get($button, 'url'),
+                    'phone_prefix' => data_get($button, 'phone_prefix'),
+                    'phone_number' => data_get($button, 'phone_number'),
+                    'index' => data_get($button, 'index', 0),
+                    'template_id' => $template->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            });
+
+            TemplateButton::insert($buttonsData->toArray());
+        }
 
         return response()->json($template);
     }

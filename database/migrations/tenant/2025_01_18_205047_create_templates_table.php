@@ -13,11 +13,19 @@ return new class extends Migration
     {
         Schema::create('templates', function (Blueprint $table) {
             $table->id();
-            $table->string('name', '512');
-            $table->string('body', '1024');
-            $table->string('footer', '60');
+            $table->string('name', '512')->unique();
             $table->string('language');
             $table->string('category');
+
+            $table->string('body', '1024');
+            $table->json('body_example_variables')->nullable();
+            $table->string('footer', '60')->nullable();
+
+             // Header
+            $table->enum('header_type', ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])->nullable();
+            $table->string('header_text')->nullable(); 
+            $table->string('header_media_url')->nullable();
+
             $table->timestamps();
         });
     }

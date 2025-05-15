@@ -25,6 +25,10 @@ class CreateTenantsTable extends Migration
             $table->boolean('verified_email')->default(false);
             $table->boolean('filled_basic_information')->default(false);
             $table->boolean('verified_whatsapp')->default(false);
+            $table->string('short_lived_access_token')->nullable();
+            $table->timestamp('short_lived_access_token_expires_at')->nullable();
+            $table->string('long_lived_access_token')->nullable();
+            $table->timestamp('long_lived_access_token_expires_at')->nullable();
             $table->timestamps();
             $table->json('data')->nullable();
         });
