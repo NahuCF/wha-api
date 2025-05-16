@@ -24,7 +24,7 @@ class TemplateResource extends JsonResource
                 'header' => [
                     'type' => $this->header_type,
                     'content' => $this->header_text,
-                    'media_url' => $this->header_media_url
+                    'media_url' => $this->whenNotNull($this->header_media_url)
                 ],
                 'body' => [
                     'content' => $this->body,
