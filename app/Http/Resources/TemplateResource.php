@@ -28,7 +28,7 @@ class TemplateResource extends JsonResource
                 ],
                 'body' => [
                     'content' => $this->body,
-                    'variables' => json_decode($this->body_example_variables)
+                    'variables' => $this->whenNotNull(json_decode($this->body_example_variables, true) ?: null)
                 ],
                 'footer' => $this->footer,
                 'buttons' => ButtonResource::collection($this->buttons)
