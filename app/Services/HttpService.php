@@ -1,14 +1,12 @@
 <?php
 
 namespace App\Services;
+
 use Illuminate\Support\Facades\Http;
 
-class HttpService 
+class HttpService
 {
-
-    public function __construct(protected string $baseUrl)
-    {
-    }
+    public function __construct(protected string $baseUrl) {}
 
     public function request(string $method, string $endpoint, array $params = [], array $headers = []): Response
     {
@@ -20,7 +18,7 @@ class HttpService
 
         $response = $request->$method($url, $params);
 
-        return $response->throw(); 
+        return $response->throw();
     }
 
     public function get(string $endpoint, array $params = []): array

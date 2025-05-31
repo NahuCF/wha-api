@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Template;
-use Illuminate\Http\Request;
-use App\Models\TemplateButton;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Cache;
-use App\Http\Resources\TemplateResource;
 use App\Http\Requests\StoreTemplateRequest;
+use App\Http\Resources\TemplateResource;
+use App\Models\Template;
+use App\Models\TemplateButton;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
@@ -17,12 +17,15 @@ class TemplateController extends Controller
     public function index(Request $request)
     {
         $input = $request->validate([
-            'rows_per_page' => ['sometimes', 'integer'],         
+            'rows_per_page' => ['sometimes', 'integer'],
+            'status' => ['sometimes', 'string'],
         ]);
 
+        $status = data_get($input, 'status');
         $rowsPerPage = data_get($input, 'rows_per_page', 10);
 
         $templates = Template::query()
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->paginate($rowsPerPage);
 
         return TemplateResource::collection($templates);
@@ -70,7 +73,7 @@ class TemplateController extends Controller
                     ->first();
             }
         );
-        
+
         $template = Template::query()
             ->create([
                 'name' => $name,
@@ -83,8 +86,8 @@ class TemplateController extends Controller
                 'status' => 'PENDING',
             ]);
 
-        if($buttons) {
-            $buttonsData = $buttons->map(function ($button) use ($template){
+        if ($buttons) {
+            $buttonsData = $buttons->map(function ($button) use ($template) {
                 return [
                     'type' => $button['type'],
                     'text' => $button['text'],

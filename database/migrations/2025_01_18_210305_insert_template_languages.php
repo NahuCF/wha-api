@@ -1,7 +1,8 @@
 <?php
 
-use App\Models\Language;
+use App\Models\TemplateLanguage;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -10,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $languages = [
+        $languages = collect([
             ['name' => 'Afrikaans', 'code' => 'af'],
             ['name' => 'Albanian', 'code' => 'sq'],
             ['name' => 'Arabic', 'code' => 'ar'],
@@ -79,9 +80,13 @@ return new class extends Migration
             ['name' => 'Uzbek', 'code' => 'uz'],
             ['name' => 'Vietnamese', 'code' => 'vi'],
             ['name' => 'Zulu', 'code' => 'zu'],
-        ];
+        ])->transform(function ($language) {
+            $language['id'] = Str::ulid();
 
-        Language::insert($languages);
+            return $language;
+        });
+
+        TemplateLanguage::insert($languages->toArray());
     }
 
     /**
@@ -89,6 +94,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        TemplateLanguage::truncate();
     }
 };

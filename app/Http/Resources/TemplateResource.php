@@ -24,15 +24,15 @@ class TemplateResource extends JsonResource
                 'header' => [
                     'type' => $this->header_type,
                     'content' => $this->header_text,
-                    'media_url' => $this->whenNotNull($this->header_media_url)
+                    'media_url' => $this->whenNotNull($this->header_media_url),
                 ],
                 'body' => [
                     'content' => $this->body,
-                    'variables' => $this->whenNotNull(json_decode($this->body_example_variables, true) ?: null)
+                    'variables' => $this->whenNotNull(json_decode($this->body_example_variables, true) ?: null),
                 ],
                 'footer' => $this->footer,
-                'buttons' => ButtonResource::collection($this->buttons)
-            ]
+                'buttons' => ButtonResource::collection($this->buttons),
+            ],
         ];
     }
 }

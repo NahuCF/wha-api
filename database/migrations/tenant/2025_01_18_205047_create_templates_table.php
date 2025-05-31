@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('templates', function (Blueprint $table) {
-            $table->id();
+            $table->ulid('id')->primary();
             $table->string('name', '512')->unique();
             $table->string('language');
             $table->string('category');
@@ -21,9 +21,9 @@ return new class extends Migration
             $table->json('body_example_variables')->nullable();
             $table->string('footer', '60')->nullable();
 
-             // Header
+            // Header
             $table->enum('header_type', ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])->nullable();
-            $table->string('header_text')->nullable(); 
+            $table->string('header_text')->nullable();
             $table->string('header_media_url')->nullable();
 
             $table->string('status')->default('DRAFT');

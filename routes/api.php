@@ -1,14 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ComponentTypeController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
-use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\TemplateHeaderTypeController;
+use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Models\Callback;
@@ -26,10 +26,6 @@ Route::put('/store-basic-information/{tenant}', [AuthController::class, 'storeBa
 Route::post('/resend-otp', [AuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::get('/tenant-user', [AuthController::class, 'tenantUser']);
-
-Route::get('/languages', [LanguageController::class, 'index']);
-Route::get('/template-categories', [TemplateCategoryController::class, 'index']);
-Route::get('/header-component-types', [ComponentTypeController::class, 'headerTypes']);
 
 Route::get('/countries', [CountryController::class, 'index']);
 Route::get('/currencies', [CurrencyController::class, 'index']);
@@ -60,6 +56,12 @@ Route::post('waba/callback', function () {
         ]);
 
     return response('', 200);
+});
+
+Route::prefix('templates')->group(function () {
+    Route::get('/languages', [TemplateLanguageController::class, 'index']);
+    Route::get('/categories', [TemplateCategoryController::class, 'index']);
+    Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
 });
 
 Route::group(['middleware' => [InitializeTenancyByRequestData::class]], function () {

@@ -29,7 +29,7 @@ class StoreTemplateRequest extends FormRequest
             'components' => ['required', 'array'],
 
             // Body
-            'components.body' => ['required' ],
+            'components.body' => ['required'],
             'components.body.variables' => ['sometimes'],
             'components.body.text' => ['required', 'string', 'max:1024'],
 

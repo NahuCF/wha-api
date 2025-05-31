@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('header_component_types', function (Blueprint $table) {
-            $table->id();
+        Schema::create('template_header_types', function (Blueprint $table) {
+            $table->ulid('id')->primary();
             $table->string('name');
             $table->string('code');
         });
@@ -23,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('header_component_types');
+        Schema::dropIfExists('template_header_types');
     }
 };
