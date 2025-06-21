@@ -15,18 +15,16 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('name', '512')->unique();
             $table->string('language');
-            $table->string('category');
+            $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);
 
             $table->string('body', '1024');
             $table->json('body_example_variables')->nullable();
             $table->string('footer', '60')->nullable();
 
-            // Header
-            $table->enum('header_type', ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])->nullable();
-            $table->string('header_text')->nullable();
-            $table->string('header_media_url')->nullable();
+            $table->json('header')->nullable();
+            $table->json('buttons')->nullable();
 
-            $table->string('status')->default('DRAFT');
+            $table->string('status')->default('PENDING');
 
             $table->timestamps();
         });

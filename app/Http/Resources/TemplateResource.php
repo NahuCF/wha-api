@@ -21,17 +21,13 @@ class TemplateResource extends JsonResource
             'category' => $this->category,
             'status' => $this->status,
             'components' => [
-                'header' => [
-                    'type' => $this->header_type,
-                    'content' => $this->header_text,
-                    'media_url' => $this->whenNotNull($this->header_media_url),
-                ],
+                'header' => $this->header ? json_decode($this->header, true) : [],
                 'body' => [
                     'content' => $this->body,
                     'variables' => $this->whenNotNull(json_decode($this->body_example_variables, true) ?: null),
                 ],
                 'footer' => $this->footer,
-                'buttons' => ButtonResource::collection($this->buttons),
+                'buttons' => $this->header ? json_decode($this->buttons, true) : [],
             ],
         ];
     }

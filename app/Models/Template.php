@@ -11,10 +11,30 @@ class Template extends Model
 
     protected $guarded = [];
 
-    protected $with = ['buttons'];
+    public const CATEGORY_TYPES = [
+        'AUTHENTICATION',
+        'MARKETING',
+        'UTILITY',
+    ];
 
-    public function buttons()
-    {
-        return $this->hasMany(TemplateButton::class);
-    }
+    public const BUTTON_TYPES = [
+        'QUICK_REPLY',
+        'PHONE_NUMBER',
+        'STATIC_URL',
+        'DYNAMIC_URL',
+    ];
+
+    public const HEADER_TYPES = [
+        'TEXT',
+        'IMAGE',
+        'VIDEO',
+        'DOCUMENT',
+        'LOCATION',
+    ];
+
+    protected $casts = [
+        'header' => 'array',
+        'buttons' => 'array',
+        'body_example_variables' => 'array',
+    ];
 }

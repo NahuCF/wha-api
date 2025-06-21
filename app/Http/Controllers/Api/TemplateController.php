@@ -6,10 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Resources\TemplateResource;
 use App\Models\Template;
-use App\Models\TemplateButton;
+use App\Services\TemplateLanguageService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
@@ -37,73 +35,34 @@ class TemplateController extends Controller
 
         $name = data_get($input, 'name');
         $languageId = data_get($input, 'language_id');
-        $templateCategoryId = data_get($input, 'template_category_id');
+        $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
         $body = data_get($input, 'components.body');
         $footer = data_get($input, 'components.footer', '');
-        $buttons = collect(data_get($input, 'components.buttons', []));
+        $buttons = data_get($input, 'components.buttons', []);
 
-        $templateWithName = Template::query()
-            ->where('name', $name)
-            ->exists();
-
-        if ($templateWithName) {
+        if (Template::query()->where('name', $name)->exists()) {
             throw ValidationException::withMessages([
                 'name' => 'Template name already exists',
             ]);
         }
 
-        $category = Cache::remember(
-            'template_category_id:'.$templateCategoryId,
-            now()->addDay(1),
-            function () use ($templateCategoryId) {
-                return DB::connection('landlord')
-                    ->table('template_categories')
-                    ->where('id', $templateCategoryId)
-                    ->first();
-            });
+        $language = (new TemplateLanguageService)->getCachedLanguages()
+            ->where('id', $languageId)
+            ->first();
 
-        $language = Cache::remember(
-            'language_id:'.$languageId,
-            now()->addDay(1),
-            function () use ($languageId) {
-                return DB::connection('landlord')
-                    ->table('languages')
-                    ->where('id', $languageId)
-                    ->first();
-            }
-        );
+        $template = Template::create([
+            'name' => $name,
+            'language' => $language->code,
+            'category' => strtoupper($category),
+            'body' => $body['text'],
+            'body_example_variables' => json_encode($body['variables'] ?? []),
+            'footer' => $footer,
+            'header' => json_encode($header ?? []),
+            'buttons' => json_encode($buttons),
+            'status' => 'PENDING',
+        ]);
 
-        $template = Template::query()
-            ->create([
-                'name' => $name,
-                'body' => $body['text'],
-                'footer' => $footer,
-                'category' => strtoupper($category->name),
-                'language' => $language->code,
-                'header_type' => $header['type'],
-                'header_text' => $header['text'],
-                'status' => 'PENDING',
-            ]);
-
-        if ($buttons) {
-            $buttonsData = $buttons->map(function ($button) use ($template) {
-                return [
-                    'type' => $button['type'],
-                    'text' => $button['text'],
-                    'url' => data_get($button, 'url'),
-                    'phone_prefix' => data_get($button, 'phone_prefix'),
-                    'phone_number' => data_get($button, 'phone_number'),
-                    'index' => data_get($button, 'index', 0),
-                    'template_id' => $template->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            });
-
-            TemplateButton::insert($buttonsData->toArray());
-        }
-
-        return response()->json($template);
+        return TemplateResource::make($template);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Template;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,6 +26,10 @@ class StoreTemplateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:512'],
 
+            // Language and category
+            'language_id' => ['required', Rule::exists('landlord.template_languages', 'id')],
+            'category' => ['required', Rule::in(Template::CATEGORY_TYPES)],
+
             // Now body is inside components
             'components' => ['required', 'array'],
 
@@ -33,18 +38,19 @@ class StoreTemplateRequest extends FormRequest
             'components.body.variables' => ['sometimes'],
             'components.body.text' => ['required', 'string', 'max:1024'],
 
-            // Language and category
-            'language_id' => ['required', 'integer', Rule::exists('landlord.languages', 'id')],
-            'template_category_id' => ['required', 'integer', Rule::exists('landlord.template_categories', 'id')],
-
             // Header (optional)
             'components.header' => ['sometimes', 'array'],
-            'components.header.type' => ['required_with:components.header', 'string', Rule::in(['TEXT'])],
-            'components.header.text' => ['required_with:components.header', 'string'],
+            'components.header.type' => ['required_with:components.header', 'string', Rule::in(Template::HEADER_TYPES)],
+            'components.header.text' => ['required_if:components.header.type,TEXT', 'string'],
+            'components.header.media_url' => ['required_if:components.header.type,IMAGE,VIDEO,DOCUMENT', 'url'],
+            'components.header.location_latitude' => ['required_if:components.header.type,LOCATION', 'numeric'],
+            'components.header.location_longitude' => ['required_if:components.header.type,LOCATION', 'numeric'],
+            'components.header.location_name' => ['required_if:components.header.type,LOCATION', 'string'],
+            'components.header.location_address' => ['required_if:components.header.type,LOCATION', 'string'],
 
             // Buttons (optional)
             'components.buttons' => ['sometimes', 'array'],
-            'components.buttons.*.type' => ['required', Rule::in(['QUICK_REPLY', 'PHONE_NUMBER', 'STATIC_URL', 'DYNAMIC_URL'])],
+            'components.buttons.*.type' => ['required', Rule::in(Template::BUTTON_TYPES)],
             'components.buttons.*.text' => ['required', 'string'],
             'components.buttons.*.phone_number' => ['required_if:components.buttons.*.type,PHONE_NUMBER', 'string'],
             'components.buttons.*.phone_number_prefix' => ['required_if:components.buttons.*.type,PHONE_NUMBER', 'string'],

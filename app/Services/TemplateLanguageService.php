@@ -10,7 +10,7 @@ class TemplateLanguageService
     public function getCachedLanguages()
     {
         $cachedLanguages = Cache::remember(
-            'template_languages',
+            (new TemplateLanguage)->getTable(),
             now()->addDay(1),
             fn () => TemplateLanguage::on('landlord')->get()
         );
