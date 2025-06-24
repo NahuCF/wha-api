@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name', '512')->unique();
             $table->string('language');
             $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);
+            $table->boolean('allow_category_change');
 
             $table->string('body', '1024');
             $table->json('body_example_variables')->nullable();

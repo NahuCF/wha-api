@@ -29,6 +29,7 @@ class StoreTemplateRequest extends FormRequest
             // Language and category
             'language_id' => ['required', Rule::exists('landlord.template_languages', 'id')],
             'category' => ['required', Rule::in(Template::CATEGORY_TYPES)],
+            'allow_category_change' => ['sometimes', 'boolean'],
 
             // Now body is inside components
             'components' => ['required', 'array'],
@@ -47,6 +48,9 @@ class StoreTemplateRequest extends FormRequest
             'components.header.location_longitude' => ['required_if:components.header.type,LOCATION', 'numeric'],
             'components.header.location_name' => ['required_if:components.header.type,LOCATION', 'string'],
             'components.header.location_address' => ['required_if:components.header.type,LOCATION', 'string'],
+
+            // Footer
+            'components.footer' => ['sometimes', 'string'],
 
             // Buttons (optional)
             'components.buttons' => ['sometimes', 'array'],

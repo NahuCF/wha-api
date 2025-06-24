@@ -7,8 +7,8 @@ use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Resources\TemplateResource;
 use App\Models\Template;
 use App\Services\TemplateLanguageService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
 {
@@ -16,14 +16,17 @@ class TemplateController extends Controller
     {
         $input = $request->validate([
             'rows_per_page' => ['sometimes', 'integer'],
+            'name' => ['sometimes', 'string'],
             'status' => ['sometimes', 'string'],
         ]);
 
         $status = data_get($input, 'status');
         $rowsPerPage = data_get($input, 'rows_per_page', 10);
+        $name = data_get($input, 'name');
 
         $templates = Template::query()
             ->when($status, fn ($q) => $q->where('status', $status))
+            ->when($name, fn ($q) => $q->where('name', 'ILIKE', "%{$name}%"))
             ->paginate($rowsPerPage);
 
         return TemplateResource::collection($templates);
@@ -35,6 +38,7 @@ class TemplateController extends Controller
 
         $name = data_get($input, 'name');
         $languageId = data_get($input, 'language_id');
+        $allowCategoryChange = data_get($input, 'allow_category_change', false);
         $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
         $body = data_get($input, 'components.body');
@@ -42,9 +46,11 @@ class TemplateController extends Controller
         $buttons = data_get($input, 'components.buttons', []);
 
         if (Template::query()->where('name', $name)->exists()) {
-            throw ValidationException::withMessages([
-                'name' => 'Template name already exists',
-            ]);
+            throw new HttpResponseException(response()->json([
+                'message' => 'Template name already exists',
+                'message_code' => 'templater_name_already_exists',
+                'errors' => ['name' => ['Template name already exists']],
+            ], 422));
         }
 
         $language = (new TemplateLanguageService)->getCachedLanguages()
@@ -54,6 +60,7 @@ class TemplateController extends Controller
         $template = Template::create([
             'name' => $name,
             'language' => $language->code,
+            'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],
             'body_example_variables' => json_encode($body['variables'] ?? []),

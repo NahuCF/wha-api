@@ -20,6 +20,7 @@ class TemplateResource extends JsonResource
             'language' => $this->language,
             'category' => $this->category,
             'status' => $this->status,
+            'allow_category_change' => $this->allow_category_change,
             'components' => [
                 'header' => $this->header ? json_decode($this->header, true) : [],
                 'body' => [
@@ -29,6 +30,7 @@ class TemplateResource extends JsonResource
                 'footer' => $this->footer,
                 'buttons' => $this->header ? json_decode($this->buttons, true) : [],
             ],
+            'created_at' => $this->created_at,
         ];
     }
 }
