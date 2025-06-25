@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Passport\ClientRepository;
 
 class AuthController extends Controller
 {
@@ -54,9 +55,12 @@ class AuthController extends Controller
             ]);
         }
 
+        $token = $user->createToken('tenant-token')->accessToken;
+
         return TenantResource::make($tenant)->additional([
             'meta' => [
                 'user' => UserResource::make($user),
+                'token' => $token,
             ],
         ]);
     }
@@ -90,6 +94,11 @@ class AuthController extends Controller
                 'cellphone_prefix' => $cellphonePrefix,
                 'password' => bcrypt($password),
             ]);
+
+            $client = new ClientRepository;
+
+            $client->createPasswordGrantClient(null, 'Default password grant client', '');
+            $client->createPersonalAccessClient(null, 'Default personal access client', '');
         });
 
         return TenantResource::make($tenant);

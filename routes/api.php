@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContactFieldController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\IndustryController;
@@ -9,7 +10,6 @@ use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
 use App\Http\Controllers\Api\TemplateLanguageController;
-use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Models\Callback;
 use Illuminate\Support\Facades\Route;
@@ -58,13 +58,19 @@ Route::post('waba/callback', function () {
     return response('', 200);
 });
 
-Route::prefix('templates')->group(function () {
-    Route::get('/languages', [TemplateLanguageController::class, 'index']);
-    Route::get('/categories', [TemplateCategoryController::class, 'index']);
-    Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
-});
-
-Route::group(['middleware' => [InitializeTenancyByRequestData::class]], function () {
-    Route::post('tenants/access-token', [TenantController::class, 'storeAccessToken']);
+Route::group(['middleware' => [
+    InitializeTenancyByRequestData::class,
+    'auth:api',
+]], function () {
+    Route::prefix('templates')->group(function () {
+        Route::get('/languages', [TemplateLanguageController::class, 'index']);
+        Route::get('/categories', [TemplateCategoryController::class, 'index']);
+        Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
+    });
     Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
+
+    Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
+    Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store']);
+    Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);
+    Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
 });
