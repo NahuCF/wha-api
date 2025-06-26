@@ -70,7 +70,7 @@ Route::group(['middleware' => [
     Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
 
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
-    Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);
     Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
+    Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store', 'destroy', 'update']);
 });

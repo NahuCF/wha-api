@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ContactFieldType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContactFieldRequest;
+use App\Http\Requests\UpdateContactFieldRequest;
 use App\Http\Resources\ContactFieldResource;
 use App\Models\ContactField;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ContactFieldController extends Controller
 {
@@ -61,6 +63,44 @@ class ContactFieldController extends Controller
             ->create($dataToStore);
 
         return new ContactFieldResource($contactField);
+    }
+
+    public function update(UpdateContactFieldRequest $request, ContactField $field)
+    {
+        $input = $request->validated();
+
+        $name = data_get($input, 'name');
+        $type = data_get($input, 'type');
+        $options = data_get($input, 'options');
+        $internalName = data_get($input, 'internal_name');
+
+        $dataToUpdate = [
+            'name' => $name,
+            'internal_name' => $internalName ?? str_replace(' ', '_', strtolower($name)),
+            'type' => data_get($input, 'type'),
+            'is_mandatory' => data_get($input, 'is_mandatory'),
+        ];
+
+        if ($type == ContactFieldType::SELECT->value) {
+            $dataToUpdate['options'] = $options;
+        }
+
+        $field->update($dataToUpdate);
+
+        return new ContactFieldResource($field);
+    }
+
+    public function destroy(ContactField $field)
+    {
+        if ($field->is_primary_field) {
+            throw ValidationException::withMessages([
+                'primary_field' => 'This contact field cannot be deleted',
+            ]);
+        }
+
+        $field->delete();
+
+        return response()->noContent();
     }
 
     public function changeStatus(Request $request, ContactField $contactField)

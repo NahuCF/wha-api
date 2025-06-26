@@ -23,8 +23,7 @@ class ContactFieldResource extends JsonResource
             'is_mandatory' => $this->is_mandatory,
             'is_active' => $this->is_active,
             'is_primary_field' => $this->is_primary_field,
-            'options' => $this->when($this->type == ContactFieldType::SELECT, $this->options),
-            'wea ' => $this->options,
+            'options' => $this->when($this->type == ContactFieldType::SELECT->value, $this->options),
         ];
     }
 }
