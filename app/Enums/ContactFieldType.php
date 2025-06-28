@@ -16,4 +16,12 @@ enum ContactFieldType: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public static function arrayTypeValues()
+    {
+        return collect([
+            self::SELECT->value,
+            self::MULTI_TEXT->value,
+        ]);
+    }
 }
