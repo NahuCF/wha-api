@@ -43,6 +43,40 @@ class ContactService
         return $contact;
     }
 
+    public function update(array $fields, Contact $contact)
+    {
+        // Check duplicate contact by phone
+        $phoneField = ContactField::where('name', 'Phone')->firstOrFail();
+        $phoneValue = collect($fields)->firstWhere('id', $phoneField->id)['value'];
+
+        $exitsContact = ContactFieldValue::query()
+            ->where('contact_id', '!=', $contact->id)
+            ->whereJsonContains('value', $phoneValue)
+            ->exists();
+
+        if ($exitsContact) {
+            throw ValidationException::withMessages(['contact' => 'Contact already exists']);
+        }
+
+        // Validate types & special user lookup
+        $this->assertFieldTypes($fields);
+
+        $values = collect($fields)
+            ->map(fn ($f) => [
+                'id' => Str::ulid(),
+                'contact_id' => $contact->id,
+                'contact_field_id' => $f['id'],
+                'value' => json_encode($f['value']),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->toArray();
+
+        ContactFieldValue::where('contact_id', $contact->id)->delete();
+        ContactFieldValue::insert($values);
+
+        return $contact;
+    }
+
     protected function assertFieldTypes(array $fields): void
     {
         $allFields = ContactField::all()->keyBy('id');

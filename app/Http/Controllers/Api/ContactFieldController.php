@@ -18,11 +18,14 @@ class ContactFieldController extends Controller
     {
         $input = $request->validate([
             'rows_per_page' => ['sometimes', 'integer'],
+            'is_primary_field' => ['sometimes', 'boolean'],
         ]);
 
         $rowsPerPage = data_get($input, 'rows_per_page', 10);
+        $isPrimaryField = data_get($input, 'is_primary_field', false);
 
         $contactFields = ContactField::query()
+            ->when($isPrimaryField, fn ($q) => $q->where('is_primary_field', $isPrimaryField))
             ->orderBy('is_primary_field', 'desc')
             ->paginate($rowsPerPage);
 

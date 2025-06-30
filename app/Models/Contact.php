@@ -9,6 +9,8 @@ class Contact extends Model
 {
     use HasUlids;
 
+    protected $with = ['fieldValues'];
+
     public function fieldValues()
     {
         return $this->hasMany(ContactFieldValue::class);

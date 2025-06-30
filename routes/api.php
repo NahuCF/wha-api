@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactFieldController;
+use App\Http\Controllers\Api\ContactImportController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\IndustryController;
@@ -75,5 +76,6 @@ Route::group(['middleware' => [
     Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
     Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store', 'destroy', 'update']);
 
-    Route::apiResource('contacts', ContactController::class)->only(['store']);
+    Route::post('contacts/import', [ContactController::class, 'import']);
+    Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
 });
