@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Rules\NoDuplicateFieldIds;
 use App\Rules\AllMandatoryFieldsPresent;
+use App\Rules\NoDuplicateFieldIds;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateContactRequest extends FormRequest

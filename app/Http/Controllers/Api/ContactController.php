@@ -2,19 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use Carbon\Carbon;
-use App\Models\Contact;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 use App\Enums\FilterOperator;
-use Illuminate\Validation\Rule;
-use App\Services\ContactService;
 use App\Http\Controllers\Controller;
-use Illuminate\Contracts\Cache\Store;
-use App\Http\Resources\ContactResource;
-use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
+use App\Http\Resources\ContactResource;
+use App\Models\Contact;
+use App\Services\ContactService;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ContactController extends Controller
 {
@@ -26,7 +22,7 @@ class ContactController extends Controller
             'filters' => ['sometimes', 'array'],
             'filters.*.contact_field_id' => ['required_with:filters', 'string'],
             'filters.*.operator' => ['required_with:filters', Rule::in(FilterOperator::values())],
-            'filters.*.value' => ['nullable'], 
+            'filters.*.value' => ['nullable'],
         ]);
 
         $rowsPerPage = data_get($input, 'rows_per_page', 10);
@@ -102,23 +98,5 @@ class ContactController extends Controller
         $contact->delete();
 
         return response()->noContent();
-    }
-
-    public function import(Request $request)
-    {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
-        ]);
-
-        $file = $request->file('file');
-        $path = 'contact-imports/' . tenant()->id . '/' . $file->getClientOriginalName();
-
-        $s3Path = Storage::disk('s3')->putFileAs('', $file, $path);
-
-        return response()->json([
-            'message' => 'File uploaded successfully',
-            'path' => $s3Path,
-            'url' => Storage::disk('s3')->url($s3Path),
-        ]);
     }
 }

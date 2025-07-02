@@ -12,6 +12,7 @@
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.29",
         "predis/predis": "^2.3",
+        "spatie/simple-excel": "^3.7",
         "stancl/tenancy": "^3.8"
     },
     "require-dev": {

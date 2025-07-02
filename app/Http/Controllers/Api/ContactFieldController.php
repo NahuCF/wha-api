@@ -59,8 +59,8 @@ class ContactFieldController extends Controller
         ];
 
         if ($type == ContactFieldType::SELECT->value) {
-            $dataToStore['options'] = $options;
         }
+        $dataToStore['options'] = $options;
 
         $contactField = ContactField::query()
             ->create($dataToStore);

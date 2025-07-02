@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
 use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TimezoneController;
+use App\Http\Controllers\Api\UserController;
 use App\Models\Callback;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
@@ -71,11 +72,14 @@ Route::group(['middleware' => [
     });
     Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
 
+    Route::apiResource('users', UserController::class)->only(['index']);
+
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);
     Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
     Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store', 'destroy', 'update']);
 
-    Route::post('contacts/import', [ContactController::class, 'import']);
+    Route::post('contacts/import', [ContactImportController::class, 'import']);
+    Route::post('contacts/import-history', [ContactImportController::class, 'import-history']);
     Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
 });
