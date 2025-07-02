@@ -7,7 +7,7 @@ use App\Models\Contact;
 use App\Models\ContactField;
 use App\Models\ContactFieldValue;
 use App\Models\User;
-use Carbon\Carbon;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -89,9 +89,8 @@ class ContactService
             if ((ContactFieldType::arrayTypeValues()->contains($type) && ! is_array($value))
                 || (ContactFieldType::NUMBER->value == $type && ! is_numeric($value))
                 || (ContactFieldType::TEXT->value == $type && ! is_string($value))
-                || (ContactFieldType::DATE->value == $type && ! is_string($value))
                 || (ContactFieldType::SWITCH->value == $type && ! is_bool($value))
-                || (ContactFieldType::DATE->value == $type && $this->isValidDateString($value))) {
+                || (ContactFieldType::DATE->value == $type && ! $this->isValidDateString($value))) {
                 throw ValidationException::withMessages([
                     'fields' => 'Invalid field value',
                 ]);
@@ -107,6 +106,7 @@ class ContactService
                 $user = User::query()
                     ->where('email', 'ILIKE', $value)
                     ->orWhere('name', 'ILIKE', $value)
+                    ->orWhere('id', $value)
                     ->first();
 
                 if (! $user) {
