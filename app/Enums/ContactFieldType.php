@@ -20,7 +20,6 @@ enum ContactFieldType: string
     public static function arrayTypeValues()
     {
         return collect([
-            self::SELECT->value,
             self::MULTI_TEXT->value,
         ]);
     }
