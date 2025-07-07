@@ -52,10 +52,6 @@ class ContactImportController extends Controller
             'heavy'
         );
 
-        return response()->json([
-            'message' => 'File uploaded successfully',
-            'path' => $s3Path,
-            'url' => Storage::disk('s3')->url($s3Path),
-        ]);
+        return response()->noContent();
     }
 }
