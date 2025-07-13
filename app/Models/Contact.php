@@ -15,4 +15,9 @@ class Contact extends Model
     {
         return $this->hasMany(ContactFieldValue::class);
     }
+
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class);
+    }
 }

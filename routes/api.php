@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ContactFieldController;
 use App\Http\Controllers\Api\ContactImportController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
+use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\TemplateCategoryController;
@@ -82,4 +83,6 @@ Route::group(['middleware' => [
     Route::post('contacts/import', [ContactImportController::class, 'import']);
     Route::post('contacts/import-history', [ContactImportController::class, 'import-history']);
     Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'update', 'destroy']);
 });

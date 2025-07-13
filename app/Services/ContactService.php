@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ContactFieldType;
+use App\Enums\FilterOperator;
 use App\Models\Contact;
 use App\Models\ContactField;
 use App\Models\ContactFieldValue;
@@ -13,6 +14,62 @@ use Illuminate\Validation\ValidationException;
 
 class ContactService
 {
+    public function index(
+        array $columns = ['*'],
+        array $filters = [],
+        ?string $search = null,
+        bool $paginate = true,
+        int $rowsPerPage = 10
+    ) {
+        $query = Contact::query()
+            ->select($columns)
+            ->when($search, function ($query) use ($search) {
+                $query->whereHas('fieldValues', function ($q) use ($search) {
+                    $q->whereRaw('value::text ILIKE ?', ['%'.strtolower($search).'%']);
+                });
+            })
+            ->when(! empty($filters), function ($query) use ($filters) {
+                foreach ($filters as $filter) {
+                    $query->whereHas('fieldValues', function ($q) use ($filter) {
+                        $column = 'value::text';
+                        $operator = FilterOperator::from($filter['operator']);
+                        $isValueRequired = ! in_array($operator, [FilterOperator::IS_EMPTY, FilterOperator::IS_NOT_EMPTY]);
+                        $values = $isValueRequired ? (array) ($filter['value'] ?? []) : [];
+
+                        $q->where('contact_field_id', $filter['contact_field_id']);
+
+                        $q->where(function ($or) use ($operator, $values, $column) {
+                            if (in_array($operator, [FilterOperator::IS_EMPTY, FilterOperator::IS_NOT_EMPTY])) {
+                                match ($operator) {
+                                    FilterOperator::IS_EMPTY => $or->orWhere(function ($sub) {
+                                        $sub->whereRaw("value::text = '\"\"'")
+                                            ->orWhereRaw("jsonb_typeof(value) = 'array' AND jsonb_array_length(value) = 0");
+                                    }),
+                                    FilterOperator::IS_NOT_EMPTY => $or->orWhere(function ($sub) {
+                                        $sub->whereRaw("value::text != '\"\"'")
+                                            ->orWhereRaw("jsonb_typeof(value) = 'array' AND jsonb_array_length(value) > 0");
+                                    }),
+                                };
+                            } else {
+                                foreach ($values as $value) {
+                                    match ($operator) {
+                                        FilterOperator::IS => $or->orWhereRaw("$column = ?", [json_encode($value)]),
+                                        FilterOperator::IS_NOT => $or->orWhereRaw("$column != ?", [json_encode($value)]),
+                                        FilterOperator::CONTAINS => $or->orWhereRaw("$column ILIKE ?", ['%'.$value.'%']),
+                                        FilterOperator::NOT_CONTAINS => $or->orWhereRaw("$column NOT ILIKE ?", ['%'.$value.'%']),
+                                        FilterOperator::STARTS_WITH => $or->orWhereRaw("$column ILIKE ?", [$value.'%']),
+                                        FilterOperator::ENDS_WITH => $or->orWhereRaw("$column ILIKE ?", ['%'.$value]),
+                                    };
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+
+        return $paginate ? $query->paginate($rowsPerPage) : $query->get();
+    }
+
     public function store(array $fields)
     {
         // Check duplicate contact by phone
