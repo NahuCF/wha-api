@@ -26,9 +26,14 @@ class GroupController extends Controller
             ->when($search && ! empty($search), function ($query) use ($search) {
                 $query->where('name', 'ILIKE', '%'.$search.'%');
             })
-            ->get();
+            ->paginate();
 
         return GroupResource::collection($groups);
+    }
+
+    public function show(Request $request, Group $group)
+    {
+        return new GroupResource($group);
     }
 
     public function store(Request $request)

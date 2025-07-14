@@ -84,5 +84,5 @@ Route::group(['middleware' => [
     Route::post('contacts/import-history', [ContactImportController::class, 'import-history']);
     Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
 
-    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 });
