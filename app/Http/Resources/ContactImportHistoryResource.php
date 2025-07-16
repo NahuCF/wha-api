@@ -23,6 +23,7 @@ class ContactImportHistoryResource extends JsonResource
             'error_contacts_count' => $this->error_contacts_count,
             'total_contacts_count' => $this->added_contacts_count + $this->error_contacts_count,
             'status' => $this->status,
+            'created_at' => $this->created_at,
         ];
     }
 }
