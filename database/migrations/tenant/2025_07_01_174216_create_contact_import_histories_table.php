@@ -16,6 +16,7 @@ return new class extends Migration
         Schema::create('contact_import_histories', function (Blueprint $table) {
             $table->ulid('id');
             $table->foreignUlid('user_id')->constrained();
+            $table->string('name');
             $table->enum('import_type', ContactImportType::values());
             $table->integer('added_contacts_count')->default(0);
             $table->integer('error_contacts_count')->default(0);

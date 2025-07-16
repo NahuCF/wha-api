@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\ContactFieldType;
+use App\Models\ContactImportHistory;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,13 +26,16 @@ class ImportContactsFromUpload implements ShouldQueue
     public function __construct(
         private readonly string $tenantId,
         private readonly string $filePath,
-        private readonly array $mappings
+        private readonly array $mappings,
+        private readonly string $historyId
     ) {}
 
     public function handle(): void
     {
         try {
             Tenancy::initialize($this->tenantId);
+
+            $history = ContactImportHistory::find($this->historyId);
 
             // Preload field IDs by name for quick lookup
             $mappingByName = collect($this->mappings)->pluck('id', 'name');
@@ -46,7 +50,7 @@ class ImportContactsFromUpload implements ShouldQueue
             SimpleExcelReader::create($tempPath)
                 ->getRows()
                 ->chunk(self::CHUNK_SIZE)
-                ->each(function ($rows) use ($mappingByName) {
+                ->each(function ($rows) use ($mappingByName, $history) {
                     $contactsData = [];
                     $fieldValues = [];
 
@@ -82,8 +86,12 @@ class ImportContactsFromUpload implements ShouldQueue
                     }
 
                     // Bulk insert contacts and field values within a transaction
-                    DB::transaction(function () use ($contactsData, $fieldValues) {
+                    DB::transaction(function () use ($contactsData, $fieldValues, $history) {
                         DB::table('contacts')->insert($contactsData);
+
+                        $history->update([
+                            'added_contacts_count' => $history->added_contacts_count + count($contactsData),
+                        ]);
 
                         if (! empty($fieldValues)) {
                             DB::table('contact_field_values')->insert($fieldValues);

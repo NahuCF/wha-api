@@ -80,6 +80,8 @@ Route::group(['middleware' => [
     Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
     Route::apiResource('contacts/fields', ContactFieldController::class)->only(['index', 'store', 'destroy', 'update']);
 
+    Route::get('contacts/import', [ContactImportController::class, 'index']);
+    Route::get('contacts/import/{history}', [ContactImportController::class, 'show']);
     Route::post('contacts/import', [ContactImportController::class, 'import']);
     Route::post('contacts/import-history', [ContactImportController::class, 'import-history']);
     Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
