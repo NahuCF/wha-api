@@ -36,7 +36,10 @@ class StoreTemplateRequest extends FormRequest
 
             // Body
             'components.body' => ['required'],
-            'components.body.variables' => ['sometimes'],
+            'components.body.variables' => ['sometimes', 'array'],
+            'components.body.variables.*.contact_field_id' => ['nullable'],
+            'components.body.variables.*.name' => ['required'],
+            'components.body.variables.*.value' => ['required'],
             'components.body.text' => ['required', 'string', 'max:1024'],
 
             // Header (optional)

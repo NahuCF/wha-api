@@ -12,7 +12,7 @@ class TemplateHeaderTypeService
         $cachedHeaderTypes = Cache::remember(
             'template_header_types',
             now()->addDay(1),
-            fn () => TemplateHeaderType::all()
+            fn () => TemplateHeaderType::on('landlord')->get()
         );
 
         return $cachedHeaderTypes;

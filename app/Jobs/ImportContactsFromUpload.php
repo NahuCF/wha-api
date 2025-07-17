@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\ContactFieldType;
+use App\Enums\ContactImportStatus;
 use App\Models\ContactImportHistory;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -36,6 +37,9 @@ class ImportContactsFromUpload implements ShouldQueue
             Tenancy::initialize($this->tenantId);
 
             $history = ContactImportHistory::find($this->historyId);
+            $history->update([
+                'status' => ContactImportStatus::PROCESSING,
+            ]);
 
             // Preload field IDs by name for quick lookup
             $mappingByName = collect($this->mappings)->pluck('id', 'name');
@@ -98,6 +102,10 @@ class ImportContactsFromUpload implements ShouldQueue
                         }
                     });
                 });
+
+            $history->update([
+                'status' => ContactImportStatus::COMPLETED,
+            ]);
 
             @unlink($tempPath);
 

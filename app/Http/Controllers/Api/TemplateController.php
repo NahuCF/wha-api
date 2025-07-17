@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ContactFieldType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Resources\TemplateResource;
+use App\Models\ContactField;
 use App\Models\Template;
 use App\Services\TemplateLanguageService;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -45,6 +47,27 @@ class TemplateController extends Controller
         $footer = data_get($input, 'components.footer', '');
         $buttons = data_get($input, 'components.buttons', []);
 
+        $variables = collect(data_get($body, 'variables', []));
+
+        $variables = $variables->map(function ($variable) {
+            $contactFieldId = data_get($variable, 'contact_field_id');
+
+            if (! $contactFieldId) {
+                $name = data_get($variable, 'name');
+
+                $contactField = ContactField::query()
+                    ->create([
+                        'name' => $name,
+                        'internal_name' => str_replace(' ', '_', strtolower($name)),
+                        'type' => ContactFieldType::TEXT,
+                    ]);
+
+                $variable['contact_field_id'] = $contactField->id;
+            }
+
+            return $variable;
+        });
+
         if (Template::query()->where('name', $name)->exists()) {
             throw new HttpResponseException(response()->json([
                 'message' => 'Template name already exists',
@@ -63,7 +86,7 @@ class TemplateController extends Controller
             'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],
-            'body_example_variables' => json_encode($body['variables'] ?? []),
+            'body_example_variables' => json_encode($variables->toArray()),
             'footer' => $footer,
             'header' => json_encode($header ?? []),
             'buttons' => json_encode($buttons),

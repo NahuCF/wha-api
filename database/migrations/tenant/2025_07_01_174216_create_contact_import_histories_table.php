@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('name');
             $table->enum('import_type', ContactImportType::values());
             $table->integer('added_contacts_count')->default(0);
+            $table->integer('updated_contacts_count')->default(0);
             $table->integer('error_contacts_count')->default(0);
             $table->string('file_path');
             $table->enum('status', ContactImportStatus::values())->default(ContactImportStatus::PENDING);
