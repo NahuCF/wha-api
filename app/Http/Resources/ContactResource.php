@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ContactFieldType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +20,7 @@ class ContactResource extends JsonResource
             'fields' => $this->fieldValues->map(fn ($field) => [
                 'field_value_id' => $field->field->id,
                 'name' => $field->field->name,
-                'value' => $field->value,
+                'value' => ContactFieldType::arrayTypeValues()->contains($field->field->type) ? explode(',', $field->value) : $field->value,
             ]),
         ];
     }
