@@ -87,8 +87,12 @@ class ImportContactsFromUpload implements ShouldQueue
 
                             $parsedValue = $value;
 
-                            if ($isFieldArray && str_contains($value, ',')) {
-                                $parsedValue = explode(',', $value);
+                            if ($isFieldArray) {
+                                if (str_contains($value, ',')) {
+                                    $parsedValue = explode(',', $value);
+                                } else {
+                                    $parsedValue = [$value];
+                                }
                             }
 
                             if ($this->validateValue($fieldId, $value)) {
