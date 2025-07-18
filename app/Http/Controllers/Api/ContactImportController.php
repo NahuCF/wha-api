@@ -8,6 +8,7 @@ use App\Http\Resources\ContactImportHistoryResource;
 use App\Jobs\ImportContactsFromUpload;
 use App\Models\ContactImportHistory;
 use App\Services\JobDispatcherService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -66,6 +67,9 @@ class ContactImportController extends Controller
         $path = 'contact-imports/'.tenant()->id.'/'.$file->getClientOriginalName();
 
         $s3Path = Storage::disk('s3')->putFileAs('', $file, $path);
+        if (! $s3Path) {
+            throw new Exception('File not uploaded');
+        }
 
         $history = ContactImportHistory::create([
             'id' => Str::ulid(),

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\ContactFieldType;
 use App\Enums\ContactImportStatus;
+use App\Models\ContactField;
 use App\Models\ContactImportHistory;
 use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
@@ -44,6 +45,10 @@ class ImportContactsFromUpload implements ShouldQueue
             // Preload field IDs by name for quick lookup
             $mappingByName = collect($this->mappings)->pluck('id', 'name');
 
+            $contactFieldsById = ContactField::query()
+                ->get()
+                ->keyBy('id');
+
             // Temporary file
             $tempPath = storage_path('app/temp_'.uniqid().'.xlsx');
             Storage::disk('local')->put(
@@ -54,7 +59,7 @@ class ImportContactsFromUpload implements ShouldQueue
             SimpleExcelReader::create($tempPath)
                 ->getRows()
                 ->chunk(self::CHUNK_SIZE)
-                ->each(function ($rows) use ($mappingByName, $history) {
+                ->each(function ($rows) use ($mappingByName, $contactFieldsById, $history) {
                     $contactsData = [];
                     $fieldValues = [];
 
@@ -76,12 +81,22 @@ class ImportContactsFromUpload implements ShouldQueue
                             }
 
                             $fieldId = $mappingByName[$colName];
+                            $field = $contactFieldsById[$fieldId];
+
+                            $isFieldArray = ContactFieldType::arrayTypeValues()->contains($field->type);
+
+                            $parsedValue = $value;
+
+                            if ($isFieldArray && str_contains($value, ',')) {
+                                $parsedValue = explode(',', $value);
+                            }
+
                             if ($this->validateValue($fieldId, $value)) {
                                 $fieldValues[] = [
                                     'id' => \Illuminate\Support\Str::ulid(),
                                     'contact_id' => $contactId,
                                     'contact_field_id' => $fieldId,
-                                    'value' => json_encode($value),
+                                    'value' => json_encode($parsedValue),
                                     'created_at' => now(),
                                     'updated_at' => now(),
                                 ];
