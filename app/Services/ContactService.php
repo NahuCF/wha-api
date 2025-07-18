@@ -65,7 +65,8 @@ class ContactService
                         });
                     });
                 }
-            });
+            })
+            ->orderBy('id', 'desc');
 
         return $paginate ? $query->paginate($rowsPerPage) : $query->get();
     }
