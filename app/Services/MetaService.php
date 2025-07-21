@@ -2,16 +2,20 @@
 
 namespace App\Services;
 
+use App\Services\HttpService;
 use App\Enums\TemplateCategory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class MetaService
 {
     private $httpService;
+    private $apiUrl;
 
     public function __construct()
     {
-        $this->httpService = new HttpService(config('services.meta.api_url'));
+        $this->apiUrl = config('services.meta.api_url');
+        $this->httpService = new HttpService($this->apiUrl);
     }
 
     public function getAppId()
@@ -21,7 +25,7 @@ class MetaService
 
     public function requestLongLivedToken($token)
     {
-        $response = $this->httpService->get('oauth/access_token', [
+        $response = Http::get($this->apiUrl . 'oauth/access_token', [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->getAppId(),
             'client_secret' => config('services.meta.secret'),
