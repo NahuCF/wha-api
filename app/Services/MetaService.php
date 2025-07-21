@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\TemplateCategory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class MetaService
 {
@@ -21,7 +22,7 @@ class MetaService
 
     public function requestLongLivedToken($token)
     {
-        $response = $this->httpService->get('oauth/access_token', [
+        $response = Http::get('https://graph.facebook.com/v22.0/oauth/access_token', [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->getAppId(),
             'client_secret' => config('services.meta.secret'),
