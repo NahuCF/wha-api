@@ -26,14 +26,13 @@ class HttpService
         return $response;
     }
 
-    public function get(string $endpoint, array $params = []): array
+    public function get(string $endpoint, array $params = [], array $headers = [])
     {
-        return $this->request('get', $endpoint, $params)->json();
-
+        return $this->request('get', $endpoint, $params, $headers);
     }
 
-    public function post(string $endpoint, array $params = []): array
+    public function post(string $endpoint, array $params = [])
     {
-        return $this->request('post', $endpoint, $params)->json();
+        return $this->request('post', $endpoint, $params);
     }
 }
