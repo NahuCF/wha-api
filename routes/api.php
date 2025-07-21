@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
+use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
@@ -70,6 +71,10 @@ Route::group(['middleware' => [
 ]], function () {
 
     Route::post('tenant/long-lived-token', [TenantController::class, 'storeLongLivedToken']);
+
+    Route::prefix('meta')->group(function () {
+        Route::get('app-id', [MetaController::class, 'getAppId']);
+    });
 
     Route::prefix('templates')->group(function () {
         Route::get('/languages', [TemplateLanguageController::class, 'index']);
