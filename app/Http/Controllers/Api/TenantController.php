@@ -11,12 +11,10 @@ class TenantController extends Controller
     public function storeLongLivedToken(Request $request)
     {
         $input = $request->validate([
-            'access_token' => ['required', 'string'],
-            'expires_in' => ['required', 'integer'],
+            'access_token' => ['required', 'string']
         ]);
 
         $accessToken = data_get($input, 'access_token');
-        $expiresIn = data_get($input, 'expires_in');
 
         $metaService = (new MetaService)->requestLongLivedToken($accessToken);
 
