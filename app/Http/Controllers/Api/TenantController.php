@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class TenantController extends Controller
 {
-    public function storeAccessToken(Request $request)
+    public function storeLongLivedToken(Request $request)
     {
         $input = $request->validate([
             'access_token' => ['required', 'string'],

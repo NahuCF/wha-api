@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactFieldController;
 use App\Http\Controllers\Api\ContactImportController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
 use App\Http\Controllers\Api\TemplateLanguageController;
+use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
 use App\Models\Callback;
@@ -66,6 +68,9 @@ Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
     'auth:api',
 ]], function () {
+
+    Route::post('tenant/long-lived-token', [TenantController::class, 'storeLongLivedToken']);
+
     Route::prefix('templates')->group(function () {
         Route::get('/languages', [TemplateLanguageController::class, 'index']);
         Route::get('/categories', [TemplateCategoryController::class, 'index']);
@@ -87,4 +92,6 @@ Route::group(['middleware' => [
     Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+
+    Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store']);
 });
