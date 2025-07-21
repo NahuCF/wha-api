@@ -25,12 +25,14 @@ class MetaService
 
     public function requestLongLivedToken($token)
     {
+        return $this->apiurl;
         $response = Http::get("{$this->apiurl}/oauth/access_token", [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->getAppId(),
             'client_secret' => config('services.meta.secret'),
             'fb_exchange_token' => $token,
         ]);
+
 
         return [
             'token' => $response['access_token'],
