@@ -2,16 +2,20 @@
 
 namespace App\Services;
 
+use App\Services\HttpService;
 use App\Enums\TemplateCategory;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class MetaService
 {
     private $httpService;
+    private $apiurl;
 
     public function __construct()
     {
-        $this->httpService = new HttpService(config('services.meta.api_url'));
+        //$this->httpService = new HttpService(config('services.meta.api_url'));
+        $this->apiurl = config('services.meta.api_url');
     }
 
     public function getAppId()
@@ -21,7 +25,7 @@ class MetaService
 
     public function requestLongLivedToken($token)
     {
-        $response = $this->httpService->get('oauth/access_token', [
+        $response = Http::get("{$this->apiurl}/oauth/access_token", [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->getAppId(),
             'client_secret' => config('services.meta.secret'),
@@ -44,9 +48,9 @@ class MetaService
         ];
 
         try {
-            $response = $this->httpService->post('templates', $payload);
+            //$response = $this->httpService->post('templates', $payload);
 
-            return $response;
+            //return $response;
 
         } catch (\Throwable $e) {
             Log::error('WhatsApp template creation failed: '.$e->getMessage());
