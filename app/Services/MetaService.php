@@ -33,7 +33,7 @@ class MetaService
         ]);
 
         return [
-            'token' => $response['access_token'],
+            'access_token' => $response['access_token'],
             'expires_in' => $response['expires_in'],
         ];
     }
