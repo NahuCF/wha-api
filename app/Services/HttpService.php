@@ -8,22 +8,22 @@ class HttpService
 {
     public function __construct(protected string $baseUrl) {}
 
-    public function request(string $method, string $endpoint, array $params = [], array $headers = []) 
+    public function request(string $method, string $endpoint, array $params = [], array $headers = [])
     {
         $url = "{$this->baseUrl}/{$endpoint}";
 
         $request = Http::withHeaders($headers)
             ->acceptJson();
 
-        if (strtolower($method) === 'get') {
-            $request = $request->withOptions(['query' => $params]);
+        $response = match ($method) {
+            'get' => $request->get($url, $params),
+            'post' => $request->asForm()->post($url, $params),
+            default => throw new \InvalidArgumentException("Unsupported HTTP method: {$method}"),
+        };
 
-            return $request->get($url)->throw();
-        }
+        $response->throw();
 
-        $request = $request->asForm();
-
-        return $request->throw();
+        return $response;
     }
 
     public function get(string $endpoint, array $params = []): array
