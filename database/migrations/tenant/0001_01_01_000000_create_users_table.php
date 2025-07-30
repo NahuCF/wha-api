@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\UserStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,10 +16,12 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('password');
-            $table->string('cellphone_prefix');
-            $table->string('cellphone_number');
+            $table->string('password')->nullable();
+            $table->string('cellphone_prefix')->nullable();
+            $table->string('cellphone_number')->nullable();
+            $table->enum('status', UserStatus::values())->default(UserStatus::SIGNED_UP);
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

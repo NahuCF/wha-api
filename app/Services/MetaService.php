@@ -2,20 +2,22 @@
 
 namespace App\Services;
 
-use App\Services\HttpService;
 use App\Enums\TemplateCategory;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MetaService
 {
-    private $httpService;
     private $apiUrl;
 
     public function __construct()
     {
         $this->apiUrl = config('services.meta.api_url');
-        $this->httpService = new HttpService($this->apiUrl);
+    }
+
+    private function buildUrl($endpoint)
+    {
+        return $this->apiUrl.$endpoint;
     }
 
     public function getAppId()
@@ -25,7 +27,7 @@ class MetaService
 
     public function requestLongLivedToken($token)
     {
-        $response = Http::get($this->apiUrl . 'oauth/access_token', [
+        $response = Http::get($this->buildUrl('oauth/access_token'), [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->getAppId(),
             'client_secret' => config('services.meta.secret'),
@@ -38,6 +40,8 @@ class MetaService
         ];
     }
 
+    public function getWabaID() {}
+
     public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token): array
     {
         $payload = [
@@ -48,7 +52,9 @@ class MetaService
         ];
 
         try {
-            $response = $this->httpService->post('templates', $payload);
+            $url = "{$this->apiUrl}/{$this->getWabaID()}/message_templates";
+            $response = Http::withToken($token)
+                ->post($this->buildUrl(), $payload);
 
             return $response;
 

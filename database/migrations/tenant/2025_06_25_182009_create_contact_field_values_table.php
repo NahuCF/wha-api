@@ -14,8 +14,8 @@ return new class extends Migration
     {
         Schema::create('contact_field_values', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('contact_id')->constrained()->onDelete('cascade');
-            $table->foreignUlid('contact_field_id')->constrained()->onDelete('cascade');
+            $table->foreignUlid('contact_id')->constrained();
+            $table->foreignUlid('contact_field_id')->constrained();
             $table->jsonb('value');
             $table->timestamps();
 

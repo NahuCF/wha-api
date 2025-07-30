@@ -31,8 +31,8 @@ class HttpService
         return $this->request('get', $endpoint, $params, $headers);
     }
 
-    public function post(string $endpoint, array $params = [])
+    public function post(string $endpoint, array $params = [], array $headers = [])
     {
-        return $this->request('post', $endpoint, $params);
+        return $this->request('post', $endpoint, $params, $headers);
     }
 }

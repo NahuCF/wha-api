@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
@@ -69,12 +72,15 @@ Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
     'auth:api',
 ]], function () {
-
     Route::post('tenant/long-lived-token', [TenantController::class, 'storeLongLivedToken']);
 
     Route::prefix('meta')->group(function () {
         Route::get('app-id', [MetaController::class, 'getAppId']);
     });
+
+    Route::get('permissions', [PermissionController::class, 'index']);
+    Route::apiResource('roles', RoleController::class);
+    Route::apiResource('teams', TeamController::class);
 
     Route::prefix('templates')->group(function () {
         Route::get('/languages', [TemplateLanguageController::class, 'index']);
@@ -83,7 +89,9 @@ Route::group(['middleware' => [
     });
     Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
 
-    Route::apiResource('users', UserController::class)->only(['index']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('users/{id}/restore', [UserController::class, 'restore']);
+    Route::apiResource('users', UserController::class);
 
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);

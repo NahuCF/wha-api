@@ -21,6 +21,11 @@ class UserResource extends JsonResource
             'cellphone_number' => $this->cellphone_number,
             'cellphone_prefix' => $this->cellphone_prefix,
             'cellphone' => $this->cellphone_prefix.$this->cellphone_number,
+            'teams' => TeamResource::collection($this->whenLoaded('teams')),
+            'role' => new RoleResource($this->roles->first()),
+            'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
+            'is_deleted' => $this->trashed(),
+            'status' => $this->status,
         ];
     }
 }

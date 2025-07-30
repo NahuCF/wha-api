@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SystemRole;
+use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
@@ -46,6 +48,7 @@ class AuthController extends Controller
         tenancy()->initialize($tenant);
 
         $user = User::query()
+            ->with('roles')
             ->where('email', $email)
             ->first();
 
@@ -56,6 +59,8 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('tenant-token')->accessToken;
+
+        $user->update(['status' => UserStatus::ACTIVE->value]);
 
         return TenantResource::make($tenant)->additional([
             'meta' => [
@@ -87,13 +92,15 @@ class AuthController extends Controller
         ]);
 
         $tenant->run(function () use ($name, $cellphone, $cellphonePrefix, $workEmail, $password) {
-            User::create([
+            $user = User::create([
                 'name' => $name,
                 'email' => $workEmail,
                 'cellphone_number' => $cellphone,
                 'cellphone_prefix' => $cellphonePrefix,
                 'password' => bcrypt($password),
             ]);
+
+            $user->assignRole(SystemRole::OWNER);
 
             $client = new ClientRepository;
 
@@ -300,5 +307,12 @@ class AuthController extends Controller
             ->first();
 
         return UserResource::make($user);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->token()->revoke();
+
+        return response()->noContent();
     }
 }
