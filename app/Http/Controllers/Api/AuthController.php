@@ -32,7 +32,7 @@ class AuthController extends Controller
         $input = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            'tenant_id' => ['required', 'string'],
+            'tenant_id' => ['sometimes', 'string'],
         ]);
 
         $email = data_get($input, 'email');
