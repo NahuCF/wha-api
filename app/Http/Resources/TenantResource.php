@@ -16,13 +16,7 @@ class TenantResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'website' => $this->website,
-            'email' => $this->email,
-            'business_name' => $this->business_name,
-            'verified_email' => $this->verified_email,
-            'verified_whatsapp' => $this->verified_whatsapp,
-            'filled_basic_information' => $this->filled_basic_information,
+            'company_name' => $this->company_name,
         ];
     }
 }

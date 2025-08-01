@@ -11,6 +11,7 @@ use App\Jobs\SendOTPCode;
 use App\Jobs\SendVerifyAccountEmail;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
+use App\Models\TenantUser;
 use App\Models\TenantVerificationEmail;
 use App\Models\User;
 use App\Services\JobDispatcherService;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Passport\ClientRepository;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -30,20 +32,35 @@ class AuthController extends Controller
         $input = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'tenant_id' => ['required', 'string'],
         ]);
 
         $email = data_get($input, 'email');
         $password = data_get($input, 'password');
+        $tenantId = data_get($input, 'tenant_id');
 
-        $tenant = Tenant::query()
+        $tenantUsers = TenantUser::query()
             ->where('email', $email)
-            ->first();
+            ->when($tenantId, fn ($q, $tenantId) => $q->where('tenant_id', $tenantId))
+            ->get();
 
-        if (! $tenant) {
+        if ($tenantUsers->isEmpty()) {
             throw ValidationException::withMessages([
                 'credentials' => ['The provided credentials are incorrect.'],
             ]);
         }
+
+        if(!$tenantId && $tenantUsers->count() > 1) {
+            $tenants = Tenant::query()
+                ->whereIn('id', $tenantUsers->pluck('tenant_id'))
+                ->get();
+
+            return TenantResource::collection($tenants);
+        }
+        
+        $tenantUser = $tenantUsers->first();
+
+        $tenant = Tenant::find($tenantUser->tenant_id);
 
         tenancy()->initialize($tenant);
 
@@ -58,6 +75,9 @@ class AuthController extends Controller
             ]);
         }
 
+        $user->loadPermissionNames();
+
+        $user->tokens()->delete();
         $token = $user->createToken('tenant-token')->accessToken;
 
         $user->update(['status' => UserStatus::ACTIVE->value]);
@@ -76,7 +96,8 @@ class AuthController extends Controller
             'name' => ['required', 'string'],
             'cellphone' => ['required', 'string'],
             'cellphone_prefix' => ['required', 'string'],
-            'work_email' => ['required', 'email', 'unique:tenants,email'],
+            'work_email' => ['required', 'email'],
+            'company_name' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
@@ -85,9 +106,14 @@ class AuthController extends Controller
         $cellphonePrefix = data_get($input, 'cellphone_prefix');
         $workEmail = data_get($input, 'work_email');
         $password = data_get($input, 'password');
-
+        $companyName = data_get($input, 'company_name');
+        
         $tenant = Tenant::create([
-            'name' => $name,
+            'company_name' => $companyName,
+        ]);
+
+        $tenant->users()->insert([
+            'tenant_id' => $tenant->id,
             'email' => $workEmail,
         ]);
 
@@ -101,6 +127,7 @@ class AuthController extends Controller
             ]);
 
             $user->assignRole(SystemRole::OWNER);
+            $user->givePermissionTo(Role::findByName(SystemRole::OWNER->value)->permissions);
 
             $client = new ClientRepository;
 

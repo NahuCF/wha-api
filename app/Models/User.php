@@ -19,4 +19,11 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Team::class);
     }
+
+    public function loadPermissionNames(): self
+    {
+        $this->setRelation('permission_names', $this->permissions()->pluck('name'));
+
+        return $this;
+    }
 }

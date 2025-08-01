@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'teams' => TeamResource::collection($this->whenLoaded('teams')),
             'role' => new RoleResource($this->roles->first()),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
+            'permission_names' => $this->whenLoaded('permission_names'),
             'is_deleted' => $this->trashed(),
             'status' => $this->status,
         ];

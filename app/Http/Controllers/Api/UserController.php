@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
@@ -26,7 +27,7 @@ class UserController extends Controller
         $search = data_get($input, 'search', '');
 
         $users = User::query()
-            ->with('permissions')
+            ->with('permissions', 'teams')
             ->when($onlyTrashed, fn ($q) => $q->onlyTrashed())
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
             ->get();
@@ -48,6 +49,8 @@ class UserController extends Controller
         $email = data_get($input, 'email');
         $role = data_get($input, 'role');
         $teamsIds = data_get($input, 'team_ids', []);
+
+        $tenant = tenant();
 
         if ($role == SystemRole::OWNER->value) {
             throw ValidationException::withMessages([
@@ -78,6 +81,13 @@ class UserController extends Controller
 
         $user = User::query()
             ->create($userData);
+
+        DB::connection('landlord')
+            ->table('tenant_user')
+            ->insert([
+                'tenant_id' => $tenant->id,
+                'email' => $user->email,
+            ]);
 
         $user->teams()->syncWithoutDetaching($teamsIds);
 
@@ -134,6 +144,13 @@ class UserController extends Controller
         }
 
         $user->update($userData);
+
+        DB::connection('landlord')
+            ->table('tenant_user')
+            ->where('email', $user->email)
+            ->update([
+                'email' => $user->email,
+            ]);
 
         $user->teams()->syncWithoutDetaching($teamsIds);
 

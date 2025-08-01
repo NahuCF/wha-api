@@ -24,17 +24,17 @@ class RoleController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $input = $request->validate([
             'name' => ['required', 'string'],
             'permissions' => ['sometimes', 'array'],
             'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ]);
 
-        $permissions = data_get($data, 'permissions', []);
+        $permissions = data_get($input, 'permissions', []);
         $user = Auth::user();
 
         $existRoleWithName = Role::query()
-            ->where('name', $data['name'])
+            ->where('name', $input['name'])
             ->exists();
 
         if ($existRoleWithName) {
@@ -44,7 +44,7 @@ class RoleController extends Controller
         }
 
         $role = Role::create([
-            'name' => $data['name'],
+            'name' => $input['name'],
             'guard_name' => 'api',
             'user_id' => $user->id,
         ]);
@@ -67,18 +67,24 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role)
     {
+
         if ($role->is_internal) {
             throw ValidationException::withMessages([
                 'role' => ['This role is internal and cannot be updated.'],
             ]);
         }
 
-        $data = $request->validate([
-            'name' => ['required', 'string', Rule::unique('roles')->ignore($role->id)],
+        $input = $request->validate([
+            'name' => ['required', 'string'],
+            'permissions' => ['sometimes', 'array'],
+            'permissions.*' => ['string', Rule::exists('permissions', 'name')],
         ]);
 
+        $name = data_get($input, 'name');
+        $permissions = data_get($input, 'permissions', []);
+
         $existRoleWithName = Role::query()
-            ->where('name', $data['name'])
+            ->where('name', $name)
             ->where('id', '!=', $role->id)
             ->exists();
 
@@ -88,7 +94,12 @@ class RoleController extends Controller
             ]);
         }
 
-        $role->update($data);
+        if (! empty($permissions)) {
+            $role->syncPermissions($permissions);
+        }
+
+        $role->update([
+            'name' => $name]);
 
         $role->load('permissions');
 
