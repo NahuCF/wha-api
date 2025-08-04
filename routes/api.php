@@ -87,7 +87,7 @@ Route::group(['middleware' => [
         Route::get('/categories', [TemplateCategoryController::class, 'index']);
         Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
     });
-    Route::apiResource('templates', TemplateController::class)->only(['index', 'store']);
+    Route::apiResource('templates', TemplateController::class)->only(['index', 'store', 'update']);
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);

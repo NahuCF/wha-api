@@ -97,7 +97,7 @@ class TemplateController extends Controller
         return TemplateResource::make($template);
     }
 
-    public function update(UpdateTemplateRequest $request)
+    public function update(UpdateTemplateRequest $request, Template $template)
     {
         $input = $request->validated();
 
@@ -131,7 +131,12 @@ class TemplateController extends Controller
             return $variable;
         });
 
-        if (Template::query()->where('name', $name)->exists()) {
+        $templateWithName = Template::query()
+            ->where('name', $name)
+            ->where('id', '!=', $template->id)
+            ->exists();
+
+        if ($templateWithName) {
             throw new HttpResponseException(response()->json([
                 'message' => 'Template name already exists',
                 'message_code' => 'templater_name_already_exists',
@@ -143,7 +148,7 @@ class TemplateController extends Controller
             ->where('id', $languageId)
             ->first();
 
-        $template = Template::create([
+        $template->update([
             'name' => $name,
             'language' => $language->code,
             'allow_category_change' => $allowCategoryChange,
