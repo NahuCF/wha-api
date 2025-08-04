@@ -152,7 +152,7 @@ class UserController extends Controller
                 'email' => $user->email,
             ]);
 
-        $user->teams()->syncWithoutDetaching($teamsIds);
+        $user->teams()->sync($teamsIds);
 
         $user->syncRoles($role);
         $user->givePermissionTo(Role::findByName($role)->permissions);

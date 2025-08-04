@@ -22,7 +22,13 @@ class User extends Authenticatable
 
     public function loadPermissionNames(): self
     {
-        $this->setRelation('permission_names', $this->permissions()->pluck('name'));
+        $role = $this->roles()->first(); // since user has only one role
+
+        $permissions = $role
+            ? $role->permissions()->pluck('name')
+            : collect(); // return empty if no role assigned
+
+        $this->setRelation('permission_names', $permissions);
 
         return $this;
     }

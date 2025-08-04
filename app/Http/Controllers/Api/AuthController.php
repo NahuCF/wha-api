@@ -50,14 +50,14 @@ class AuthController extends Controller
             ]);
         }
 
-        if(!$tenantId && $tenantUsers->count() > 1) {
+        if (! $tenantId && $tenantUsers->count() > 1) {
             $tenants = Tenant::query()
                 ->whereIn('id', $tenantUsers->pluck('tenant_id'))
                 ->get();
 
             return TenantResource::collection($tenants);
         }
-        
+
         $tenantUser = $tenantUsers->first();
 
         $tenant = Tenant::find($tenantUser->tenant_id);
@@ -107,7 +107,7 @@ class AuthController extends Controller
         $workEmail = data_get($input, 'work_email');
         $password = data_get($input, 'password');
         $companyName = data_get($input, 'company_name');
-        
+
         $tenant = Tenant::create([
             'company_name' => $companyName,
         ]);
