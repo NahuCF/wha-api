@@ -56,13 +56,6 @@ class GroupController extends Controller
             throw ValidationException::withMessages(['name' => 'Group name already exists']);
         }
 
-        $group = Group::query()
-            ->create([
-                'name' => $name,
-                'user_id' => $user->id,
-                'filters' => json_encode($filters),
-            ]);
-
         $contacts = (new ContactService)->index(
             columns: ['id'],
             filters: $filters,
@@ -74,6 +67,13 @@ class GroupController extends Controller
         if (empty($contactIds)) {
             throw ValidationException::withMessages(['filters' => 'No contacts found']);
         }
+
+        $group = Group::query()
+            ->create([
+                'name' => $name,
+                'user_id' => $user->id,
+                'filters' => json_encode($filters),
+            ]);
 
         $group->contacts()->sync($contactIds);
 

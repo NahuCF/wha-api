@@ -6,12 +6,15 @@ use App\Enums\ContactFieldType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Requests\UpdateTemplateRequest;
+use App\Http\Resources\BroadcastResource;
 use App\Http\Resources\TemplateResource;
 use App\Models\ContactField;
 use App\Models\Template;
 use App\Services\TemplateLanguageService;
+use App\Services\TemplateService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class TemplateController extends Controller
 {
@@ -139,7 +142,7 @@ class TemplateController extends Controller
         if ($templateWithName) {
             throw new HttpResponseException(response()->json([
                 'message' => 'Template name already exists',
-                'message_code' => 'templater_name_already_exists',
+                'message_code' => 'template_name_already_exists',
                 'errors' => ['name' => ['Template name already exists']],
             ], 422));
         }
@@ -162,5 +165,32 @@ class TemplateController extends Controller
         ]);
 
         return TemplateResource::make($template);
+    }
+
+    public function show(Template $template)
+    {
+        return TemplateResource::make($template);
+    }
+
+    public function destroy(Template $template)
+    {
+        $activeBroadcasts = (new TemplateService)->getActiveBroadcasts($template);
+
+        if ($activeBroadcasts->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'active_broadcasts_count' => 'Template has active broadcasts',
+            ]);
+        }
+
+        $template->delete();
+
+        return response()->noContent();
+    }
+
+    public function activeBroadcasts(Template $template)
+    {
+        $activeBroadcasts = (new TemplateService)->getActiveBroadcasts($template);
+
+        return BroadcastResource::collection($activeBroadcasts);
     }
 }

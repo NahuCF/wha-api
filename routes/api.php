@@ -86,8 +86,9 @@ Route::group(['middleware' => [
         Route::get('/languages', [TemplateLanguageController::class, 'index']);
         Route::get('/categories', [TemplateCategoryController::class, 'index']);
         Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
+        Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts']);
     });
-    Route::apiResource('templates', TemplateController::class)->only(['index', 'store', 'update']);
+    Route::apiResource('templates', TemplateController::class);
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
