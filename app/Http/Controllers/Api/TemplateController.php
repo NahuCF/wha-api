@@ -10,7 +10,6 @@ use App\Http\Resources\BroadcastResource;
 use App\Http\Resources\TemplateResource;
 use App\Models\ContactField;
 use App\Models\Template;
-use App\Services\TemplateLanguageService;
 use App\Services\TemplateService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -43,7 +42,7 @@ class TemplateController extends Controller
         $input = $request->validated();
 
         $name = data_get($input, 'name');
-        $languageId = data_get($input, 'language_id');
+        $language = data_get($input, 'language');
         $allowCategoryChange = data_get($input, 'allow_category_change', false);
         $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
@@ -80,13 +79,9 @@ class TemplateController extends Controller
             ], 422));
         }
 
-        $language = (new TemplateLanguageService)->getCachedLanguages()
-            ->where('id', $languageId)
-            ->first();
-
         $template = Template::create([
             'name' => $name,
-            'language' => $language->code,
+            'language' => $language,
             'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],
@@ -105,7 +100,7 @@ class TemplateController extends Controller
         $input = $request->validated();
 
         $name = data_get($input, 'name');
-        $languageId = data_get($input, 'language_id');
+        $language = data_get($input, 'language');
         $allowCategoryChange = data_get($input, 'allow_category_change', false);
         $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
@@ -147,13 +142,9 @@ class TemplateController extends Controller
             ], 422));
         }
 
-        $language = (new TemplateLanguageService)->getCachedLanguages()
-            ->where('id', $languageId)
-            ->first();
-
         $template->update([
             'name' => $name,
-            'language' => $language->code,
+            'language' => $language,
             'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],

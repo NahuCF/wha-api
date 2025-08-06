@@ -27,7 +27,7 @@ class StoreTemplateRequest extends FormRequest
             'name' => ['required', 'string', 'max:512'],
 
             // Language and category
-            'language_id' => ['required', Rule::exists('landlord.template_languages', 'id')],
+            'language' => ['required', Rule::exists('landlord.template_languages', 'code')],
             'category' => ['required', Rule::in(Template::CATEGORY_TYPES)],
             'allow_category_change' => ['sometimes', 'boolean'],
 
