@@ -27,8 +27,8 @@ use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
 Route::get('/up', fn () => response('', 200));
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
 Route::post('/send-verify-account', [AuthController::class, 'sendVerifyAccount']);
 Route::post('/verify-account', [AuthController::class, 'verifyAccount']);

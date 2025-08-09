@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ContactFieldType;
+use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Requests\UpdateTemplateRequest;
@@ -140,6 +141,16 @@ class TemplateController extends Controller
                 'message_code' => 'template_name_already_exists',
                 'errors' => ['name' => ['Template name already exists']],
             ], 422));
+        }
+
+        if(AppEnvironment::isProduction()) {
+            (new TemplateService)->createTemplate(
+                    $name, 
+                    $category,
+                    $language,
+                    $components,
+                    
+                );
         }
 
         $template->update([

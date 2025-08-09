@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('templates', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->string('meta_id');
             $table->string('name', '512')->unique();
             $table->string('language');
             $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);

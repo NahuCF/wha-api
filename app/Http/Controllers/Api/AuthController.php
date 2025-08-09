@@ -174,7 +174,7 @@ class AuthController extends Controller
                 'sent_at' => now(),
             ]);
 
-        $link = env('CLIENT_URL').'/verify-account?token='.$token;
+        $link = config('app.client_url').'/verify-account?token='.$token;
 
         JobDispatcherService::displayToFastQueue(
             new SendVerifyAccountEmail(

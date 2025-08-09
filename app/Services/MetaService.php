@@ -42,7 +42,7 @@ class MetaService
 
     public function getWabaID() {}
 
-    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token): array
+    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token) 
     {
         $payload = [
             'name' => $name,
@@ -52,9 +52,9 @@ class MetaService
         ];
 
         try {
-            $url = "{$this->apiUrl}/{$this->getWabaID()}/message_templates";
+            $url = "{$this->getWabaID()}/message_templates";
             $response = Http::withToken($token)
-                ->post($this->buildUrl(), $payload);
+                ->post($this->buildUrl($url), $payload);
 
             return $response;
 
