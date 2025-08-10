@@ -32,12 +32,15 @@ class TenantController extends Controller
 
         $businesses = (new MetaService)->getBusinesses($longLivedAccessToken);
 
+        $tenant->businesses()->delete();
+
         $storedBusinesses = [];
 
         foreach ($businesses as $business) {
             $storedBusiness = Business::query()
                 ->create([
                     'id' => Str::ulid(),
+                    'tenant_id' => $tenant->id,
                     'meta_business_id' => $business['id'],
                     'name' => $business['name'],
                 ]);
