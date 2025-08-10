@@ -39,6 +39,7 @@ return [
         'api_url' => env('META_API_URL'),
         'app_id' => env('META_APP_ID'),
         'secret' => env('META_SECRET'),
+        'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
     ],
 
 ];

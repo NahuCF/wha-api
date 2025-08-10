@@ -25,6 +25,7 @@ return new class extends Migration
             $table->json('buttons')->nullable();
 
             $table->string('status')->default('PENDING');
+            $table->text('reason')->nullable();
 
             $table->timestamps();
 

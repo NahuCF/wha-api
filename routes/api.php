@@ -22,7 +22,6 @@ use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
-use App\Models\Callback;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
@@ -44,29 +43,9 @@ Route::get('/timezones', [TimezoneController::class, 'index']);
 Route::get('/known-places', [KnownPlaceController::class, 'index']);
 Route::get('/industries', [IndustryController::class, 'index']);
 
-Route::get('waba/callback', function () {
-    $request = request();
-
-    $mode = $request->query('hub_mode');
-    $token = $request->query('hub_verify_token');
-    $challenge = $request->query('hub_challenge');
-
-    if ($mode === 'subscribe' && $token === 'test') {
-        // Tokens match, return the challenge
-        return response($challenge, 200);
-    }
-
-    // Tokens do not match
-    return response('Forbidden', 403);
-});
-
-Route::post('waba/callback', function () {
-    Callback::query()
-        ->create([
-            'data' => json_encode(request()->all()),
-        ]);
-
-    return response('', 200);
+Route::prefix('meta/callback')->group(function () {
+    Route::get('/', [MetaController::class, 'handshake']);
+    Route::post('/post', [MetaController::class, 'callback']);
 });
 
 Route::group(['middleware' => [

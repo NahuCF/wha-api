@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ContactFieldType;
+use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Requests\UpdateTemplateRequest;
@@ -10,6 +11,7 @@ use App\Http\Resources\BroadcastResource;
 use App\Http\Resources\TemplateResource;
 use App\Models\ContactField;
 use App\Models\Template;
+use App\Services\MetaService;
 use App\Services\TemplateService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -79,6 +81,8 @@ class TemplateController extends Controller
             ], 422));
         }
 
+        $components =
+
         $template = Template::create([
             'name' => $name,
             'language' => $language,
@@ -91,6 +95,21 @@ class TemplateController extends Controller
             'buttons' => json_encode($buttons),
             'status' => 'PENDING',
         ]);
+
+        if (AppEnvironment::isProduction()) {
+            $response = (new MetaService)->createTemplate(
+                $name,
+                $category,
+                $language,
+                (new TemplateService)->templateComponentsToMeta($template)
+            );
+
+            $template->update([
+                'meta_id' => $response['id'],
+                'status' => $response['status'],
+                'category' => $response['category'],
+            ]);
+        }
 
         return TemplateResource::make($template);
     }

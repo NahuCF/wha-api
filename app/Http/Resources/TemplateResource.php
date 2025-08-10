@@ -20,6 +20,7 @@ class TemplateResource extends JsonResource
             'language' => $this->language,
             'category' => $this->category,
             'status' => $this->status,
+            'reason' => $this->reason,
             'allow_category_change' => $this->allow_category_change,
             'components' => [
                 'header' => $this->header ? json_decode($this->header, true) : [],

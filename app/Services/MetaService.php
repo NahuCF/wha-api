@@ -15,11 +15,9 @@ class MetaService
         $this->apiUrl = config('services.meta.api_url');
     }
 
-    public function getLongLivedToken()
+    public function getToken()
     {
-        $tenant = \App\Models\Tenant::current();
-
-        return $tenant ? $tenant->settings['long_lived_access_token'] ?? null : null;
+        return tenant('long_lived_access_token');
     }
 
     private function buildUrl($endpoint)
@@ -74,7 +72,7 @@ class MetaService
         }
     }
 
-    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token)
+    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components)
     {
         $payload = [
             'name' => $name,
@@ -85,11 +83,10 @@ class MetaService
 
         try {
             $url = "{$this->getWabaID()}/message_templates";
-            $response = Http::withToken($token)
+            $response = Http::withToken($this->getToken())
                 ->post($this->buildUrl($url), $payload);
 
-            return $response;
-
+            return $response->json();
         } catch (\Throwable $e) {
             Log::error('WhatsApp template creation failed: '.$e->getMessage());
 
