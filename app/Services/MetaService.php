@@ -15,6 +15,13 @@ class MetaService
         $this->apiUrl = config('services.meta.api_url');
     }
 
+    public function getLongLivedToken()
+    {
+        $tenant = \App\Models\Tenant::current();
+
+        return $tenant ? $tenant->settings['long_lived_access_token'] ?? null : null;
+    }
+
     private function buildUrl($endpoint)
     {
         return $this->apiUrl.$endpoint;
@@ -42,7 +49,32 @@ class MetaService
 
     public function getWabaID() {}
 
-    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token) 
+    public function getBusinesses(string $token)
+    {
+        try {
+            $response = Http::withToken($token)
+                ->get($this->buildUrl('me/businesses'), [
+                    'fields' => 'id,name',
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('data', []);
+            }
+
+            Log::error('Failed to fetch businesses from Meta API', [
+                'response' => $response->body(),
+                'status' => $response->status(),
+            ]);
+
+            return [];
+        } catch (\Throwable $e) {
+            Log::error('Error fetching businesses from Meta API: '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    public function createTemplate(string $name, TemplateCategory $category, string $language, array $components, string $token)
     {
         $payload = [
             'name' => $name,

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Business;
 use App\Services\MetaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
-    public function storeLongLivedToken(Request $request)
+    public function finishSetup(Request $request)
     {
         $input = $request->validate([
             'access_token' => ['required', 'string'],
@@ -28,6 +30,23 @@ class TenantController extends Controller
             'long_lived_access_token_expires_at' => now()->addSeconds($expiresIn),
         ]);
 
-        return response()->json($tenant, 200);
+        $businesses = (new MetaService)->getBusinesses($longLivedAccessToken);
+
+        $storedBusinesses = [];
+
+        foreach ($businesses as $business) {
+            $storedBusiness = Business::query()
+                ->create([
+                    'id' => Str::ulid(),
+                    'meta_business_id' => $business['id'],
+                    'name' => $business['name'],
+                ]);
+
+            $storedBusinesses[] = $storedBusiness;
+        }
+
+        return response()->json([
+            'buss' => $storedBusinesses,
+        ], 200);
     }
 }

@@ -15,6 +15,11 @@ class User extends Authenticatable
 
     protected $guarded = [];
 
+    public function tenants()
+    {
+        return $this->belongsToMany(Tenant::class);
+    }
+
     public function teams()
     {
         return $this->belongsToMany(Team::class);

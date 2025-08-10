@@ -75,6 +75,7 @@ class ContactImportController extends Controller
         $history = ContactImportHistory::create([
             'id' => Str::ulid(),
             'user_id' => $user->id,
+            'tenant_id' => tenant('id'),
             'name' => $name,
             'import_type' => $importType,
             'file_path' => $s3Path,

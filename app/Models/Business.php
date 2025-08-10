@@ -6,12 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
-class ContactImportHistory extends Model
+class Business extends Model
 {
     use BelongsToTenant, HasUlids;
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 }

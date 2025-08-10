@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class Template extends Model
 {
-    use HasUlids;
+    use BelongsToTenant, HasUlids;
 
     protected $guarded = [];
 

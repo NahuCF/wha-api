@@ -10,20 +10,18 @@ return new class extends Migration
     {
         Schema::create('teams', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->string('name');
             $table->foreignUlid('user_id')->constrained();
+            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
+            $table->string('name');
             $table->timestamps();
         });
 
         Schema::create('team_user', function (Blueprint $table) {
-            $table->ulid('team_id');
-            $table->ulid('user_id');
+            $table->foreignUlid('team_id')->constrained();
+            $table->foreignUlid('user_id')->constrained();
             $table->timestamps();
 
             $table->primary(['team_id', 'user_id']);
-
-            $table->foreign('team_id')->references('id')->on('teams')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

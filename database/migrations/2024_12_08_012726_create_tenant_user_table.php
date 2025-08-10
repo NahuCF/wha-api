@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contacts', function (Blueprint $table) {
-            $table->ulid('id')->primary();
-            $table->timestamps();
+        Schema::create('tenant_user', function (Blueprint $table) {
+            $table->foreignUlid('tenant_id');
+            $table->foreignUlid('user_id');
+
+            $table->primary(['tenant_id', 'user_id']);
         });
     }
 
@@ -22,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contacts');
+        Schema::dropIfExists('tenant_user');
     }
 };

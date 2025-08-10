@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\GroupResource;
 use App\Models\Group;
 use App\Services\ContactService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class GroupController extends Controller
@@ -70,8 +72,10 @@ class GroupController extends Controller
 
         $group = Group::query()
             ->create([
+                'id' => Str::ulid(),
                 'name' => $name,
                 'user_id' => $user->id,
+                'tenant_id' => tenant('id'),
                 'filters' => json_encode($filters),
             ]);
 
@@ -130,6 +134,12 @@ class GroupController extends Controller
 
     public function destroy(Group $group)
     {
+        if ($group->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
         $group->delete();
 
         return response()->noContent();

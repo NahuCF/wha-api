@@ -39,9 +39,12 @@ class AuthController extends Controller
         $password = data_get($input, 'password');
         $tenantId = data_get($input, 'tenant_id');
 
-        $tenantUsers = TenantUser::query()
+        $tenantUsers = User::query()
             ->where('email', $email)
-            ->when($tenantId, fn ($q, $tenantId) => $q->where('tenant_id', $tenantId))
+            ->with('tenants')
+            ->when($tenantId, function ($query) use ($tenantId) {
+                $query->whereHas('tenants', fn ($q) => $q->where('tenants.id', $tenantId));
+            })
             ->get();
 
         if ($tenantUsers->isEmpty()) {
@@ -51,8 +54,10 @@ class AuthController extends Controller
         }
 
         if (! $tenantId && $tenantUsers->count() > 1) {
+            $tenantIds = $tenantUsers->flatMap(fn ($tenantUser) => $tenantUser->tenants)->pluck('id');
+
             $tenants = Tenant::query()
-                ->whereIn('id', $tenantUsers->pluck('tenant_id'))
+                ->whereIn('id', $tenantIds)
                 ->get();
 
             return TenantResource::collection($tenants);
@@ -60,9 +65,7 @@ class AuthController extends Controller
 
         $tenantUser = $tenantUsers->first();
 
-        $tenant = Tenant::find($tenantUser->tenant_id);
-
-        tenancy()->initialize($tenant);
+        $tenant = Tenant::find($tenantUser->tenants->first()->id);
 
         $user = User::query()
             ->with('roles')
@@ -112,28 +115,27 @@ class AuthController extends Controller
             'company_name' => $companyName,
         ]);
 
-        $tenant->users()->insert([
-            'tenant_id' => $tenant->id,
+        $user = User::create([
+            'id' => Str::ulid(),
+            'name' => $name,
             'email' => $workEmail,
+            'cellphone_number' => $cellphone,
+            'cellphone_prefix' => $cellphonePrefix,
+            'password' => bcrypt($password),
         ]);
 
-        $tenant->run(function () use ($name, $cellphone, $cellphonePrefix, $workEmail, $password) {
-            $user = User::create([
-                'name' => $name,
-                'email' => $workEmail,
-                'cellphone_number' => $cellphone,
-                'cellphone_prefix' => $cellphonePrefix,
-                'password' => bcrypt($password),
-            ]);
+        TenantUser::insert([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+        ]);
 
-            $user->assignRole(SystemRole::OWNER);
-            $user->givePermissionTo(Role::findByName(SystemRole::OWNER->value)->permissions);
+        $user->assignRole(SystemRole::OWNER);
+        $user->givePermissionTo(Role::findByName(SystemRole::OWNER->value)->permissions);
 
-            $client = new ClientRepository;
+        $client = new ClientRepository;
 
-            $client->createPasswordGrantClient(null, 'Default password grant client', '');
-            $client->createPersonalAccessClient(null, 'Default personal access client', '');
-        });
+        $client->createPasswordGrantClient(null, 'Default password grant client', '');
+        $client->createPersonalAccessClient(null, 'Default personal access client', '');
 
         return TenantResource::make($tenant);
     }

@@ -30,6 +30,7 @@ class CreateTenantsTable extends Migration
             $table->timestamp('long_lived_access_token_expires_at')->nullable();
             $table->timestamps();
             $table->json('data')->nullable();
+            $table->softDeletes();
         });
     }
 

@@ -45,16 +45,21 @@ class ImportContactsFromUpload implements ShouldQueue
             // Preload field IDs by name for quick lookup
             $mappingByName = collect($this->mappings)->pluck('id', 'name');
 
-            $contactFieldsById = ContactField::query()
+            $contactFieldsById = ContactField::withoutGlobalScopes()
+                ->where(function ($query) {
+                    $query->whereNull('tenant_id')
+                        ->orWhere('tenant_id', tenant('id'));
+                })
                 ->get()
                 ->keyBy('id');
 
             // Temporary file
-            $tempPath = storage_path('app/temp_'.uniqid().'.xlsx');
-            Storage::disk('local')->put(
-                basename($tempPath),
+            $filename = 'temp_'.uniqid().'.xlsx';
+            Storage::put(
+                $filename,
                 Storage::disk('s3')->get($this->filePath)
             );
+            $tempPath = Storage::path($filename);
 
             SimpleExcelReader::create($tempPath)
                 ->getRows()
@@ -67,6 +72,7 @@ class ImportContactsFromUpload implements ShouldQueue
                         // prepare new contact record
                         $contactsData[] = [
                             'id' => \Illuminate\Support\Str::ulid(),
+                            'tenant_id' => tenant('id'),
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
@@ -100,6 +106,7 @@ class ImportContactsFromUpload implements ShouldQueue
                                     'id' => \Illuminate\Support\Str::ulid(),
                                     'contact_id' => $contactId,
                                     'contact_field_id' => $fieldId,
+                                    'tenant_id' => tenant('id'),
                                     'value' => json_encode($parsedValue),
                                     'created_at' => now(),
                                     'updated_at' => now(),

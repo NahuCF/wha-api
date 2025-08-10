@@ -8,6 +8,7 @@ use App\Http\Requests\StoreContactFieldRequest;
 use App\Http\Requests\UpdateContactFieldRequest;
 use App\Http\Resources\ContactFieldResource;
 use App\Models\ContactField;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -24,10 +25,13 @@ class ContactFieldController extends Controller
         $rowsPerPage = data_get($input, 'rows_per_page', 10);
         $isPrimaryField = data_get($input, 'is_primary_field', false);
 
-        $contactFields = ContactField::query()
+        $contactFields = ContactField::withoutGlobalScopes()
             ->when($isPrimaryField, fn ($q) => $q->where('is_primary_field', $isPrimaryField))
             ->orderBy('is_primary_field', 'desc')
-            ->paginate($rowsPerPage);
+            ->where(function ($query) {
+                $query->whereNull('tenant_id')
+                    ->orWhere('tenant_id', tenant('id'));
+            })->paginate($rowsPerPage);
 
         return ContactFieldResource::collection($contactFields);
     }
@@ -99,6 +103,12 @@ class ContactFieldController extends Controller
             throw ValidationException::withMessages([
                 'primary_field' => 'This contact field cannot be deleted',
             ]);
+        }
+
+        if ($field->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
         }
 
         $field->delete();

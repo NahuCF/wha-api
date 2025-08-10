@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\ContactFieldType;
-use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Requests\UpdateTemplateRequest;
@@ -143,16 +142,6 @@ class TemplateController extends Controller
             ], 422));
         }
 
-        if(AppEnvironment::isProduction()) {
-            (new TemplateService)->createTemplate(
-                    $name, 
-                    $category,
-                    $language,
-                    $components,
-                    
-                );
-        }
-
         $template->update([
             'name' => $name,
             'language' => $language,
@@ -176,6 +165,12 @@ class TemplateController extends Controller
 
     public function destroy(Template $template)
     {
+        if ($template->tenant_id != tenant()->id) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
         $activeBroadcasts = (new TemplateService)->getActiveBroadcasts($template);
 
         if ($activeBroadcasts->isNotEmpty()) {

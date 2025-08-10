@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contact_group', function (Blueprint $table) {
-            $table->foreignUlid('contact_id')->constrained();
-            $table->foreignUlid('group_id')->constrained();
-            $table->primary(['contact_id', 'group_id']);
+        Schema::create('businesses', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
+            $table->string('meta_business_id')->unique();
+            $table->string('name');
+            $table->timestamps();
         });
     }
 
@@ -23,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contact_group');
+        Schema::dropIfExists('businesses');
     }
 };

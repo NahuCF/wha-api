@@ -8,14 +8,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('contact_import_histories', function (Blueprint $table) {
             $table->ulid('id');
             $table->foreignUlid('user_id')->constrained();
+            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->enum('import_type', ContactImportType::values());
             $table->integer('added_contacts_count')->default(0);
@@ -27,9 +25,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('contact_import_histories');

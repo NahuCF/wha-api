@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
 use App\Models\Contact;
 use App\Services\ContactService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -54,6 +55,12 @@ class ContactController extends Controller
 
     public function destroy(Contact $contact)
     {
+        if ($contact->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
         $contact->delete();
 
         return response()->noContent();

@@ -74,7 +74,14 @@ class ContactService
     public function store(array $fields)
     {
         // Check duplicate contact by phone
-        $phoneField = ContactField::where('name', 'Phone')->firstOrFail();
+        $phoneField = ContactField::withoutGlobalScopes()
+            ->where(function ($query) {
+                $query->whereNull('tenant_id')
+                    ->orWhere('tenant_id', tenant('id'));
+            })
+            ->where('name', 'Phone')
+            ->firstOrFail();
+
         $phoneValue = collect($fields)->firstWhere('id', $phoneField->id)['value'];
 
         if (ContactFieldValue::whereJsonContains('value', $phoneValue)->exists()) {
@@ -90,6 +97,7 @@ class ContactService
             ->map(fn ($f) => [
                 'id' => Str::ulid(),
                 'contact_id' => $contact->id,
+                'tenant_id' => tenant('id'),
                 'contact_field_id' => $f['id'],
                 'value' => json_encode($f['value']),
                 'created_at' => now(),
@@ -137,7 +145,12 @@ class ContactService
 
     protected function assertFieldTypes(array $fields): void
     {
-        $allFields = ContactField::all()->keyBy('id');
+        $allFields = ContactField::withoutGlobalScopes()
+            ->where(function ($query) {
+                $query->whereNull('tenant_id')
+                    ->orWhere('tenant_id', tenant('id'));
+            })
+            ->get()->keyBy('id');
 
         foreach ($fields as $f) {
             $field = $allFields[$f['id']];

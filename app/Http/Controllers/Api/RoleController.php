@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -112,6 +113,12 @@ class RoleController extends Controller
             throw ValidationException::withMessages([
                 'role' => ['This role is internal and cannot be deleted.'],
             ]);
+        }
+
+        if ($role->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
         }
 
         $role->delete();

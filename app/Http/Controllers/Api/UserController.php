@@ -8,8 +8,8 @@ use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
@@ -82,13 +82,6 @@ class UserController extends Controller
         $user = User::query()
             ->create($userData);
 
-        DB::connection('landlord')
-            ->table('tenant_user')
-            ->insert([
-                'tenant_id' => $tenant->id,
-                'email' => $user->email,
-            ]);
-
         $user->teams()->syncWithoutDetaching($teamsIds);
 
         $user->syncRoles($role);
@@ -145,13 +138,6 @@ class UserController extends Controller
 
         $user->update($userData);
 
-        DB::connection('landlord')
-            ->table('tenant_user')
-            ->where('email', $user->email)
-            ->update([
-                'email' => $user->email,
-            ]);
-
         $user->teams()->sync($teamsIds);
 
         $user->syncRoles($role);
@@ -164,6 +150,16 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $userExistInTenant = $user->tenants()
+            ->where('tenant_id', tenant()->id)
+            ->exists();
+
+        if ($userExistInTenant) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
         if ($user->roles()->where('name', SystemRole::OWNER->value)->exists()) {
             throw ValidationException::withMessages([
                 'role' => ['You can not delete an owner user.'],
@@ -181,10 +177,20 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        if (! $user->trashed()) {
-            throw ValidationException::withMessages([
-                'role' => ['User is not deleted.'],
-            ]);
+        $userExistInTenant = $user->tenants()
+            ->where('tenant_id', tenant()->id)
+            ->exists();
+
+        if ($userExistInTenant) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
+        if ($user->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
         }
 
         $user->restore();

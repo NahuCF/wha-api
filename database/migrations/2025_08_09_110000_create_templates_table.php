@@ -6,15 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('templates', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->string('meta_id');
-            $table->string('name', '512')->unique();
+            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
+            $table->string('meta_id')->nullable();
+            $table->string('name', '512');
             $table->string('language');
             $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);
             $table->boolean('allow_category_change');
@@ -29,12 +27,12 @@ return new class extends Migration
             $table->string('status')->default('PENDING');
 
             $table->timestamps();
+
+            $table->index('tenant_id');
+            $table->unique(['tenant_id', 'name']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('templates');

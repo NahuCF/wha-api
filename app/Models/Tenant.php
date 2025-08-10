@@ -3,29 +3,54 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
-use Stancl\Tenancy\Contracts\TenantWithDatabase;
-use Stancl\Tenancy\Database\Concerns\HasDatabase;
-use Stancl\Tenancy\Database\Concerns\HasDomains;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
-class Tenant extends BaseTenant implements TenantWithDatabase
+class Tenant extends BaseTenant
 {
-    use HasDatabase, HasDomains, HasUlids;
+    use HasUlids, SoftDeletes;
 
-    public function users()
-    {
-        return $this->hasMany(TenantUser::class);
-    }
+    protected $fillable = [
+        'company_name',
+        'id',
+    ];
 
     public static function getCustomColumns(): array
     {
         return [
-            'id',
-            'name',
-            'website',
             'company_name',
-            'email',
-            'database',
+            'id',
         ];
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function templates(): HasMany
+    {
+        return $this->hasMany(Template::class);
+    }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(Contact::class);
+    }
+
+    public function groups(): HasMany
+    {
+        return $this->hasMany(Group::class);
+    }
+
+    public function broadcasts(): HasMany
+    {
+        return $this->hasMany(Broadcast::class);
+    }
+
+    public function businesses(): HasMany
+    {
+        return $this->hasMany(Business::class);
     }
 }
