@@ -26,6 +26,8 @@ class MetaController extends Controller
         if ($mode === 'subscribe' && $token === $verifyToken) {
             return response($challenge, 200);
         }
+
+        return response('Forbidden', 403);
     }
 
     public function callback(Request $request) {}
