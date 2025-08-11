@@ -17,6 +17,7 @@ class TenantResource extends JsonResource
         return [
             'id' => $this->id,
             'company_name' => $this->company_name,
+            'is_profile_completed' => $this->is_profile_completed,
         ];
     }
 }

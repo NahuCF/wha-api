@@ -8,16 +8,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasRoles, HasUlids, Notifiable, SoftDeletes;
+    use HasApiTokens, HasRoles, HasUlids, Notifiable, SoftDeletes, BelongsToTenant;
 
     protected $guarded = [];
 
-    public function tenants()
+    public function tenant()
     {
-        return $this->belongsToMany(Tenant::class);
+        return $this->belongsTo(Tenant::class);
     }
 
     public function teams()
@@ -36,5 +37,10 @@ class User extends Authenticatable
         $this->setRelation('permission_names', $permissions);
 
         return $this;
+    }
+
+    public function business()
+    {
+        return $this->belongsTo(Business::class);
     }
 }

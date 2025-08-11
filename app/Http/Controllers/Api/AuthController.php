@@ -41,11 +41,9 @@ class AuthController extends Controller
 
         $tenantUsers = User::query()
             ->where('email', $email)
-            ->with('tenants')
-            ->when($tenantId, function ($query) use ($tenantId) {
-                $query->whereHas('tenants', fn ($q) => $q->where('tenants.id', $tenantId));
-            })
+            ->with('tenant')
             ->get();
+
 
         if ($tenantUsers->isEmpty()) {
             throw ValidationException::withMessages([
@@ -54,10 +52,8 @@ class AuthController extends Controller
         }
 
         if (! $tenantId && $tenantUsers->count() > 1) {
-            $tenantIds = $tenantUsers->flatMap(fn ($tenantUser) => $tenantUser->tenants)->pluck('id');
-
             $tenants = Tenant::query()
-                ->whereIn('id', $tenantIds)
+                ->whereIn('id', $tenantUsers->pluck('tenant_id')->unique())
                 ->get();
 
             return TenantResource::collection($tenants);
@@ -65,7 +61,7 @@ class AuthController extends Controller
 
         $tenantUser = $tenantUsers->first();
 
-        $tenant = Tenant::find($tenantUser->tenants->first()->id);
+        $tenant = Tenant::find($tenantUser->tenant_id);
 
         $user = User::query()
             ->with('roles')
@@ -117,16 +113,12 @@ class AuthController extends Controller
 
         $user = User::create([
             'id' => Str::ulid(),
+            'tenant_id' => $tenant->id,
             'name' => $name,
             'email' => $workEmail,
             'cellphone_number' => $cellphone,
             'cellphone_prefix' => $cellphonePrefix,
             'password' => bcrypt($password),
-        ]);
-
-        TenantUser::insert([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user->id,
         ]);
 
         $user->assignRole(SystemRole::OWNER);

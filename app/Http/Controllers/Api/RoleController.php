@@ -15,8 +15,12 @@ class RoleController extends Controller
 {
     public function index(Request $request)
     {
-        $roles = Role::query()
+        $roles = Role::withoutGlobalScopes()
             ->with('permissions', 'user')
+            ->where(function ($query) {
+                $query->whereNull('tenant_id')
+                    ->orWhere('tenant_id', tenant('id'));
+            })
             ->orderBy('is_internal', 'desc')
             ->get();
 

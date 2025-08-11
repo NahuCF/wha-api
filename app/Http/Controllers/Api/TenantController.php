@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BusinessResource;
+use App\Http\Resources\TenantResource;
 use App\Models\Business;
+use App\Models\User;
 use App\Services\MetaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
-    public function finishSetup(Request $request)
+    public function metaAccess(Request $request)
     {
         $input = $request->validate([
             'access_token' => ['required', 'string'],
@@ -20,7 +25,9 @@ class TenantController extends Controller
 
         $tenant = tenancy()->tenant;
 
-        $metaService = (new MetaService)->requestLongLivedToken($accessToken);
+        $metaService = AppEnvironment::isProduction()
+            ? (new MetaService)->requestLongLivedToken($accessToken)
+            : ['access_token' => $accessToken, 'expires_in' => 1000000000];
 
         $longLivedAccessToken = $metaService['access_token'];
         $expiresIn = $metaService['expires_in'];
@@ -30,7 +37,9 @@ class TenantController extends Controller
             'long_lived_access_token_expires_at' => now()->addSeconds($expiresIn),
         ]);
 
-        $businesses = (new MetaService)->getBusinesses($longLivedAccessToken);
+        $businesses = AppEnvironment::isProduction()
+            ? (new MetaService)->getBusinesses($longLivedAccessToken)
+            : [['name' => 'Test Business', 'id' => '123456789']];
 
         $tenant->businesses()->delete();
 
@@ -48,8 +57,28 @@ class TenantController extends Controller
             $storedBusinesses[] = $storedBusiness;
         }
 
-        return response()->json([
-            'buss' => $storedBusinesses,
-        ], 200);
+        return BusinessResource::collection($storedBusinesses);
+    }
+
+    public function completeProfile(Request $request)
+    {
+        $input = $request->validate([
+            'business_id' => ['ulid', 'exists:businesses,id'],
+        ]);
+
+        $businessId = data_get($input, 'business_id');
+
+        $user = User::find(Auth::user()->id);
+        $tenant = tenancy()->tenant;
+
+        $user->update([
+            'business_id' => $businessId,
+        ]);
+
+        $tenant->update([
+            'is_profile_completed' => true,
+        ]);
+
+        return TenantResource::make($tenant);
     }
 }

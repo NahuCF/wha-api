@@ -14,6 +14,9 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->foreignUlid('tenant_id')->constrained();
+            $table->foreignUlid('business_id')->nullable()->constrained();
+
             $table->string('name');
             $table->string('email');
             $table->string('password')->nullable();
@@ -22,6 +25,8 @@ return new class extends Migration
             $table->enum('status', UserStatus::values())->default(UserStatus::SIGNED_UP);
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(['tenant_id', 'email']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

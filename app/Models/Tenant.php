@@ -14,19 +14,22 @@ class Tenant extends BaseTenant
     protected $fillable = [
         'company_name',
         'id',
+        'is_profile_completed',
     ];
 
     public static function getCustomColumns(): array
     {
         return [
             'company_name',
+            'is_profile_completed',
             'id',
         ];
     }
 
-    public function users(): HasMany
+    public function users() 
     {
-        return $this->hasMany(User::class);
+        return $this->belongsToMany(User::class)
+                ->withPivot('status');
     }
 
     public function templates(): HasMany

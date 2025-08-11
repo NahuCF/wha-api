@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Middleware\EnsureWabaId;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
@@ -57,7 +58,8 @@ Route::group(['middleware' => [
         Route::get('app-id', [MetaController::class, 'getAppId']);
     });
 
-    Route::post('tenant/finish-setup', [TenantController::class, 'finishSetup']);
+    Route::post('tenant/meta-access', [TenantController::class, 'metaAccess']);
+    Route::post('tenant/complete-profile', [TenantController::class, 'completeProfile']);
 
     Route::prefix('businesses')->group(function () {
         Route::get('/', [BusinessesController::class, 'index']);
@@ -67,13 +69,15 @@ Route::group(['middleware' => [
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('teams', TeamController::class);
 
-    Route::prefix('templates')->group(function () {
-        Route::get('/languages', [TemplateLanguageController::class, 'index']);
-        Route::get('/categories', [TemplateCategoryController::class, 'index']);
-        Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
-        Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts']);
-    });
-    Route::apiResource('templates', TemplateController::class);
+    Route::prefix('templates')
+        ->middleware([EnsureWabaId::class])
+        ->group(function () {
+            Route::get('/languages', [TemplateLanguageController::class, 'index']);
+            Route::get('/categories', [TemplateCategoryController::class, 'index']);
+            Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
+            Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts']);
+            Route::apiResource('/', TemplateController::class);
+        });
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);

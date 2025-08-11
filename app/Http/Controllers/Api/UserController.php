@@ -30,7 +30,8 @@ class UserController extends Controller
             ->with('permissions', 'teams')
             ->when($onlyTrashed, fn ($q) => $q->onlyTrashed())
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
-            ->get();
+            ->toSql();
+
 
         return UserResource::collection($users);
     }
@@ -39,7 +40,7 @@ class UserController extends Controller
     {
         $input = $request->validate([
             'name' => ['required', 'string'],
-            'email' => ['required', 'email', 'unique:users'],
+            'email' => ['required', 'email'],
             'role' => ['required', 'string', Rule::exists('roles', 'name')],
             'team_ids' => ['sometimes', 'array'],
             'team_ids.*' => ['ulid', Rule::exists('teams', 'id')],
@@ -60,6 +61,7 @@ class UserController extends Controller
 
         $emailAlreadyExists = User::query()
             ->where('email', $email)
+            ->where('tenant_id', $tenant->id)
             ->exists();
 
         if ($emailAlreadyExists) {
@@ -150,11 +152,7 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        $userExistInTenant = $user->tenants()
-            ->where('tenant_id', tenant()->id)
-            ->exists();
-
-        if ($userExistInTenant) {
+        if ($user->tenant_id !== tenant('id')) {
             throw new HttpResponseException(response()->json([
                 'message' => 'This action is unauthorized.',
             ], 403));
@@ -177,11 +175,8 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        $userExistInTenant = $user->tenants()
-            ->where('tenant_id', tenant()->id)
-            ->exists();
-
-        if ($userExistInTenant) {
+        
+        if ($user->tenant_id !== tenant('id')) {
             throw new HttpResponseException(response()->json([
                 'message' => 'This action is unauthorized.',
             ], 403));

@@ -21,15 +21,19 @@ class CreateTenantsTable extends Migration
             $table->foreignId('timezone_id')->nullable()->constrained();
             $table->integer('employees_amount')->nullable();
             $table->foreignId('known_place_id')->nullable()->constrained();
-            $table->boolean('verified_email')->default(false);
-            $table->boolean('filled_basic_information')->default(false);
-            $table->boolean('verified_whatsapp')->default(false);
             $table->string('short_lived_access_token')->nullable();
             $table->timestamp('short_lived_access_token_expires_at')->nullable();
             $table->string('long_lived_access_token')->nullable();
             $table->timestamp('long_lived_access_token_expires_at')->nullable();
-            $table->timestamps();
+
+            $table->boolean('is_profile_completed')->default(false);
+            $table->boolean('is_verified_email')->default(false);
+            $table->boolean('filled_basic_information')->default(false);
+            $table->boolean('verified_whatsapp')->default(false);
+
             $table->json('data')->nullable();
+
+            $table->timestamps();
             $table->softDeletes();
         });
     }

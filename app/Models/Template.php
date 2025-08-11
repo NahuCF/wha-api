@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasWabaId;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class Template extends Model
 {
-    use BelongsToTenant, HasUlids;
+    use BelongsToTenant, HasUlids, HasWabaId;
 
     protected $guarded = [];
 
