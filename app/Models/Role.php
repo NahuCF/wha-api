@@ -7,7 +7,6 @@ use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class Role extends SpatieRole
 {
-    use BelongsToTenant;
 
     public function user()
     {
