@@ -25,6 +25,7 @@ class UserResource extends JsonResource
             'role' => new RoleResource($this->roles->first()),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
             'permission_names' => $this->whenLoaded('permission_names'),
+            'business' => BusinessResource::make($this->whenLoaded('business')),
             'is_deleted' => $this->trashed(),
             'status' => $this->status,
         ];

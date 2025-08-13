@@ -52,7 +52,7 @@ class RoleController extends Controller
             'name' => $input['name'],
             'guard_name' => 'api',
             'user_id' => $user->id,
-            'tenant_id' => tenant('id')
+            'tenant_id' => tenant('id'),
         ]);
 
         if (! empty($permissions)) {

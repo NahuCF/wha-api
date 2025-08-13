@@ -11,7 +11,6 @@ use App\Jobs\SendOTPCode;
 use App\Jobs\SendVerifyAccountEmail;
 use App\Models\Tenant;
 use App\Models\TenantOtp;
-use App\Models\TenantUser;
 use App\Models\TenantVerificationEmail;
 use App\Models\User;
 use App\Services\JobDispatcherService;
@@ -43,7 +42,6 @@ class AuthController extends Controller
             ->where('email', $email)
             ->with('tenant')
             ->get();
-
 
         if ($tenantUsers->isEmpty()) {
             throw ValidationException::withMessages([
@@ -80,6 +78,8 @@ class AuthController extends Controller
         $token = $user->createToken('tenant-token')->accessToken;
 
         $user->update(['status' => UserStatus::ACTIVE->value]);
+
+        $user->load('business');
 
         return TenantResource::make($tenant)->additional([
             'meta' => [

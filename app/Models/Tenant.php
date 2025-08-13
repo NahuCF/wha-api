@@ -26,10 +26,10 @@ class Tenant extends BaseTenant
         ];
     }
 
-    public function users() 
+    public function users()
     {
         return $this->belongsToMany(User::class)
-                ->withPivot('status');
+            ->withPivot('status');
     }
 
     public function templates(): HasMany

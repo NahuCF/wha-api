@@ -32,7 +32,6 @@ class UserController extends Controller
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
             ->toSql();
 
-
         return UserResource::collection($users);
     }
 
@@ -175,7 +174,6 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        
         if ($user->tenant_id !== tenant('id')) {
             throw new HttpResponseException(response()->json([
                 'message' => 'This action is unauthorized.',

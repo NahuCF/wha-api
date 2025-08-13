@@ -12,7 +12,7 @@ use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasRoles, HasUlids, Notifiable, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasApiTokens, HasRoles, HasUlids, Notifiable, SoftDeletes;
 
     protected $guarded = [];
 
