@@ -39,7 +39,8 @@ class TenantController extends Controller
 
         $businesses = AppEnvironment::isProduction()
             ? (new MetaService)->getBusinesses($longLivedAccessToken)
-            : [['name' => 'Test Business', 'id' => '123456789']];
+            : [['name' => 'Test Business', 'id' => rand(1, 10000)]];
+
 
         $tenant->businesses()->delete();
 
