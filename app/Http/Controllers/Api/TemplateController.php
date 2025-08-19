@@ -81,8 +81,6 @@ class TemplateController extends Controller
             ], 422));
         }
 
-        $components =
-
         $template = Template::create([
             'name' => $name,
             'language' => $language,
@@ -179,6 +177,8 @@ class TemplateController extends Controller
 
     public function show(Template $template)
     {
+        return response()->json(app('waba_id'));
+
         return TemplateResource::make($template);
     }
 

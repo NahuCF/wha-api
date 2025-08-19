@@ -41,7 +41,6 @@ class TenantController extends Controller
             ? (new MetaService)->getBusinesses($longLivedAccessToken)
             : [['name' => 'Test Business', 'id' => rand(1, 10000)]];
 
-
         $tenant->businesses()->delete();
 
         $storedBusinesses = [];

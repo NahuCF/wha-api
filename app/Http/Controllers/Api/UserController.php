@@ -30,7 +30,7 @@ class UserController extends Controller
             ->with('permissions', 'teams')
             ->when($onlyTrashed, fn ($q) => $q->onlyTrashed())
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
-            ->toSql();
+            ->get();
 
         return UserResource::collection($users);
     }
