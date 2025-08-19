@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Enums\TemplateCategory;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class MetaService
 {
@@ -45,7 +46,10 @@ class MetaService
         ];
     }
 
-    public function getWabaID() {}
+    public function getWabaID() 
+    {
+        return Auth::user()->business->meta_business_id;
+    }
 
     public function getBusinesses(string $token)
     {
