@@ -6,7 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.9",
+        "laravel/framework": "^12.0",
         "laravel/horizon": "^5.31",
         "laravel/octane": "^2.11",
         "laravel/passport": "^12.0",
@@ -14,7 +14,8 @@
         "league/flysystem-aws-s3-v3": "^3.29",
         "predis/predis": "^2.3",
         "spatie/laravel-permission": "^6.21",
-        "spatie/simple-excel": "^3.7"
+        "spatie/simple-excel": "^3.7",
+        "stancl/tenancy": "^3.9"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
