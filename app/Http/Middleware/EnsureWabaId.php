@@ -15,7 +15,7 @@ class EnsureWabaId
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $headerName = 'X-waba-id';
+        $headerName = 'X-Waba-Id';
         $wabaId = $request->header($headerName);
 
         if (! $wabaId) {

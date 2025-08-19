@@ -177,8 +177,6 @@ class TemplateController extends Controller
 
     public function show(Template $template)
     {
-        return response()->json(app('waba_id'));
-
         return TemplateResource::make($template);
     }
 

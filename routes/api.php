@@ -69,15 +69,15 @@ Route::group(['middleware' => [
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('teams', TeamController::class);
 
+
     Route::prefix('templates')
-        ->middleware([EnsureWabaId::class])
         ->group(function () {
             Route::get('/languages', [TemplateLanguageController::class, 'index']);
             Route::get('/categories', [TemplateCategoryController::class, 'index']);
             Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
-            Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts']);
+            Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts'])->middleware([EnsureWabaId::class]);
         });
-    Route::apiResource('templates', TemplateController::class);
+    Route::apiResource('templates', TemplateController::class)->middleware([EnsureWabaId::class]);
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
