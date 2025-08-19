@@ -77,7 +77,8 @@ Route::group(['middleware' => [
             Route::get('/header-types', [TemplateHeaderTypeController::class, 'index']);
             Route::get('/{template}/active-broadcasts', [TemplateController::class, 'activeBroadcasts'])->middleware([EnsureWabaId::class]);
         });
-    Route::apiResource('templates', TemplateController::class)->middleware([EnsureWabaId::class]);
+    Route::apiResource('templates', TemplateController::class)
+        ->middleware([EnsureWabaId::class]);
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);

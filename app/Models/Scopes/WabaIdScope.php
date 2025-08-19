@@ -13,10 +13,21 @@ class WabaIdScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
-        $wabaId = app('waba_id');
-
-        if ($wabaId && $this->hasWabaIdColumn($model)) {
-            $builder->where($model->getTable().'.waba_id', $wabaId);
+        $wabaId = null;
+        
+        if (app()->has('waba_id')) {
+            $wabaId = app('waba_id');
+        } 
+        elseif (request()->hasHeader('X-Waba-Id')) {
+            $wabaId = request()->header('X-Waba-Id');
+        }
+        
+        if ($this->hasWabaIdColumn($model)) {
+            if ($wabaId) {
+                $builder->where($model->getTable().'.waba_id', $wabaId);
+            } else {
+                $builder->whereRaw('1 = 0');
+            }
         }
     }
 
