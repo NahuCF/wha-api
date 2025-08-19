@@ -33,10 +33,10 @@ class TemplateService
                 'type' => 'BODY',
                 'text' => $template->body,
             ];
-            //if($template->body_example_variables) {
+            // if($template->body_example_variables) {
 
-            //$bodyComponent['exampop'] = $template->body_example_variables;
-            //}
+            // $bodyComponent['exampop'] = $template->body_example_variables;
+            // }
 
             $component[] = $bodyComponent;
         }

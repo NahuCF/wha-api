@@ -69,7 +69,6 @@ Route::group(['middleware' => [
     Route::apiResource('roles', RoleController::class);
     Route::apiResource('teams', TeamController::class);
 
-
     Route::prefix('templates')
         ->group(function () {
             Route::get('/languages', [TemplateLanguageController::class, 'index']);
