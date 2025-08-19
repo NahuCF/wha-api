@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Template;
+use App\Models\ContactField;
+use Illuminate\Http\Request;
+use App\Services\MetaService;
 use App\Enums\ContactFieldType;
+use App\Enums\TemplateCategory;
 use App\Helpers\AppEnvironment;
+use App\Services\TemplateService;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TemplateResource;
+use App\Http\Resources\BroadcastResource;
 use App\Http\Requests\StoreTemplateRequest;
 use App\Http\Requests\UpdateTemplateRequest;
-use App\Http\Resources\BroadcastResource;
-use App\Http\Resources\TemplateResource;
-use App\Models\ContactField;
-use App\Models\Template;
-use App\Services\MetaService;
-use App\Services\TemplateService;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class TemplateController extends Controller
 {
@@ -97,7 +98,7 @@ class TemplateController extends Controller
         if (AppEnvironment::isProduction()) {
             $response = (new MetaService)->createTemplate(
                 $name,
-                $category,
+                TemplateCategory::from($category),
                 $language,
                 (new TemplateService)->templateComponentsToMeta($template)
             );
