@@ -12,7 +12,8 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
             $table->string('meta_id')->nullable();
-            $table->string('waba_id');
+            $table->foreignUlid('waba_id')->constrained();
+            $table->string('meta_waba_id');
             $table->string('name', '512');
             $table->string('language');
             $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);

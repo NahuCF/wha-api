@@ -11,11 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('businesses', function (Blueprint $table) {
+        Schema::create('wabas', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
-            $table->string('meta_business_id')->unique();
+            $table->foreignUlid('business_id')->constrained()->cascadeOnDelete();
+            $table->string('meta_waba_id')->unique();
             $table->string('name');
+            $table->string('currency')->nullable();
+            $table->string('timezone_id')->nullable();
+            $table->string('message_template_namespace')->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('businesses');
+        Schema::dropIfExists('wabas');
     }
 };

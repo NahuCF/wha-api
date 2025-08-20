@@ -8,6 +8,7 @@ use App\Http\Resources\BusinessResource;
 use App\Http\Resources\TenantResource;
 use App\Models\Business;
 use App\Models\User;
+use App\Models\Waba;
 use App\Services\MetaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,8 +55,43 @@ class TenantController extends Controller
                     'name' => $business['name'],
                 ]);
 
+            $wabas = AppEnvironment::isProduction()
+                ? (new MetaService)->getWabasForBusiness($business['id'], $longLivedAccessToken)
+                : [
+                    [
+                        'id' => rand(100000, 999999),
+                        'name' => 'Test WABA 1',
+                        'currency' => 'USD',
+                        'timezone_id' => '1',
+                        'message_template_namespace' => 'test_namespace_1',
+                    ],
+                    [
+                        'id' => rand(100000, 999999),
+                        'name' => 'Test WABA 2',
+                        'currency' => 'EUR',
+                        'timezone_id' => '2',
+                        'message_template_namespace' => 'test_namespace_2',
+                    ],
+                ];
+
+            $storedBusiness->wabas()->delete();
+
+            foreach ($wabas as $waba) {
+                Waba::query()->create([
+                    'id' => Str::ulid(),
+                    'business_id' => $storedBusiness->id,
+                    'meta_waba_id' => $waba['id'],
+                    'name' => $waba['name'],
+                    'currency' => $waba['currency'] ?? null,
+                    'timezone_id' => $waba['timezone_id'] ?? null,
+                    'message_template_namespace' => $waba['message_template_namespace'] ?? null,
+                ]);
+            }
+
             $storedBusinesses[] = $storedBusiness;
         }
+
+        $storedBusinesses = collect($storedBusinesses)->load('wabas');
 
         return BusinessResource::collection($storedBusinesses);
     }

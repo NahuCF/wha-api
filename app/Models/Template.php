@@ -39,4 +39,9 @@ class Template extends Model
         'buttons' => 'array',
         'body_example_variables' => 'array',
     ];
+
+    public function waba()
+    {
+        return $this->belongsTo(Waba::class);
+    }
 }

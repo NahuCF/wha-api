@@ -63,14 +63,27 @@ class MetaService
                 return $response->json('data', []);
             }
 
-            Log::error('Failed to fetch businesses from Meta API', [
-                'response' => $response->body(),
-                'status' => $response->status(),
-            ]);
-
             return [];
         } catch (\Throwable $e) {
             Log::error('Error fetching businesses from Meta API: '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    public function getWabasForBusiness(string $businessId, string $token)
+    {
+        try {
+            $response = Http::withToken($token)
+                ->get($this->buildUrl("{$businessId}/owned_whatsapp_business_accounts"));
+
+            if ($response->successful()) {
+                return $response->json('data', []);
+            }
+
+            return [];
+        } catch (\Throwable $e) {
+            Log::error('Error fetching WABAs from Meta API: '.$e->getMessage());
 
             return [];
         }
