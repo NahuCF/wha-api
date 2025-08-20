@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\SystemRole;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BusinessResource;

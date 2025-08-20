@@ -29,7 +29,7 @@ class UserController extends Controller
         $wabaId = data_get($input, 'waba_id');
 
         $users = User::query()
-            ->with('permissions', 'teams', 'wabas')
+            ->with('permissions', 'teams', 'wabas', 'business')
             ->when($onlyTrashed, fn ($q) => $q->onlyTrashed())
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
             ->when($wabaId, fn ($q) => $q->whereHas('wabas', fn ($query) => $query->where('wabas.id', $wabaId)))
@@ -48,7 +48,7 @@ class UserController extends Controller
             'team_ids.*' => ['ulid', Rule::exists('teams', 'id')],
             'waba_ids' => ['sometimes', 'array'],
             'waba_ids.*' => ['ulid', Rule::exists('wabas', 'id')],
-            'default_waba_id' => ['sometimes', 'ulid', Rule::exists('wabas', 'id')],
+            'default_waba_id' => ['required', 'ulid', Rule::exists('wabas', 'id')],
         ]);
 
         $name = data_get($input, 'name');
@@ -101,11 +101,8 @@ class UserController extends Controller
 
         if (! empty($wabaIds) && $role != SystemRole::OWNER->value) {
             $user->wabas()->sync($wabaIds);
-            
-            $finalDefaultWabaId = $defaultWabaId ?: $wabaIds[0] ?? null;
-            if ($finalDefaultWabaId && in_array($finalDefaultWabaId, $wabaIds)) {
-                $user->update(['default_waba_id' => $finalDefaultWabaId]);
-            }
+
+            $user->update(['default_waba_id' => $defaultWabaId]);
         }
 
         $user->syncRoles($role);
@@ -170,10 +167,10 @@ class UserController extends Controller
         if ($role != SystemRole::OWNER->value) {
             $user->wabas()->sync($wabaIds);
 
-            if(count($wabaIds)== 1 ){
+            if (count($wabaIds) == 1) {
                 $user->update(['default_waba_id' => $wabaIds[0]]);
             }
-        } 
+        }
 
         $user->syncRoles($role);
         $user->givePermissionTo(Role::findByName($role)->permissions);

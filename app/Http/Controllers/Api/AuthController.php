@@ -79,7 +79,7 @@ class AuthController extends Controller
 
         $user->update(['status' => UserStatus::ACTIVE->value]);
 
-        $user->load('business');
+        $user->load('business', 'wabas');
 
         return TenantResource::make($tenant)->additional([
             'meta' => [

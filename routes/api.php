@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TenantController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WabaController;
 use App\Http\Middleware\EnsureWabaId;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
@@ -78,6 +79,8 @@ Route::group(['middleware' => [
         });
     Route::apiResource('templates', TemplateController::class)
         ->middleware([EnsureWabaId::class]);
+
+    Route::get('wabas', [WabaController::class, 'index']);
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
