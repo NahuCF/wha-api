@@ -48,25 +48,9 @@ class MetaService
 
     public function getWabaID()
     {
-        // Get the WABA ID from the authenticated user's selected WABA
         $user = Auth::user();
 
-        if ($user && $user->waba) {
-            return $user->waba->meta_waba_id;
-        }
-
-        // Fallback to tenant's default WABA
-        $tenant = tenancy()->tenant;
-        if ($tenant && $tenant->defaultWaba) {
-            return $tenant->defaultWaba->meta_waba_id;
-        }
-
-        // Final fallback to business meta_business_id if no WABA is selected
-        if ($user && $user->business) {
-            return $user->business->meta_business_id;
-        }
-
-        return null;
+        return $user->defaultWaba->meta_waba_id;
     }
 
     public function getBusinesses(string $token)
@@ -126,6 +110,25 @@ class MetaService
             Log::error('WhatsApp template creation failed: '.$e->getMessage());
 
             return ['error' => 'Failed to create template'];
+        }
+    }
+
+    public function updateTemplate(string $templateId, array $components)
+    {
+        $payload = [
+            'components' => $components,
+        ];
+
+        try {
+            $url = "{$this->getWabaID()}/message_templates/{$templateId}";
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl($url), $payload);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp template update failed: '.$e->getMessage());
+
+            return ['error' => 'Failed to update template'];
         }
     }
 }

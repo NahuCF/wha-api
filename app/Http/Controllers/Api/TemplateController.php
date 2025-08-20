@@ -74,11 +74,15 @@ class TemplateController extends Controller
             return $variable;
         });
 
-        if (Template::query()->where('name', $name)->exists()) {
+        $templateWithLanguageAndName = Template::query()
+            ->where('name', $name)
+            ->where('language', $language)
+            ->exists();
+
+        if ($templateWithLanguageAndName) {
             throw new HttpResponseException(response()->json([
-                'message' => 'Template name already exists',
-                'message_code' => 'templater_name_already_exists',
-                'errors' => ['name' => ['Template name already exists']],
+                'message' => 'Template name with language already exists',
+                'message_code' => 'template_name_language_already_exists',
             ], 422));
         }
 
@@ -147,16 +151,16 @@ class TemplateController extends Controller
             return $variable;
         });
 
-        $templateWithName = Template::query()
+        $templateWithLanguageAndName = Template::query()
             ->where('name', $name)
+            ->where('language', $language)
             ->where('id', '!=', $template->id)
             ->exists();
 
-        if ($templateWithName) {
+        if ($templateWithLanguageAndName) {
             throw new HttpResponseException(response()->json([
-                'message' => 'Template name already exists',
-                'message_code' => 'template_name_already_exists',
-                'errors' => ['name' => ['Template name already exists']],
+                'message' => 'Template name with language already exists',
+                'message_code' => 'template_name_language_already_exists',
             ], 422));
         }
 
@@ -172,6 +176,19 @@ class TemplateController extends Controller
             'buttons' => json_encode($buttons),
             'status' => 'PENDING',
         ]);
+
+        if (AppEnvironment::isProduction() && $template->meta_id) {
+            $response = (new MetaService)->updateTemplate(
+                $template->meta_id,
+                (new TemplateService)->templateComponentsToMeta($template)
+            );
+
+            if (isset($response['success']) && $response['success']) {
+                $template->update([
+                    'status' => 'PENDING',
+                ]);
+            }
+        }
 
         return TemplateResource::make($template);
     }
