@@ -29,7 +29,6 @@ class UpdateTemplateRequest extends FormRequest
             // Language and category
             'language' => ['required', Rule::exists('landlord.template_languages', 'code')],
             'category' => ['required', Rule::in(Template::CATEGORY_TYPES)],
-            'allow_category_change' => ['sometimes', 'boolean'],
 
             // Now body is inside components
             'components' => ['required', 'array'],

@@ -46,7 +46,6 @@ class TemplateController extends Controller
 
         $name = data_get($input, 'name');
         $language = data_get($input, 'language');
-        $allowCategoryChange = data_get($input, 'allow_category_change', false);
         $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
         $body = data_get($input, 'components.body');
@@ -89,7 +88,6 @@ class TemplateController extends Controller
         $template = Template::create([
             'name' => $name,
             'language' => $language,
-            'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],
             'body_example_variables' => json_encode($variables->toArray()),
@@ -123,7 +121,6 @@ class TemplateController extends Controller
 
         $name = data_get($input, 'name');
         $language = data_get($input, 'language');
-        $allowCategoryChange = data_get($input, 'allow_category_change', false);
         $category = data_get($input, 'category');
         $header = data_get($input, 'components.header');
         $body = data_get($input, 'components.body');
@@ -167,7 +164,6 @@ class TemplateController extends Controller
         $template->update([
             'name' => $name,
             'language' => $language,
-            'allow_category_change' => $allowCategoryChange,
             'category' => strtoupper($category),
             'body' => $body['text'],
             'body_example_variables' => json_encode($variables->toArray()),
