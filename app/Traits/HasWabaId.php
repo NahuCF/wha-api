@@ -33,7 +33,7 @@ trait HasWabaId
             $this->fillable = [];
         }
 
-        if (! in_array('waba_id', $this->fillable)) {
+        if (! in_array('meta_waba_i', $this->fillable)) {
             $this->fillable[] = 'waba_id';
         }
     }

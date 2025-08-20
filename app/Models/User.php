@@ -44,4 +44,9 @@ class User extends Authenticatable
         return $this->belongsTo(Business::class);
     }
 
+    public function waba()
+    {
+        return $this->belongsTo(Waba::class);
+    }
+
 }

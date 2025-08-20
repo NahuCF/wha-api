@@ -91,18 +91,23 @@ class TenantController extends Controller
             $storedBusinesses[] = $storedBusiness;
         }
 
-        $storedBusinesses = collect($storedBusinesses)->load('wabas');
-
+        foreach ($storedBusinesses as $business) {
+            $business->load('wabas');
+        }
+        
         return BusinessResource::collection($storedBusinesses);
     }
 
     public function completeProfile(Request $request)
     {
         $input = $request->validate([
-            'business_id' => ['ulid', 'exists:businesses,id'],
+            'business_id' => ['required', 'ulid', 'exists:businesses,id'],
+            'waba_id' => ['required', 'ulid', 'exists:wabas,id'],
         ]);
 
         $businessId = data_get($input, 'business_id');
+        $wabaId = data_get($input, 'waba_id');
+
 
         $user = User::find(Auth::user()->id);
         $tenant = tenancy()->tenant;
@@ -113,6 +118,8 @@ class TenantController extends Controller
 
         $tenant->update([
             'is_profile_completed' => true,
+            'default_business_id' => $businessId,
+            'default_waba_id' => $wabaId,
         ]);
 
         return TenantResource::make($tenant);
