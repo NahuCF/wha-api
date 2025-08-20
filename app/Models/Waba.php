@@ -21,6 +21,12 @@ class Waba extends Model
         return $this->hasMany(User::class);
     }
 
+    public function accessUsers()
+    {
+        return $this->belongsToMany(User::class, 'user_waba')
+            ->using(UserWaba::class);
+    }
+
     public function templates(): HasMany
     {
         return $this->hasMany(Template::class);

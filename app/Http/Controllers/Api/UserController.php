@@ -21,15 +21,18 @@ class UserController extends Controller
         $input = $request->validate([
             'only_trashed' => ['sometimes', 'boolean'],
             'search' => ['sometimes', 'string'],
+            'waba_id' => ['sometimes', 'ulid', Rule::exists('wabas', 'id')],
         ]);
 
         $onlyTrashed = data_get($input, 'only_trashed', false);
         $search = data_get($input, 'search', '');
+        $wabaId = data_get($input, 'waba_id');
 
         $users = User::query()
-            ->with('permissions', 'teams')
+            ->with('permissions', 'teams', 'wabas')
             ->when($onlyTrashed, fn ($q) => $q->onlyTrashed())
             ->when($search, fn ($q, $search) => $q->where('name', 'ILIKE', "%{$search}%"))
+            ->when($wabaId, fn ($q) => $q->whereHas('wabas', fn ($query) => $query->where('wabas.id', $wabaId)))
             ->get();
 
         return UserResource::collection($users);
@@ -43,18 +46,29 @@ class UserController extends Controller
             'role' => ['required', 'string', Rule::exists('roles', 'name')],
             'team_ids' => ['sometimes', 'array'],
             'team_ids.*' => ['ulid', Rule::exists('teams', 'id')],
+            'waba_ids' => ['sometimes', 'array'],
+            'waba_ids.*' => ['ulid', Rule::exists('wabas', 'id')],
+            'default_waba_id' => ['sometimes', 'ulid', Rule::exists('wabas', 'id')],
         ]);
 
         $name = data_get($input, 'name');
         $email = data_get($input, 'email');
         $role = data_get($input, 'role');
         $teamsIds = data_get($input, 'team_ids', []);
+        $wabaIds = data_get($input, 'waba_ids', []);
+        $defaultWabaId = data_get($input, 'default_waba_id');
 
         $tenant = tenant();
 
         if ($role == SystemRole::OWNER->value) {
             throw ValidationException::withMessages([
                 'role' => ['You can not create an owner user.'],
+            ]);
+        }
+
+        if ($role == SystemRole::OWNER->value && ! empty($wabaIds)) {
+            throw ValidationException::withMessages([
+                'waba_ids' => ['Owner users have access to all WABAs by default.'],
             ]);
         }
 
@@ -85,17 +99,26 @@ class UserController extends Controller
 
         $user->teams()->syncWithoutDetaching($teamsIds);
 
+        if (! empty($wabaIds) && $role != SystemRole::OWNER->value) {
+            $user->wabas()->sync($wabaIds);
+            
+            $finalDefaultWabaId = $defaultWabaId ?: $wabaIds[0] ?? null;
+            if ($finalDefaultWabaId && in_array($finalDefaultWabaId, $wabaIds)) {
+                $user->update(['default_waba_id' => $finalDefaultWabaId]);
+            }
+        }
+
         $user->syncRoles($role);
         $user->givePermissionTo(Role::findByName($role)->permissions);
 
-        $user->load('roles', 'permissions', 'teams');
+        $user->load('roles', 'permissions', 'teams', 'wabas', 'defaultWaba');
 
         return UserResource::make($user);
     }
 
     public function show(User $user)
     {
-        $user->load('teams');
+        $user->load('teams', 'wabas', 'defaultWaba');
 
         return UserResource::make($user);
     }
@@ -108,12 +131,15 @@ class UserController extends Controller
             'role' => ['required', 'string', Rule::exists('roles', 'name')],
             'team_ids' => ['sometimes', 'array'],
             'team_ids.*' => ['ulid', Rule::exists('teams', 'id')],
+            'waba_ids' => ['required', 'array'],
+            'waba_ids.*' => ['ulid', Rule::exists('wabas', 'id')],
         ]);
 
         $name = data_get($input, 'name');
         $email = data_get($input, 'email');
         $role = data_get($input, 'role');
         $teamsIds = data_get($input, 'team_ids', []);
+        $wabaIds = data_get($input, 'waba_ids', []);
 
         $emailAlreadyExists = User::query()
             ->where('email', $email)
@@ -141,10 +167,18 @@ class UserController extends Controller
 
         $user->teams()->sync($teamsIds);
 
+        if ($role != SystemRole::OWNER->value) {
+            $user->wabas()->sync($wabaIds);
+
+            if(count($wabaIds)== 1 ){
+                $user->update(['default_waba_id' => $wabaIds[0]]);
+            }
+        } 
+
         $user->syncRoles($role);
         $user->givePermissionTo(Role::findByName($role)->permissions);
 
-        $user->load('roles', 'permissions', 'teams');
+        $user->load('roles', 'permissions', 'teams', 'wabas', 'defaultWaba');
 
         return UserResource::make($user);
     }

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->foreignUlid('tenant_id')->constrained();
             $table->foreignUlid('business_id')->nullable()->constrained();
+            $table->foreignUlid('default_waba_id')->nullable()->constrained('wabas')->nullOnDelete();
 
             $table->string('name');
             $table->string('email');

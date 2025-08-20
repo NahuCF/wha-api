@@ -50,22 +50,22 @@ class MetaService
     {
         // Get the WABA ID from the authenticated user's selected WABA
         $user = Auth::user();
-        
+
         if ($user && $user->waba) {
             return $user->waba->meta_waba_id;
         }
-        
+
         // Fallback to tenant's default WABA
         $tenant = tenancy()->tenant;
         if ($tenant && $tenant->defaultWaba) {
             return $tenant->defaultWaba->meta_waba_id;
         }
-        
+
         // Final fallback to business meta_business_id if no WABA is selected
         if ($user && $user->business) {
             return $user->business->meta_business_id;
         }
-        
+
         return null;
     }
 

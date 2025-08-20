@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SystemRole;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BusinessResource;
@@ -25,6 +26,7 @@ class TenantController extends Controller
         $accessToken = data_get($input, 'access_token');
 
         $tenant = tenancy()->tenant;
+        $user = Auth::user();
 
         $metaService = AppEnvironment::isProduction()
             ? (new MetaService)->requestLongLivedToken($accessToken)
@@ -94,7 +96,14 @@ class TenantController extends Controller
         foreach ($storedBusinesses as $business) {
             $business->load('wabas');
         }
-        
+
+        $allWabaIds = Waba::query()
+            ->whereHas('business', fn ($q) => $q->where('tenant_id', $tenant->id))
+            ->pluck('id')
+            ->toArray();
+
+        $user->wabas()->sync($allWabaIds);
+
         return BusinessResource::collection($storedBusinesses);
     }
 
@@ -108,18 +117,16 @@ class TenantController extends Controller
         $businessId = data_get($input, 'business_id');
         $wabaId = data_get($input, 'waba_id');
 
-
         $user = User::find(Auth::user()->id);
         $tenant = tenancy()->tenant;
 
         $user->update([
             'business_id' => $businessId,
+            'default_waba_id' => $wabaId,
         ]);
 
         $tenant->update([
             'is_profile_completed' => true,
-            'default_business_id' => $businessId,
-            'default_waba_id' => $wabaId,
         ]);
 
         return TenantResource::make($tenant);

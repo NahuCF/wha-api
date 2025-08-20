@@ -26,6 +26,8 @@ class UserResource extends JsonResource
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
             'permission_names' => $this->whenLoaded('permission_names'),
             'business' => BusinessResource::make($this->whenLoaded('business')),
+            'wabas' => WabaResource::collection($this->whenLoaded('wabas')),
+            'default_waba' => WabaResource::make($this->whenLoaded('defaultWaba')),
             'is_deleted' => $this->trashed(),
             'status' => $this->status,
         ];

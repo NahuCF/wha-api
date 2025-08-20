@@ -31,9 +31,6 @@ class CreateTenantsTable extends Migration
             $table->boolean('filled_basic_information')->default(false);
             $table->boolean('verified_whatsapp')->default(false);
 
-            $table->ulid('default_business_id')->nullable();
-            $table->ulid('default_waba_id')->nullable();
-
             $table->json('data')->nullable();
 
             $table->timestamps();

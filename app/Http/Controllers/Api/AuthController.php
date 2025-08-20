@@ -62,7 +62,7 @@ class AuthController extends Controller
         $tenant = Tenant::find($tenantUser->tenant_id);
 
         $user = User::query()
-            ->with('roles')
+            ->with('roles', 'defaultWaba')
             ->where('email', $email)
             ->first();
 
