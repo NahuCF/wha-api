@@ -114,6 +114,8 @@ class TemplateController extends Controller
                 (new TemplateService)->templateComponentsToMeta($template)
             );
 
+            return response()->json($response);
+
             $template->update([
                 'meta_id' => $response['id'],
                 'status' => $response['status'],
