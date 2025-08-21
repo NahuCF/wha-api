@@ -55,7 +55,7 @@ class TemplateController extends Controller
         $name = data_get($input, 'name');
         $language = data_get($input, 'language');
         $category = data_get($input, 'category');
-        $header = data_get($input, 'components.header');
+        $header = data_get($input, 'components.header', null);
         $body = data_get($input, 'components.body');
         $footer = data_get($input, 'components.footer', '');
         $buttons = data_get($input, 'components.buttons', []);
@@ -100,7 +100,7 @@ class TemplateController extends Controller
             'body' => $body['text'],
             'body_example_variables' => json_encode($variables->toArray()),
             'footer' => $footer,
-            'header' => json_encode($header ?? []),
+            'header' => $header ? json_encode($header) : null,
             'buttons' => json_encode($buttons),
             'status' => 'PENDING',
             'updated_count_while_approved' => 0,
