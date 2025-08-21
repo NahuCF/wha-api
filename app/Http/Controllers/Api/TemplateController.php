@@ -36,6 +36,7 @@ class TemplateController extends Controller
         $templates = Template::query()
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($name, fn ($q) => $q->where('name', 'ILIKE', "%{$name}%"))
+            ->orderBy('id', 'desc')
             ->simplePaginate($rowsPerPage);
 
         $templatesCount = Template::query()
