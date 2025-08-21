@@ -99,7 +99,6 @@ class MetaService
             'category' => $category,
             'components' => $components,
         ];
-        return $payload;
 
         try {
             $url = "{$this->getWabaID()}/message_templates";
