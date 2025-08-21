@@ -18,7 +18,7 @@ class ContactService
         array $columns = ['*'],
         array $filters = [],
         ?string $search = null,
-        bool $paginate = true,
+        bool $simplePaginate = true,
         int $rowsPerPage = 10
     ) {
         $query = Contact::query()
@@ -68,7 +68,7 @@ class ContactService
             })
             ->orderBy('id', 'desc');
 
-        return $paginate ? $query->paginate($rowsPerPage) : $query->get();
+        return $simplePaginate ? $query->simplePaginate($rowsPerPage) : $query->get();
     }
 
     public function store(array $fields)

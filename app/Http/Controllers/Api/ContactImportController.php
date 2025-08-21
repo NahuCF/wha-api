@@ -29,7 +29,7 @@ class ContactImportController extends Controller
         $histories = ContactImportHistory::query()
             ->with('user')
             ->orderBy('id', 'desc')
-            ->paginate($rowsPerPage);
+            ->simplePaginate($rowsPerPage);
 
         return ContactImportHistoryResource::collection($histories);
     }

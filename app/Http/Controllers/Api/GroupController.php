@@ -28,7 +28,7 @@ class GroupController extends Controller
             ->when($search && ! empty($search), function ($query) use ($search) {
                 $query->where('name', 'ILIKE', '%'.$search.'%');
             })
-            ->paginate();
+            ->simplePaginate();
 
         return GroupResource::collection($groups);
     }
@@ -61,7 +61,7 @@ class GroupController extends Controller
         $contacts = (new ContactService)->index(
             columns: ['id'],
             filters: $filters,
-            paginate: false
+            simplePaginate: false
         );
 
         $contactIds = $contacts->pluck('id')->toArray();
@@ -116,7 +116,7 @@ class GroupController extends Controller
         $contacts = (new ContactService)->index(
             columns: ['id'],
             filters: $filters,
-            paginate: false
+            simplePaginate: false
         );
 
         $contactIds = $contacts->pluck('id')->toArray();
