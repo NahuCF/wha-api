@@ -38,7 +38,7 @@ class TemplateService
             // $bodyComponent['exampop'] = $template->body_example_variables;
             // }
 
-            $component[] = $bodyComponent;
+            $components[] = $bodyComponent;
         }
 
         if ($template->footer) {
