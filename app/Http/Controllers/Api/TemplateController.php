@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\ContactFieldType;
 use App\Enums\TemplateCategory;
+use App\Enums\TemplateStatus;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTemplateRequest;
@@ -37,7 +38,14 @@ class TemplateController extends Controller
             ->when($name, fn ($q) => $q->where('name', 'ILIKE', "%{$name}%"))
             ->paginate($rowsPerPage);
 
-        return TemplateResource::collection($templates);
+        $templatesCount = Template::query()
+            ->count();
+
+        return TemplateResource::collection($templates)->additional([
+            'meta' => [
+                'templates_count' => $templatesCount,
+            ],
+        ]);
     }
 
     public function store(StoreTemplateRequest $request)
@@ -95,6 +103,7 @@ class TemplateController extends Controller
             'header' => json_encode($header ?? []),
             'buttons' => json_encode($buttons),
             'status' => 'PENDING',
+            'updated_count_while_approved' => 0,
         ]);
 
         if (AppEnvironment::isProduction()) {
@@ -128,6 +137,40 @@ class TemplateController extends Controller
         $buttons = data_get($input, 'components.buttons', []);
 
         $variables = collect(data_get($body, 'variables', []));
+
+        if ($template->days_since_meta_update >= 30) {
+            $template->update(['updated_count_while_approved' => 0]);
+        }
+
+        if ($template->days_since_meta_update < 1) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Update tries exceeded',
+                'message_code' => 'template_daily_update_limit_reached',
+            ], 422));
+        }
+
+        if ($template->days_since_meta_update < 30 && $template->updated_count_while_approved == 10) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Update tries exceeded',
+                'message_code' => 'template_monthly_update_limit_reached',
+            ], 422));
+        }
+
+        if ($template->status == TemplateStatus::APPROVED) {
+            if ($name != $template->name || $language != $template->language || $category != $template->category) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Template cannot be updated',
+                    'message_code' => 'invalid_fields_to_update',
+                ]));
+            }
+        } else {
+            if ($name != $template->name || $language != $template->language) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Template cannot be updated',
+                    'message_code' => 'invalid_fields_to_update',
+                ]));
+            }
+        }
 
         $variables = $variables->map(function ($variable) {
             $contactFieldId = data_get($variable, 'contact_field_id');
@@ -171,6 +214,8 @@ class TemplateController extends Controller
             'header' => json_encode($header ?? []),
             'buttons' => json_encode($buttons),
             'status' => 'PENDING',
+            'updated_count_while_approved' => $template->updated_count_while_approved + 1,
+            'meta_updated_at' => now(),
         ]);
 
         if (AppEnvironment::isProduction() && $template->meta_id) {

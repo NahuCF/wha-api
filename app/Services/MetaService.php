@@ -120,7 +120,7 @@ class MetaService
         ];
 
         try {
-            $url = "{$this->getWabaID()}/message_templates/{$templateId}";
+            $url = "{$this->getWabaID()}/{$templateId}";
             $response = Http::withToken($this->getToken())
                 ->post($this->buildUrl($url), $payload);
 

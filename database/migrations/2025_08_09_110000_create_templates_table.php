@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TemplateStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -24,9 +25,12 @@ return new class extends Migration
             $table->json('header')->nullable();
             $table->json('buttons')->nullable();
 
-            $table->string('status')->default('PENDING');
+            $table->enum('status', TemplateStatus::values())->default(TemplateStatus::PENDING->value);
             $table->text('reason')->nullable();
 
+            $table->integer('updated_count_while_approved')->default(0);
+
+            $table->timestamp('meta_updated_at')->nullable();
             $table->timestamps();
 
             $table->index('tenant_id');

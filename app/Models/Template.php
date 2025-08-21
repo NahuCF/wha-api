@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TemplateStatus;
 use App\Traits\HasWabaId;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -38,10 +39,20 @@ class Template extends Model
         'header' => 'array',
         'buttons' => 'array',
         'body_example_variables' => 'array',
+        'status' => TemplateStatus::class,
+        'meta_updated_at' => 'datetime',
+        'updated_count_while_approved' => 'integer',
     ];
 
     public function waba()
     {
         return $this->belongsTo(Waba::class);
+    }
+
+    public function getDaysSinceMetaUpdateAttribute(): int
+    {
+        return $this->meta_updated_at
+            ? $this->meta_updated_at->diffInDays(now())
+            : 0;
     }
 }

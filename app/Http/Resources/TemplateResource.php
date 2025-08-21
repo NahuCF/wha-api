@@ -21,6 +21,8 @@ class TemplateResource extends JsonResource
             'category' => $this->category,
             'status' => $this->status,
             'reason' => $this->reason,
+            'days_since_meta_update' => $this->days_since_meta_update,
+            'updated_count_while_approved' => $this->updated_count_while_approved,
             'components' => [
                 'header' => $this->header ? json_decode($this->header, true) : [],
                 'body' => [
