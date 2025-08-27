@@ -21,6 +21,8 @@ class ConversationController extends Controller
             'only_pinned' => ['nullable', 'boolean'],
             'only_solved' => ['nullable', 'boolean'],
             'only_opened' => ['nullable', 'boolean'],
+            'search' => ['nullable', 'string', 'min:1'],
+            'search_type' => ['nullable', 'in:contact,message'],
         ]);
 
         $user = Auth::user();
@@ -31,9 +33,27 @@ class ConversationController extends Controller
         $onlyPinned = data_get($input, 'only_pinned');
         $onlySolved = data_get($input, 'only_solved');
         $onlyOpened = data_get($input, 'only_opened');
+        $search = data_get($input, 'search');
+        $searchType = data_get($input, 'search_type', 'contact');
 
         $conversations = Conversation::query()
             ->with(['contact', 'assignedUser', 'latestMessage', 'waba'])
+            ->when($search && $searchType === 'message', function ($q) use ($search) {
+                $q->whereHas('messages', function ($query) use ($search) {
+                    $query->where('content', 'ILIKE', '%' . $search . '%');
+                });
+            })
+            ->when($search && $searchType === 'contact', function ($q) use ($search) {
+                $q->whereHas('contact', function ($query) use ($search) {
+                    $query->whereHas('fieldValues', function ($subQuery) use ($search) {
+                        $subQuery->where('value', 'ILIKE', '%' . $search . '%')
+                            ->whereHas('field', function ($fieldQuery) {
+                                $fieldQuery->where('internal_name', 'Name')
+                                    ->where('is_primary_field', true);
+                            });
+                    });
+                });
+            })
             ->when($onlyUnassigned, fn ($q) => $q->whereNull('user_id'))
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
             ->when($onlyPinned && $user, fn ($q) => $q->pinnedBy($user))

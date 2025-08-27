@@ -20,13 +20,16 @@ class MessageController extends Controller
         $input = $request->validate([
             'conversation_id' => ['required', 'exists:conversations,id'],
             'rows_per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'search' => ['nullable', 'string', 'min:1'],
         ]);
 
         $conversationId = data_get($input, 'conversation_id');
         $rowsPerPage = data_get($input, 'rows_per_page', 20);
+        $search = data_get($input, 'search');
 
         $messages = Message::query()
             ->where('conversation_id', $conversationId)
+            ->when($search, fn($q) => $q->where('content', 'ILIKE', '%' . $search . '%'))
             ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
 
