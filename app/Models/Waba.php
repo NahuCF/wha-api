@@ -31,4 +31,9 @@ class Waba extends Model
     {
         return $this->hasMany(Template::class);
     }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
+    }
 }

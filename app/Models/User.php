@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -58,5 +59,33 @@ class User extends Authenticatable
     public function userWabas()
     {
         return $this->hasMany(UserWaba::class);
+    }
+
+    public function pinnedConversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_pins')
+            ->withPivot(['position', 'pinned_at'])
+            ->orderBy('pivot_position');
+    }
+
+    public function pinConversation(Conversation $conversation, int $position = 0): void
+    {
+        $this->pinnedConversations()->syncWithoutDetaching([
+            $conversation->id => ['position' => $position, 'pinned_at' => now()],
+        ]);
+    }
+
+    public function unpinConversation(Conversation $conversation): void
+    {
+        $this->pinnedConversations()->detach($conversation->id);
+    }
+
+    public function reorderPinnedConversations(array $conversationIds): void
+    {
+        $syncData = [];
+        foreach ($conversationIds as $position => $conversationId) {
+            $syncData[$conversationId] = ['position' => $position, 'pinned_at' => now()];
+        }
+        $this->pinnedConversations()->sync($syncData);
     }
 }

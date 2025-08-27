@@ -6,11 +6,13 @@ use App\Http\Controllers\Api\BusinessesController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactFieldController;
 use App\Http\Controllers\Api\ContactImportController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
+use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\RoleController;
@@ -54,6 +56,15 @@ Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
     'auth:api',
 ]], function () {
+
+    Route::get('/conversations', [ConversationController::class, 'index'])->middleware([EnsureWabaId::class]);
+    Route::get('/messages', [MessageController::class, 'index']);
+
+    // DEBGU ENDPOINTs
+    Route::post('/conversations', [ConversationController::class, 'store']);
+    Route::post('/messages', [MessageController::class, 'store']);
+
+    Route::post('/send-message', [ConversationController::class, 'sendMessage']);
 
     Route::prefix('meta')->group(function () {
         Route::get('app-id', [MetaController::class, 'getAppId']);
