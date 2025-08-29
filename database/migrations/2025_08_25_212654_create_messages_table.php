@@ -16,6 +16,7 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->ulid('id')->primary();
+            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignUlid('conversation_id')->constrained()->onDelete('cascade');
             $table->foreignUlid('template_id')->nullable()->constrained()->onDelete('set null');
             $table->ulid('reply_to_message_id')->nullable()->index();
