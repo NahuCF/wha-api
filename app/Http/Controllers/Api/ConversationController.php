@@ -40,13 +40,13 @@ class ConversationController extends Controller
             ->with(['contact', 'assignedUser', 'latestMessage', 'waba'])
             ->when($search && $searchType === 'message', function ($q) use ($search) {
                 $q->whereHas('messages', function ($query) use ($search) {
-                    $query->where('content', 'ILIKE', '%' . $search . '%');
+                    $query->where('content', 'ILIKE', '%'.$search.'%');
                 });
             })
             ->when($search && $searchType === 'contact', function ($q) use ($search) {
                 $q->whereHas('contact', function ($query) use ($search) {
                     $query->whereHas('fieldValues', function ($subQuery) use ($search) {
-                        $subQuery->where('value', 'ILIKE', '%' . $search . '%')
+                        $subQuery->where('value', 'ILIKE', '%'.$search.'%')
                             ->whereHas('field', function ($fieldQuery) {
                                 $fieldQuery->where('internal_name', 'Name')
                                     ->where('is_primary_field', true);

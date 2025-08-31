@@ -29,7 +29,7 @@ class MessageController extends Controller
 
         $messages = Message::query()
             ->where('conversation_id', $conversationId)
-            ->when($search, fn($q) => $q->where('content', 'ILIKE', '%' . $search . '%'))
+            ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%'))
             ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
 

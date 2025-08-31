@@ -50,6 +50,11 @@ class User extends Authenticatable
         return $this->belongsTo(Waba::class, 'default_waba_id');
     }
 
+    public function defaultPhone()
+    {
+        return $this->belongsTo(PhoneNumber::class, 'default_phone_id');
+    }
+
     public function wabas()
     {
         return $this->belongsToMany(Waba::class, 'user_waba')

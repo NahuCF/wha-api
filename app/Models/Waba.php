@@ -36,4 +36,9 @@ class Waba extends Model
     {
         return $this->hasMany(Conversation::class);
     }
+
+    public function phoneNumbers(): HasMany
+    {
+        return $this->hasMany(PhoneNumber::class);
+    }
 }

@@ -71,7 +71,10 @@ Route::group(['middleware' => [
     });
 
     Route::post('tenant/meta-access', [TenantController::class, 'metaAccess']);
-    Route::post('tenant/complete-profile', [TenantController::class, 'completeProfile']);
+    Route::post('tenant/store-default-waba', [TenantController::class, 'storeDefaultWaba']);
+    Route::post('tenant/select-number', [TenantController::class, 'selectNumber']);
+    Route::post('tenant/verify-number-code', [TenantController::class, 'verifyNumberCode']);
+    Route::delete('tenant/disconnect-phone', [TenantController::class, 'disconnectPhoneNumber']);
 
     Route::prefix('businesses')->group(function () {
         Route::get('/', [BusinessesController::class, 'index']);

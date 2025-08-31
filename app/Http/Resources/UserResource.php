@@ -28,6 +28,8 @@ class UserResource extends JsonResource
             'business' => BusinessResource::make($this->whenLoaded('business')),
             'wabas' => WabaResource::collection($this->whenLoaded('wabas')),
             'default_waba' => WabaResource::make($this->whenLoaded('defaultWaba')),
+            'default_phone_id' => $this->when($this->default_phone_id, $this->default_phone_id),
+            'default_phone' => PhoneNumberResource::make($this->whenLoaded('defaultPhone')),
             'is_deleted' => $this->trashed(),
             'status' => $this->status,
         ];

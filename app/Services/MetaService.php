@@ -131,4 +131,112 @@ class MetaService
             return ['error' => 'Failed to update template'];
         }
     }
+
+    public function getPhoneNumbers(string $wabaId)
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->get($this->buildUrl("{$wabaId}/phone_numbers"), [
+                    'fields' => 'id,display_phone_number,verified_name,code_verification_status,quality_rating,status,name_status,is_official_business_account,account_mode,certificate',
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('data', []);
+            }
+
+            return [];
+        } catch (\Throwable $e) {
+            Log::error('Error fetching phone numbers from Meta API: '.$e->getMessage());
+
+            return [];
+        }
+    }
+
+    public function addPhoneNumber(string $wabaId, string $phoneNumber, string $countryCode, string $verifiedName)
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$wabaId}/phone_numbers"), [
+                    'cc' => $countryCode,
+                    'phone_number' => $phoneNumber,
+                    'verified_name' => $verifiedName,
+                ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Error adding phone number to Meta API: '.$e->getMessage());
+
+            return ['error' => 'Failed to add phone number', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function requestPhoneVerification(string $phoneId, string $codeMethod = 'SMS', string $language = 'en_US')
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneId}/request_code"), [
+                    'code_method' => $codeMethod,
+                    'language' => $language,
+                ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Error requesting verification code from Meta API: '.$e->getMessage());
+
+            return ['error' => 'Failed to request verification code', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function verifyPhoneNumber(string $phoneId, string $code)
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneId}/verify_code"), [
+                    'code' => $code,
+                ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Error verifying phone number with Meta API: '.$e->getMessage());
+
+            return ['error' => 'Failed to verify phone number', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function deletePhoneNumber(string $phoneId)
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->delete($this->buildUrl($phoneId));
+
+            if ($response->successful()) {
+                return ['success' => true, 'data' => $response->json()];
+            }
+
+            Log::error('Failed to delete phone number: '.$response->body());
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            Log::error('Error deleting phone number from Meta API: '.$e->getMessage());
+
+            return ['error' => 'Failed to delete phone number', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function registerPhoneNumber(string $phoneId, string $pin)
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneId}/register"), [
+                    'pin' => $pin,
+                    'messaging_product' => 'whatsapp',
+                ]);
+
+            return $response->json();
+        } catch (\Throwable $e) {
+            Log::error('Error registering phone number with Meta API: '.$e->getMessage());
+
+            return ['error' => 'Failed to register phone number', 'exception' => $e->getMessage()];
+        }
+    }
 }
