@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\CodeVerificationStatus;
+use App\Enums\PhoneNumberStatus;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BusinessResource;
@@ -211,8 +212,13 @@ class TenantController extends Controller
                 ->firstOrFail();
 
             $user->update(['default_phone_id' => $phoneId]);
+            $tenant->update(['is_profile_completed' => true]);
 
-            return PhoneNumberResource::make($phoneNumber);
+            return PhoneNumberResource::make($phoneNumber)->additional([
+                'meta' => [
+                    'tenant' => $tenant,
+                ],
+            ]);
         }
 
         $displayPhoneNumber = data_get($input, 'display_phone_number');
@@ -239,7 +245,7 @@ class TenantController extends Controller
             'verified_name' => $verifiedName,
             'quality_rating' => 'UNKNOWN',
             'code_verification_status' => CodeVerificationStatus::NOT_VERIFIED->value,
-            'status' => null,
+            'status' => PhoneNumberStatus::PENDING->value,
             'pin' => null,
             'is_registered' => false,
         ]);
@@ -257,9 +263,11 @@ class TenantController extends Controller
             sleep(5);
         }
 
-        $tenant->update(['is_profile_completed' => true]);
-
-        return PhoneNumberResource::make($phoneNumber);
+        return PhoneNumberResource::make($phoneNumber)->additional([
+            'meta' => [
+                'tenant' => $tenant,
+            ],
+        ]);
     }
 
     /**
@@ -319,7 +327,11 @@ class TenantController extends Controller
 
         $tenant->update(['is_profile_completed' => true]);
 
-        return PhoneNumberResource::make($phoneNumber->fresh());
+        return PhoneNumberResource::make($phoneNumber->fresh())->additional([
+            'meta' => [
+                'tenant' => $tenant,
+            ],
+        ]);
     }
 
     /**
