@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\PhoneNumberController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TemplateCategoryController;
@@ -100,6 +101,8 @@ Route::group(['middleware' => [
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
     Route::apiResource('users', UserController::class);
 
+    Route::get('phone-numbers', [PhoneNumberController::class, 'index'])->middleware([EnsureWabaId::class]);
+
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);
     Route::put('contacts/fields/{contactField}/change-mandatory', [ContactFieldController::class, 'changeMandatory']);
@@ -113,5 +116,6 @@ Route::group(['middleware' => [
 
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
+    Route::get('broadcasts/overview', [BroadcastController::class, 'overview']);
     Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store']);
 });

@@ -2,15 +2,15 @@
 
 namespace App\Services\MetaWebhook\Handlers;
 
-use App\Models\Message;
-use App\Models\Conversation;
-use App\Models\Contact;
-use App\Models\Waba;
-use App\Enums\MessageStatus;
 use App\Enums\MessageDirection;
+use App\Enums\MessageStatus;
 use App\Enums\MessageType;
-use Illuminate\Support\Facades\Log;
+use App\Models\Contact;
+use App\Models\Conversation;
+use App\Models\Message;
+use App\Models\Waba;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MessageHandler implements HandlerInterface
 {
@@ -46,9 +46,9 @@ class MessageHandler implements HandlerInterface
         $message = Message::where('meta_id', $metaMessageId)->first();
 
         $newStatus = $this->mapMetaStatusToEnum($statusValue);
-        
+
         $currentStatus = $message->status;
-        
+
         if ($currentStatus && $currentStatus->priority() >= $newStatus->priority()) {
             return;
         }
@@ -59,7 +59,7 @@ class MessageHandler implements HandlerInterface
 
         if ($timestamp) {
             $timestampDate = \Carbon\Carbon::createFromTimestamp($timestamp);
-            
+
             switch ($newStatus) {
                 case MessageStatus::SENT:
                     $updateData['sent_at'] = $timestampDate;
@@ -177,7 +177,7 @@ class MessageHandler implements HandlerInterface
             case 'text':
                 $message->content = $messageData['text']['body'] ?? null;
                 break;
-                
+
             case 'image':
             case 'video':
             case 'audio':
@@ -193,7 +193,7 @@ class MessageHandler implements HandlerInterface
                 ];
                 $message->content = $media['caption'] ?? null;
                 break;
-                
+
             case 'location':
                 $location = $messageData['location'] ?? [];
                 $message->location_data = [
@@ -203,15 +203,15 @@ class MessageHandler implements HandlerInterface
                     'address' => $location['address'] ?? null,
                 ];
                 break;
-                
+
             case 'contacts':
                 $message->contacts_data = $messageData['contacts'] ?? [];
                 break;
-                
+
             case 'interactive':
                 $interactive = $messageData['interactive'] ?? [];
                 $message->interactive_data = $interactive;
-                
+
                 // Extract response text
                 if ($interactive['type'] === 'button_reply') {
                     $message->content = $interactive['button_reply']['title'] ?? null;
@@ -219,13 +219,13 @@ class MessageHandler implements HandlerInterface
                     $message->content = $interactive['list_reply']['title'] ?? null;
                 }
                 break;
-                
+
             case 'button':
                 $button = $messageData['button'] ?? [];
                 $message->interactive_data = ['button' => $button];
                 $message->content = $button['text'] ?? null;
                 break;
-                
+
             case 'reaction':
                 $reaction = $messageData['reaction'] ?? [];
                 $message->content = $reaction['emoji'] ?? null;
@@ -233,13 +233,13 @@ class MessageHandler implements HandlerInterface
                     'reaction_to' => $reaction['message_id'] ?? null,
                 ];
                 break;
-                
+
             case 'order':
                 $message->context = [
                     'order' => $messageData['order'] ?? [],
                 ];
                 break;
-                
+
             default:
                 Log::warning('MessageHandler: Unhandled message type', ['type' => $type]);
                 $message->context = $messageData;
@@ -253,6 +253,7 @@ class MessageHandler implements HandlerInterface
                 return $contact['profile'] ?? null;
             }
         }
+
         return null;
     }
 
@@ -262,7 +263,7 @@ class MessageHandler implements HandlerInterface
             ->where('phone', $phone)
             ->first();
 
-        if (!$contact) {
+        if (! $contact) {
             $contact = Contact::create([
                 'tenant_id' => $waba->tenant_id,
                 'phone' => $phone,
@@ -283,7 +284,7 @@ class MessageHandler implements HandlerInterface
             ->where('contact_id', $contact->id)
             ->first();
 
-        if (!$conversation) {
+        if (! $conversation) {
             $conversation = Conversation::create([
                 'tenant_id' => $waba->tenant_id,
                 'waba_id' => $waba->id,
@@ -300,7 +301,7 @@ class MessageHandler implements HandlerInterface
 
     private function mapMetaStatusToEnum(string $metaStatus): ?MessageStatus
     {
-        return match(strtolower($metaStatus)) {
+        return match (strtolower($metaStatus)) {
             'sent' => MessageStatus::SENT,
             'delivered' => MessageStatus::DELIVERED,
             'read' => MessageStatus::READ,

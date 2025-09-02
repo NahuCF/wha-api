@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('phone_numbers', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->ulid('waba_id');
+            $table->ulid('waba_id')->constrained()->onDelete('cascade');
             $table->string('meta_id')->unique();
             $table->string('display_phone_number');
             $table->string('verified_name')->nullable();
@@ -25,7 +25,6 @@ return new class extends Migration
             $table->enum('status', PhoneNumberStatus::values());
             $table->timestamps();
 
-            $table->foreign('waba_id')->references('id')->on('wabas')->onDelete('cascade');
             $table->index('waba_id');
             $table->index('display_phone_number');
         });

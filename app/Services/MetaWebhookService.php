@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Services\MetaWebhook\Handlers\HandlerInterface;
-use App\Services\MetaWebhook\Handlers\MessageTemplateStatusHandler;
 use App\Services\MetaWebhook\Handlers\MessageHandler;
+use App\Services\MetaWebhook\Handlers\MessageTemplateStatusHandler;
 
 class MetaWebhookService
 {

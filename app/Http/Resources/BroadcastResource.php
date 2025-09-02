@@ -21,9 +21,7 @@ class BroadcastResource extends JsonResource
             'follow_whatsapp_business_policy' => $this->follow_whatsapp_business_policy,
             'template_id' => $this->template_id,
             'template' => TemplateResource::make($this->whenLoaded('template')),
-            'group_id' => $this->group_id,
-            'group' => GroupResource::make($this->whenLoaded('group')),
-            'user_id' => $this->user_id,
+            'recipients_count' => $this->recipients_count,
             'user' => UserResource::make($this->whenLoaded('user')),
         ];
     }
