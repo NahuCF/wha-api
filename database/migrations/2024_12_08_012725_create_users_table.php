@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('tenant_id')->constrained();
-            $table->foreignUlid('business_id')->nullable()->constrained();
+            $table->foreignUlid('business_id')->nullable()->constrained('businesses')->nullOnDelete();
             $table->foreignUlid('default_waba_id')->nullable()->constrained('wabas')->nullOnDelete();
 
             $table->string('name');

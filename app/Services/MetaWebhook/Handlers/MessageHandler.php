@@ -1,0 +1,311 @@
+<?php
+
+namespace App\Services\MetaWebhook\Handlers;
+
+use App\Models\Message;
+use App\Models\Conversation;
+use App\Models\Contact;
+use App\Models\Waba;
+use App\Enums\MessageStatus;
+use App\Enums\MessageDirection;
+use App\Enums\MessageType;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+
+class MessageHandler implements HandlerInterface
+{
+    public function handle(array $data): void
+    {
+        // Handle message status updates
+        if (isset($data['statuses'])) {
+            $this->handleStatusUpdates($data['statuses']);
+        }
+
+        // Handle incoming messages
+        if (isset($data['messages'])) {
+            $this->handleIncomingMessages($data);
+        }
+    }
+
+    private function handleStatusUpdates(array $statuses): void
+    {
+        foreach ($statuses as $status) {
+            $this->processStatusUpdate($status);
+        }
+    }
+
+    private function processStatusUpdate(array $statusData): void
+    {
+        $metaMessageId = $statusData['id'] ?? null;
+        $statusValue = $statusData['status'] ?? null;
+        $timestamp = $statusData['timestamp'] ?? null;
+        $errors = $statusData['errors'] ?? null;
+        $conversationData = $statusData['conversation'] ?? null;
+        $pricing = $statusData['pricing'] ?? null;
+
+        $message = Message::where('meta_id', $metaMessageId)->first();
+
+        $newStatus = $this->mapMetaStatusToEnum($statusValue);
+        
+        $currentStatus = $message->status;
+        
+        if ($currentStatus && $currentStatus->priority() >= $newStatus->priority()) {
+            return;
+        }
+
+        $updateData = [
+            'status' => $newStatus,
+        ];
+
+        if ($timestamp) {
+            $timestampDate = \Carbon\Carbon::createFromTimestamp($timestamp);
+            
+            switch ($newStatus) {
+                case MessageStatus::SENT:
+                    $updateData['sent_at'] = $timestampDate;
+                    break;
+                case MessageStatus::DELIVERED:
+                    $updateData['delivered_at'] = $timestampDate;
+                    break;
+                case MessageStatus::READ:
+                    $updateData['read_at'] = $timestampDate;
+                    break;
+                case MessageStatus::FAILED:
+                    $updateData['failed_at'] = $timestampDate;
+                    break;
+            }
+        }
+
+        if ($errors) {
+            $updateData['errors'] = $errors;
+        }
+
+        // Store conversation and pricing info if needed
+        if ($conversationData || $pricing) {
+            $context = $message->context ?? [];
+            if ($conversationData) {
+                $context['conversation'] = $conversationData;
+            }
+            if ($pricing) {
+                $context['pricing'] = $pricing;
+            }
+            $updateData['context'] = $context;
+        }
+
+        $message->update($updateData);
+
+        // Update conversation expiration if provided
+        // Only for status sent
+        if ($conversationData && isset($conversationData['expiration_timestamp'])) {
+            $conversation = $message->conversation;
+            if ($conversation) {
+                $expiresAt = \Carbon\Carbon::createFromTimestamp($conversationData['expiration_timestamp']);
+                $conversation->update(['expires_at' => $expiresAt]);
+            }
+        }
+    }
+
+    private function handleIncomingMessages(array $data): void
+    {
+        $messages = $data['messages'] ?? [];
+        $metadata = $data['metadata'] ?? [];
+        $contacts = $data['contacts'] ?? [];
+
+        $phoneNumberId = $metadata['phone_number_id'] ?? null;
+        $displayPhoneNumber = $metadata['display_phone_number'] ?? null;
+
+        $waba = Waba::whereHas('phoneNumbers', function ($query) use ($phoneNumberId) {
+            $query->where('meta_id', $phoneNumberId);
+        })->first();
+
+        foreach ($messages as $messageData) {
+            DB::transaction(function () use ($messageData, $waba, $contacts, $phoneNumberId, $displayPhoneNumber) {
+                $this->processIncomingMessage($messageData, $waba, $contacts, $phoneNumberId, $displayPhoneNumber);
+            });
+        }
+    }
+
+    private function processIncomingMessage(array $messageData, Waba $waba, array $contacts, string $phoneNumberId, ?string $displayPhoneNumber): void
+    {
+        $from = $messageData['from'] ?? null;
+        $metaId = $messageData['id'] ?? null;
+        $timestamp = $messageData['timestamp'] ?? null;
+        $type = $messageData['type'] ?? null;
+        $context = $messageData['context'] ?? null;
+
+        // Find or create contact
+        $contactInfo = $this->findContactInfo($from, $contacts);
+        $contact = $this->findOrCreateContact($from, $contactInfo, $waba);
+
+        $conversation = $this->findOrCreateConversation($contact, $waba, $from, $phoneNumberId);
+
+        $message = new Message([
+            'tenant_id' => $waba->tenant_id,
+            'conversation_id' => $conversation->id,
+            'meta_id' => $metaId,
+            'direction' => MessageDirection::INBOUND,
+            'type' => MessageType::from($type),
+            'status' => MessageStatus::DELIVERED,
+            'from_phone' => $from,
+            'to_phone' => $displayPhoneNumber,
+            'delivered_at' => $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now(),
+        ]);
+
+        // Handle reply context
+        if ($context && isset($context['id'])) {
+            $replyToMessage = Message::where('meta_id', $context['id'])->first();
+            if ($replyToMessage) {
+                $message->reply_to_message_id = $replyToMessage->id;
+            }
+        }
+
+        // Process message content based on type
+        $this->processMessageContent($message, $messageData, $type);
+
+        $message->save();
+
+        $conversation->update([
+            'last_message_at' => $message->delivered_at,
+            'unread_count' => $conversation->unread_count + 1,
+            'expires_at' => $message->delivered_at->addHours(24),
+        ]);
+    }
+
+    private function processMessageContent(Message $message, array $messageData, string $type): void
+    {
+        switch ($type) {
+            case 'text':
+                $message->content = $messageData['text']['body'] ?? null;
+                break;
+                
+            case 'image':
+            case 'video':
+            case 'audio':
+            case 'document':
+            case 'sticker':
+                $media = $messageData[$type] ?? [];
+                $message->media = [
+                    'id' => $media['id'] ?? null,
+                    'mime_type' => $media['mime_type'] ?? null,
+                    'sha256' => $media['sha256'] ?? null,
+                    'filename' => $media['filename'] ?? null,
+                    'caption' => $media['caption'] ?? null,
+                ];
+                $message->content = $media['caption'] ?? null;
+                break;
+                
+            case 'location':
+                $location = $messageData['location'] ?? [];
+                $message->location_data = [
+                    'latitude' => $location['latitude'] ?? null,
+                    'longitude' => $location['longitude'] ?? null,
+                    'name' => $location['name'] ?? null,
+                    'address' => $location['address'] ?? null,
+                ];
+                break;
+                
+            case 'contacts':
+                $message->contacts_data = $messageData['contacts'] ?? [];
+                break;
+                
+            case 'interactive':
+                $interactive = $messageData['interactive'] ?? [];
+                $message->interactive_data = $interactive;
+                
+                // Extract response text
+                if ($interactive['type'] === 'button_reply') {
+                    $message->content = $interactive['button_reply']['title'] ?? null;
+                } elseif ($interactive['type'] === 'list_reply') {
+                    $message->content = $interactive['list_reply']['title'] ?? null;
+                }
+                break;
+                
+            case 'button':
+                $button = $messageData['button'] ?? [];
+                $message->interactive_data = ['button' => $button];
+                $message->content = $button['text'] ?? null;
+                break;
+                
+            case 'reaction':
+                $reaction = $messageData['reaction'] ?? [];
+                $message->content = $reaction['emoji'] ?? null;
+                $message->context = [
+                    'reaction_to' => $reaction['message_id'] ?? null,
+                ];
+                break;
+                
+            case 'order':
+                $message->context = [
+                    'order' => $messageData['order'] ?? [],
+                ];
+                break;
+                
+            default:
+                Log::warning('MessageHandler: Unhandled message type', ['type' => $type]);
+                $message->context = $messageData;
+        }
+    }
+
+    private function findContactInfo(string $phone, array $contacts): ?array
+    {
+        foreach ($contacts as $contact) {
+            if ($contact['wa_id'] === $phone) {
+                return $contact['profile'] ?? null;
+            }
+        }
+        return null;
+    }
+
+    private function findOrCreateContact(string $phone, ?array $profile, Waba $waba): Contact
+    {
+        $contact = Contact::where('tenant_id', $waba->tenant_id)
+            ->where('phone', $phone)
+            ->first();
+
+        if (!$contact) {
+            $contact = Contact::create([
+                'tenant_id' => $waba->tenant_id,
+                'phone' => $phone,
+                'name' => $profile['name'] ?? $phone,
+                'meta_name' => $profile['name'] ?? null,
+            ]);
+        } elseif ($profile && isset($profile['name']) && $contact->meta_name !== $profile['name']) {
+            $contact->update(['meta_name' => $profile['name']]);
+        }
+
+        return $contact;
+    }
+
+    private function findOrCreateConversation(Contact $contact, Waba $waba, string $phone, string $phoneNumberId): Conversation
+    {
+        $conversation = Conversation::where('tenant_id', $waba->tenant_id)
+            ->where('waba_id', $waba->id)
+            ->where('contact_id', $contact->id)
+            ->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'tenant_id' => $waba->tenant_id,
+                'waba_id' => $waba->id,
+                'contact_id' => $contact->id,
+                'contact_phone' => $phone,
+                'waba_phone_id' => $phoneNumberId,
+                'last_message_at' => now(),
+                'expires_at' => now()->addDays(1),
+            ]);
+        }
+
+        return $conversation;
+    }
+
+    private function mapMetaStatusToEnum(string $metaStatus): ?MessageStatus
+    {
+        return match(strtolower($metaStatus)) {
+            'sent' => MessageStatus::SENT,
+            'delivered' => MessageStatus::DELIVERED,
+            'read' => MessageStatus::READ,
+            'failed' => MessageStatus::FAILED,
+            default => null,
+        };
+    }
+}

@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Services\MetaWebhook\Handlers\HandlerInterface;
 use App\Services\MetaWebhook\Handlers\MessageTemplateStatusHandler;
+use App\Services\MetaWebhook\Handlers\MessageHandler;
 
 class MetaWebhookService
 {
     private array $handlers = [
         'message_template_status_update' => MessageTemplateStatusHandler::class,
+        'messages' => MessageHandler::class,
     ];
 
     public function process(string $field, array $value): void
