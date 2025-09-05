@@ -117,5 +117,6 @@ Route::group(['middleware' => [
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
     Route::get('broadcasts/overview', [BroadcastController::class, 'overview']);
-    Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store']);
+    Route::post('broadcasts/{broadcast}/update-status', [BroadcastController::class, 'updateStatus']);
+    Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store', 'show']);
 });

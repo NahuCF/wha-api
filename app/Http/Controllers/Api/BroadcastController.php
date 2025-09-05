@@ -33,7 +33,7 @@ class BroadcastController extends Controller
         $rowsPerPage = data_get($input, 'rows_per_page', 20);
 
         $broadcasts = Broadcast::query()
-            ->with('user')
+            ->with(['user'])
             ->where('phone_number_id', $phoneNumberId)
             ->when($status, fn ($q) => $q->where('status', $status))
             ->when($startDate && $endDate, fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate]))
@@ -95,7 +95,7 @@ class BroadcastController extends Controller
             'scheduled_at' => ['sometimes', 'date'],
             'phone_number_id' => ['required', 'ulid', Rule::exists('phone_numbers', 'id')],
             'template_id' => ['nullable', 'ulid', Rule::exists('templates', 'id')],
-            'group_ids' => ['required', 'array'],
+            'group_ids' => ['required', 'array', 'min:1', Rule::exists('groups', 'id')],
             'variables' => ['nullable', 'array'],
         ]);
 
@@ -135,29 +135,38 @@ class BroadcastController extends Controller
                 'user_id' => $user->id,
                 'scheduled_at' => $scheduledAt,
                 'template_id' => $templateId,
-                'groups' => $groupIds,
                 'variables' => $variables,
                 'status' => $scheduledAt ? BroadcastStatus::SCHEDULED : BroadcastStatus::QUEUED,
                 'recipients_count' => $totalRecipients,
             ]);
 
-        $broadcast->load('user');
+        $broadcast->groups()->attach($groupIds);
+
+        $broadcast->load(['user']);
+
+        return BroadcastResource::make($broadcast);
+    }
+
+    public function updateStatus(Request $request, Broadcast $broadcast)
+    {
+        $input = $request->validate([
+            'status' => ['required', 'string', Rule::in(BroadcastStatus::values())],
+        ]);
+
+        $status = data_get($input, 'status');
+
+        $broadcast->update([
+            'status' => $status,
+        ]);
 
         return BroadcastResource::make($broadcast);
     }
 
     public function show(Broadcast $broadcast)
     {
-        //
+        $broadcast->load(['user', 'groups', 'phoneNumber']);
+
+        return BroadcastResource::make($broadcast);
     }
 
-    public function update(Request $request, Broadcast $broadcast)
-    {
-        //
-    }
-
-    public function destroy(Broadcast $broadcast)
-    {
-        //
-    }
 }

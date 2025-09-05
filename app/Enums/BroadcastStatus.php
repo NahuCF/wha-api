@@ -10,6 +10,7 @@ enum BroadcastStatus: string
     case SENT = 'sent';
     case FAILED = 'failed';
     case CANCELLED = 'cancelled';
+    case COMPLETED = 'completed';
 
     public static function values(): array
     {

@@ -14,7 +14,6 @@ class Broadcast extends Model
     protected $casts = [
         'status' => BroadcastStatus::class,
         'recipients' => 'array',
-        'groups' => 'array',
         'variables' => 'array',
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
@@ -23,11 +22,6 @@ class Broadcast extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function group()
-    {
-        return $this->belongsTo(Group::class);
     }
 
     public function template()
@@ -40,18 +34,22 @@ class Broadcast extends Model
         return $this->belongsTo(PhoneNumber::class);
     }
 
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'broadcast_group');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+
     public function getTotalRecipientsCountAttribute()
     {
         $directRecipients = is_array($this->recipients) ? count($this->recipients) : 0;
 
-        if (empty($this->groups)) {
-            return $directRecipients;
-        }
-
-        $groupContactsCount = Group::whereIn('id', $this->groups)
-            ->withCount('contacts')
-            ->get()
-            ->sum('contacts_count');
+        $groupContactsCount = $this->groups()->withCount('contacts')->get()->sum('contacts_count');
 
         return $directRecipients + $groupContactsCount;
     }
@@ -60,16 +58,14 @@ class Broadcast extends Model
     {
         $contactIds = collect($this->recipients ?? []);
 
-        if (! empty($this->groups)) {
-            $groupContactIds = Group::whereIn('id', $this->groups)
-                ->with('contacts:id')
-                ->get()
-                ->pluck('contacts')
-                ->flatten()
-                ->pluck('id');
+        $groupContactIds = $this->groups()
+            ->with('contacts:id')
+            ->get()
+            ->pluck('contacts')
+            ->flatten()
+            ->pluck('id');
 
-            $contactIds = $contactIds->merge($groupContactIds);
-        }
+        $contactIds = $contactIds->merge($groupContactIds);
 
         return $contactIds->unique()->values();
     }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MessageDirection;
+use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -19,6 +20,7 @@ class Message extends Model
         'direction' => MessageDirection::class,
         'type' => MessageType::class,
         'status' => MessageStatus::class,
+        'source' => MessageSource::class,
         'media' => 'array',
         'interactive_data' => 'array',
         'location_data' => 'array',
@@ -44,6 +46,11 @@ class Message extends Model
     public function replies()
     {
         return $this->hasMany(Message::class, 'reply_to_message_id');
+    }
+
+    public function broadcast(): BelongsTo
+    {
+        return $this->belongsTo(Broadcast::class);
     }
 
     public function isInbound(): bool
@@ -155,5 +162,19 @@ class Message extends Model
     public function scopeDelivered($query)
     {
         return $query->whereIn('status', [MessageStatus::DELIVERED->value, MessageStatus::READ->value]);
+    }
+
+    public function scopeBySource($query, string|MessageSource $source)
+    {
+        if ($source instanceof MessageSource) {
+            return $query->where('source', $source->value);
+        }
+
+        return $query->where('source', $source);
+    }
+
+    public function scopeByBroadcast($query, string $broadcastId)
+    {
+        return $query->where('broadcast_id', $broadcastId);
     }
 }

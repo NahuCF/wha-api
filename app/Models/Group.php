@@ -23,4 +23,9 @@ class Group extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function broadcasts()
+    {
+        return $this->belongsToMany(Broadcast::class, 'broadcast_group');
+    }
 }

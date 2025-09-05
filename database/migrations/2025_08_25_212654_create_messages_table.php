@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\MessageDirection;
+use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use Illuminate\Database\Migrations\Migration;
@@ -11,7 +12,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     */
+    */
     public function up(): void
     {
         Schema::create('messages', function (Blueprint $table) {
@@ -19,11 +20,14 @@ return new class extends Migration
             $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignUlid('conversation_id')->constrained()->onDelete('cascade');
             $table->foreignUlid('template_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignUlid('broadcast_id')->nullable()->constrained()->onDelete('set null');
+
             $table->ulid('reply_to_message_id')->nullable()->index();
             $table->string('meta_id')->unique()->index();
             $table->enum('direction', MessageDirection::values());
             $table->enum('type', MessageType::values());
             $table->enum('status', MessageStatus::values())->nullable();
+            $table->enum('source', MessageSource::values())->default(MessageSource::WHATSAPP->value);
             $table->text('content')->nullable();
             $table->json('media')->nullable();
             $table->json('interactive_data')->nullable();
@@ -42,6 +46,8 @@ return new class extends Migration
             $table->index(['conversation_id', 'created_at']);
             $table->index(['direction', 'status']);
             $table->index('type');
+            $table->index('source');
+            $table->index('broadcast_id');
             $table->index('created_at');
         });
 
