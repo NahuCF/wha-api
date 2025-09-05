@@ -49,7 +49,7 @@ class BroadcastController extends Controller
     {
         $input = $request->validate([
             'phone_number_id' => ['required', 'ulid', Rule::exists('phone_numbers', 'id')],
-            'overview_days' => ['required', 'integer', 'min:1', 'max:30'],
+            'overview_days' => ['required', 'integer', 'min:1'],
         ]);
 
         $phoneNumberId = data_get($input, 'phone_number_id');
