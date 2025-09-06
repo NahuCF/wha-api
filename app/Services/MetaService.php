@@ -239,4 +239,63 @@ class MetaService
             return ['error' => 'Failed to register phone number', 'exception' => $e->getMessage()];
         }
     }
+
+    public function sendTemplateMessage(string $phoneNumberId, string $to, string $templateName, string $language, array $components = [])
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => [
+                        'code' => $language,
+                    ],
+                ],
+            ];
+
+            if (!empty($components)) {
+                $payload['template']['components'] = $components;
+            }
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send template message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendTextMessage(string $phoneNumberId, string $to, string $text)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'text',
+                'text' => [
+                    'body' => $text,
+                ],
+            ];
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Failed to send text message: '.$response->body());
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            Log::error('Error sending text message via Meta API: '.$e->getMessage());
+            return ['error' => 'Failed to send text message', 'exception' => $e->getMessage()];
+        }
+    }
 }

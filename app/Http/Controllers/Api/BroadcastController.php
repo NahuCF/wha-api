@@ -96,6 +96,7 @@ class BroadcastController extends Controller
             'phone_number_id' => ['required', 'ulid', Rule::exists('phone_numbers', 'id')],
             'template_id' => ['nullable', 'ulid', Rule::exists('templates', 'id')],
             'group_ids' => ['required', 'array', 'min:1', Rule::exists('groups', 'id')],
+            'send_now' => ['sometimes', 'boolean'],
             'variables' => ['nullable', 'array'],
         ]);
 
@@ -105,6 +106,7 @@ class BroadcastController extends Controller
         $groupIds = data_get($input, 'group_ids', []);
         $variables = data_get($input, 'variables', []);
         $phoneNumberId = data_get($input, 'phone_number_id');
+        $sendNow = data_get($input, 'send_now', false);
 
         $nameExist = Broadcast::query()
             ->where('name', $name)

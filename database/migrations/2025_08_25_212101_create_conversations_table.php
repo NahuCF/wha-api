@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignUlid('waba_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('contact_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('meta_id')->unique()->index();
+            $table->string('phone_number')->nullable();
             $table->boolean('is_solved')->default(false);
             $table->timestamp('last_message_at')->nullable();
             $table->integer('unread_count')->default(0);
@@ -27,6 +27,8 @@ return new class extends Migration
             $table->index(['waba_id', 'is_solved']);
             $table->index(['contact_id', 'is_solved']);
             $table->index('last_message_at');
+            $table->index(['contact_id', 'phone_number']);
+            $table->index('phone_number');
         });
     }
 

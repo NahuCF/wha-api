@@ -15,6 +15,19 @@ class Conversation extends Model
 {
     use BelongsToTenant, HasFactory, HasUlids;
 
+    protected $fillable = [
+        'tenant_id',
+        'waba_id',
+        'contact_id',
+        'phone_number',
+        'meta_id',
+        'user_id',
+        'is_solved',
+        'expires_at',
+        'last_message_at',
+        'unread_count',
+    ];
+
     protected $casts = [
         'is_solved' => 'boolean',
         'last_message_at' => 'datetime',
