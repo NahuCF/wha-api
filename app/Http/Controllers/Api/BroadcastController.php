@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\BroadcastStatus;
 use App\Http\Resources\BroadcastResource;
+use App\Jobs\ProcessBroadcast;
 use App\Models\Broadcast;
-use App\Models\Group;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -97,6 +98,7 @@ class BroadcastController extends Controller
             'template_id' => ['nullable', 'ulid', Rule::exists('templates', 'id')],
             'group_ids' => ['required', 'array', 'min:1', Rule::exists('groups', 'id')],
             'send_now' => ['sometimes', 'boolean'],
+            'send_to_all_numbers' => ['sometimes', 'boolean'],
             'variables' => ['nullable', 'array'],
         ]);
 
@@ -107,6 +109,7 @@ class BroadcastController extends Controller
         $variables = data_get($input, 'variables', []);
         $phoneNumberId = data_get($input, 'phone_number_id');
         $sendNow = data_get($input, 'send_now', false);
+        $sendToAllNumbers = data_get($input, 'send_to_all_numbers', false);
 
         $nameExist = Broadcast::query()
             ->where('name', $name)
@@ -118,17 +121,7 @@ class BroadcastController extends Controller
             throw ValidationException::withMessages(['name' => 'Broadcast name already exists']);
         }
 
-        $totalRecipients = 0;
-
-        if (! empty($groupIds)) {
-            $groupContacts = Group::whereIn('id', $groupIds)
-                ->withCount('contacts')
-                ->get();
-
-            foreach ($groupContacts as $group) {
-                $totalRecipients += $group->contacts_count;
-            }
-        }
+        $totalRecipients = $this->calculateRecipientsCount($groupIds, $sendToAllNumbers);
 
         $broadcast = Broadcast::query()
             ->create([
@@ -138,6 +131,7 @@ class BroadcastController extends Controller
                 'scheduled_at' => $scheduledAt,
                 'template_id' => $templateId,
                 'variables' => $variables,
+                'send_to_all_numbers' => $sendToAllNumbers,
                 'status' => $scheduledAt ? BroadcastStatus::SCHEDULED : BroadcastStatus::QUEUED,
                 'recipients_count' => $totalRecipients,
             ]);
@@ -145,6 +139,10 @@ class BroadcastController extends Controller
         $broadcast->groups()->attach($groupIds);
 
         $broadcast->load(['user']);
+
+        if ($sendNow) {
+            ProcessBroadcast::dispatch($broadcast);
+        }
 
         return BroadcastResource::make($broadcast);
     }
@@ -169,5 +167,49 @@ class BroadcastController extends Controller
         $broadcast->load(['user', 'groups', 'phoneNumber']);
 
         return BroadcastResource::make($broadcast);
+    }
+
+    /**
+     * Calculate the number of recipients for a broadcast
+     */
+    private function calculateRecipientsCount(array $groupIds, bool $sendToAllNumbers): int
+    {
+        if (empty($groupIds)) {
+            return 0;
+        }
+
+        $contactIds = DB::table('contact_group')
+            ->whereIn('group_id', $groupIds)
+            ->distinct()
+            ->pluck('contact_id');
+
+        if ($contactIds->isEmpty()) {
+            return 0;
+        }
+
+        if (! $sendToAllNumbers) {
+            return $contactIds->count();
+        }
+
+        // Count all unique phone numbers from these contacts
+        $phoneValues = DB::table('contact_field_values')
+            ->join('contact_fields', 'contact_field_values.contact_field_id', '=', 'contact_fields.id')
+            ->whereIn('contact_field_values.contact_id', $contactIds)
+            ->where('contact_fields.internal_name', 'Phone')
+            ->pluck('contact_field_values.value');
+
+        $uniquePhones = collect();
+        foreach ($phoneValues as $phoneValue) {
+            $decodedValue = is_string($phoneValue) ? json_decode($phoneValue, true) : $phoneValue;
+            $phones = is_array($decodedValue) ? $decodedValue : [$decodedValue];
+
+            foreach ($phones as $phone) {
+                if (! empty($phone)) {
+                    $uniquePhones->push($phone);
+                }
+            }
+        }
+
+        return $uniquePhones->unique()->count();
     }
 }

@@ -19,12 +19,15 @@ return new class extends Migration
             $table->string('name');
             $table->json('variables')->nullable();
             $table->enum('status', BroadcastStatus::values());
+            $table->boolean('send_to_all_numbers')->default(false);
+
             $table->integer('recipients_count')->default(0);
             $table->integer('sent_count')->default(0);
             $table->integer('delivered_count')->default(0);
             $table->integer('readed_count')->default(0);
             $table->integer('replied_count')->default(0);
             $table->integer('failed_count')->default(0);
+
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->timestamps();

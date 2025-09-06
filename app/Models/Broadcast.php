@@ -17,6 +17,7 @@ class Broadcast extends Model
         'variables' => 'array',
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
+        'send_to_all_numbers' => 'boolean',
     ];
 
     public function user()

@@ -73,24 +73,14 @@ class ProcessBroadcast implements ShouldQueue
                 $this->broadcast->update(['status' => BroadcastStatus::SENDING]);
             }
 
-            // Get all unique contact IDs with optimized query
             $allContactIds = $this->getContactIds();
-
-            // Get already processed contact IDs using chunked query for memory efficiency
             $processedContactIds = $this->getProcessedContactIds();
-
-            // Calculate remaining contacts
             $remainingContactIds = $allContactIds->diff($processedContactIds);
 
             if ($remainingContactIds->isEmpty()) {
                 $this->markBroadcastAsCompleted();
 
                 return;
-            }
-
-            // Update recipients count if not set
-            if ($this->broadcast->recipients_count === 0) {
-                $this->broadcast->update(['recipients_count' => $allContactIds->count()]);
             }
 
             // Process batch of contacts
@@ -123,6 +113,11 @@ class ProcessBroadcast implements ShouldQueue
 
             foreach ($contacts as $contact) {
                 $phoneNumbers = $this->getContactPhoneNumbers($contact);
+
+                // If send_to_all_numbers is false, only use the first phone number
+                if (! $this->broadcast->send_to_all_numbers) {
+                    $phoneNumbers = array_slice($phoneNumbers, 0, 1);
+                }
 
                 foreach ($phoneNumbers as $phoneNumber) {
                     // Get conversation for this specific phone number
@@ -246,6 +241,12 @@ class ProcessBroadcast implements ShouldQueue
         $contactPhoneMap = [];
         foreach ($contacts as $contact) {
             $phoneNumbers = $this->getContactPhoneNumbers($contact);
+
+            // If send_to_all_numbers is false, only use the first phone number
+            if (! $this->broadcast->send_to_all_numbers) {
+                $phoneNumbers = array_slice($phoneNumbers, 0, 1);
+            }
+
             foreach ($phoneNumbers as $phone) {
                 $contactPhoneMap[] = [
                     'contact_id' => $contact->id,
