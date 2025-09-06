@@ -13,11 +13,11 @@ class TemplateComponentBuilderService
     public function build(Template $template, array $variables = []): array
     {
         $components = [];
-        
+
         // Handle header variables if template has header text with variables
-        if ($template->header_type === 'text' && !empty($template->header_text)) {
+        if ($template->header_type === 'text' && ! empty($template->header_text)) {
             $headerParams = $this->extractParameters($template->header_text, $variables);
-            if (!empty($headerParams)) {
+            if (! empty($headerParams)) {
                 $components[] = [
                     'type' => 'header',
                     'parameters' => $headerParams,
@@ -26,9 +26,9 @@ class TemplateComponentBuilderService
         }
 
         // Handle body variables
-        if (!empty($template->body)) {
+        if (! empty($template->body)) {
             $bodyParams = $this->extractParameters($template->body, $variables);
-            if (!empty($bodyParams)) {
+            if (! empty($bodyParams)) {
                 $components[] = [
                     'type' => 'body',
                     'parameters' => $bodyParams,
@@ -37,9 +37,9 @@ class TemplateComponentBuilderService
         }
 
         // Handle footer variables if any
-        if (!empty($template->footer)) {
+        if (! empty($template->footer)) {
             $footerParams = $this->extractParameters($template->footer, $variables);
-            if (!empty($footerParams)) {
+            if (! empty($footerParams)) {
                 $components[] = [
                     'type' => 'footer',
                     'parameters' => $footerParams,
@@ -48,9 +48,9 @@ class TemplateComponentBuilderService
         }
 
         // Handle buttons with dynamic URLs
-        if (!empty($template->buttons)) {
+        if (! empty($template->buttons)) {
             $buttonComponents = $this->buildButtonComponents($template->buttons, $variables);
-            if (!empty($buttonComponents)) {
+            if (! empty($buttonComponents)) {
                 $components = array_merge($components, $buttonComponents);
             }
         }
@@ -64,6 +64,7 @@ class TemplateComponentBuilderService
     public function buildForContact(Template $template, Contact $contact, array $variableConfig = []): array
     {
         $variables = $this->getContactVariables($contact, $variableConfig);
+
         return $this->build($template, $variables);
     }
 
@@ -73,11 +74,11 @@ class TemplateComponentBuilderService
     private function extractParameters(string $text, array $variables): array
     {
         $params = [];
-        
+
         // Find all placeholders like {{1}}, {{2}}, etc.
         preg_match_all('/\{\{(\d+)\}\}/', $text, $matches);
-        
-        if (!empty($matches[1])) {
+
+        if (! empty($matches[1])) {
             foreach ($matches[1] as $index) {
                 $value = $variables[$index] ?? '';
                 $params[] = [
@@ -102,7 +103,7 @@ class TemplateComponentBuilderService
                 // Check if URL has variables
                 if (strpos($button['url'], '{{') !== false) {
                     preg_match('/\{\{(\d+)\}\}/', $button['url'], $matches);
-                    if (!empty($matches[1])) {
+                    if (! empty($matches[1])) {
                         $urlParam = $variables[$matches[1]] ?? '';
                         $components[] = [
                             'type' => 'button',
@@ -121,7 +122,7 @@ class TemplateComponentBuilderService
                 // Quick reply buttons might have dynamic payloads
                 if (isset($button['payload']) && strpos($button['payload'], '{{') !== false) {
                     preg_match('/\{\{(\d+)\}\}/', $button['payload'], $matches);
-                    if (!empty($matches[1])) {
+                    if (! empty($matches[1])) {
                         $payloadParam = $variables[$matches[1]] ?? '';
                         $components[] = [
                             'type' => 'button',
@@ -157,13 +158,13 @@ class TemplateComponentBuilderService
             // Extract the index from the name (e.g., "{{1}}" -> 1)
             preg_match('/\{\{(\d+)\}\}/', $variable['name'] ?? '', $matches);
             $index = $matches[1] ?? null;
-            
-            if (!$index) {
+
+            if (! $index) {
                 continue;
             }
 
             // If contact_field_id is set, get value from contact field
-            if (!empty($variable['contact_field_id'])) {
+            if (! empty($variable['contact_field_id'])) {
                 $fieldValue = $this->getContactFieldValue($contact, $variable['contact_field_id']);
                 $result[$index] = $fieldValue ?? $variable['value'] ?? '';
             } else {
@@ -184,7 +185,7 @@ class TemplateComponentBuilderService
             return $fv->contact_field_id === $fieldId;
         });
 
-        if (!$fieldValue || !$fieldValue->value) {
+        if (! $fieldValue || ! $fieldValue->value) {
             return null;
         }
 
@@ -202,7 +203,7 @@ class TemplateComponentBuilderService
     public function replaceVariablesInContent(string $content, array $variables): string
     {
         foreach ($variables as $index => $value) {
-            $placeholder = '{{' . $index . '}}';
+            $placeholder = '{{'.$index.'}}';
             $content = str_replace($placeholder, $value, $content);
         }
 

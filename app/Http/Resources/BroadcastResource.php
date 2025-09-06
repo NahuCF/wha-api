@@ -22,7 +22,7 @@ class BroadcastResource extends JsonResource
             'template' => TemplateResource::make($this->whenLoaded('template')),
             'user' => UserResource::make($this->whenLoaded('user')),
             'groups' => GroupResource::collection($this->whenLoaded('groups')),
-            'phone_number'=> PhoneNumberResource::make($this->whenLoaded('phoneNumber')),
+            'phone_number' => PhoneNumberResource::make($this->whenLoaded('phoneNumber')),
             'status' => $this->status,
             'recipients_count' => $this->recipients_count,
             'sent_count' => $this->sent_count,

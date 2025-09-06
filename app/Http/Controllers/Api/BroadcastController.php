@@ -170,5 +170,4 @@ class BroadcastController extends Controller
 
         return BroadcastResource::make($broadcast);
     }
-
 }

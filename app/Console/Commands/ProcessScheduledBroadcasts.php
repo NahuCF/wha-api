@@ -6,7 +6,6 @@ use App\Enums\BroadcastStatus;
 use App\Jobs\ProcessBroadcast;
 use App\Models\Broadcast;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class ProcessScheduledBroadcasts extends Command
 {
@@ -30,14 +29,14 @@ class ProcessScheduledBroadcasts extends Command
     public function handle(): int
     {
         $this->info('Checking for scheduled broadcasts...');
-        
+
         // Since we have single database multi-tenancy, we can query broadcasts directly
         // with their tenant relationships
         $scheduledBroadcasts = $this->getScheduledBroadcasts();
         $interruptedBroadcasts = $this->getInterruptedBroadcasts();
-        
+
         $totalBroadcasts = $scheduledBroadcasts->count() + $interruptedBroadcasts->count();
-        
+
         if ($totalBroadcasts === 0) {
             return Command::SUCCESS;
         }
@@ -96,6 +95,6 @@ class ProcessScheduledBroadcasts extends Command
                 'sent_at' => now(),
             ]);
         }
- 
+
     }
 }

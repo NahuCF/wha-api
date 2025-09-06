@@ -2,36 +2,37 @@
 
 namespace App\Jobs;
 
-use Throwable;
-use App\Models\Contact;
-use App\Models\Message;
-use App\Models\Broadcast;
-use App\Enums\MessageType;
+use App\Enums\BroadcastStatus;
+use App\Enums\MessageDirection;
 use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
+use App\Enums\MessageType;
+use App\Helpers\AppEnvironment;
+use App\Models\Broadcast;
+use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\Message;
 use App\Services\MetaService;
 use App\Services\TemplateComponentBuilderService;
 use App\Services\WhatsAppRateLimiter;
 use Illuminate\Bus\Queueable;
-use App\Enums\BroadcastStatus;
-use App\Enums\MessageDirection;
-use App\Helpers\AppEnvironment;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
+use Throwable;
 
 class ProcessBroadcast implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected Broadcast $broadcast;
+
     protected int $batchSize;
+
     protected int $offset;
 
     /**
@@ -83,6 +84,7 @@ class ProcessBroadcast implements ShouldQueue
 
             if ($remainingContactIds->isEmpty()) {
                 $this->markBroadcastAsCompleted();
+
                 return;
             }
 
@@ -96,11 +98,12 @@ class ProcessBroadcast implements ShouldQueue
 
             if ($contactBatch->isEmpty()) {
                 $this->markBroadcastAsCompleted();
+
                 return;
             }
 
             $contacts = $this->preloadContactData($contactBatch);
-            
+
             // Skip if no contacts were found (e.g., they were deleted)
             if ($contacts->isEmpty()) {
                 // Dispatch next batch if there are more
@@ -109,9 +112,10 @@ class ProcessBroadcast implements ShouldQueue
                     self::dispatch($this->broadcast, $this->batchSize, $nextOffset)
                         ->delay(now()->addSeconds(1));
                 }
+
                 return;
             }
-            
+
             $conversations = $this->bulkGetOrCreateConversations($contacts);
 
             $messagesToInsert = [];
@@ -119,10 +123,10 @@ class ProcessBroadcast implements ShouldQueue
 
             foreach ($contacts as $contact) {
                 $phoneNumbers = $this->getContactPhoneNumbers($contact);
-                
+
                 foreach ($phoneNumbers as $phoneNumber) {
                     // Get conversation for this specific phone number
-                    $conversation = $conversations[$contact->id . '_' . $phoneNumber];
+                    $conversation = $conversations[$contact->id.'_'.$phoneNumber];
 
                     $messagesToInsert[] = [
                         'id' => \Illuminate\Support\Str::ulid(),
@@ -144,9 +148,9 @@ class ProcessBroadcast implements ShouldQueue
                 }
             }
 
-            if (!empty($messagesToInsert)) {
+            if (! empty($messagesToInsert)) {
                 DB::table('messages')->insert($messagesToInsert);
-                
+
                 $this->broadcast->increment('sent_count', count($messagesToInsert));
                 $this->broadcast->touch();
             }
@@ -165,7 +169,7 @@ class ProcessBroadcast implements ShouldQueue
             // Check if there are more contacts to process
             $totalRemaining = $remainingContactIds->count();
             $processedInThisBatch = $contactBatch->count();
-            
+
             if ($totalRemaining > $processedInThisBatch) {
                 // Dispatch next batch with a small delay to avoid overwhelming the system
                 $nextOffset = $this->offset + $this->batchSize;
@@ -205,7 +209,7 @@ class ProcessBroadcast implements ShouldQueue
     protected function getProcessedContactIds(): Collection
     {
         $processedIds = collect();
-        
+
         DB::table('messages')
             ->select('conversations.contact_id')
             ->join('conversations', 'messages.conversation_id', '=', 'conversations.id')
@@ -237,7 +241,7 @@ class ProcessBroadcast implements ShouldQueue
     {
         $conversations = [];
         $wabaId = $this->broadcast->phoneNumber->waba_id ?? null;
-        
+
         // Collect all phone numbers from all contacts
         $contactPhoneMap = [];
         foreach ($contacts as $contact) {
@@ -246,7 +250,7 @@ class ProcessBroadcast implements ShouldQueue
                 $contactPhoneMap[] = [
                     'contact_id' => $contact->id,
                     'phone' => $phone,
-                    'key' => $contact->id . '_' . $phone
+                    'key' => $contact->id.'_'.$phone,
                 ];
             }
         }
@@ -261,7 +265,7 @@ class ProcessBroadcast implements ShouldQueue
                 foreach ($contactPhoneMap as $item) {
                     $query->orWhere(function ($q) use ($item) {
                         $q->where('contact_id', $item['contact_id'])
-                          ->where('phone_number', $item['phone']);
+                            ->where('phone_number', $item['phone']);
                     });
                 }
             })
@@ -270,7 +274,7 @@ class ProcessBroadcast implements ShouldQueue
         // Index existing conversations by contact_id + phone_number
         $existingByKey = [];
         foreach ($existingConversations as $conv) {
-            $key = $conv->contact_id . '_' . $conv->phone_number;
+            $key = $conv->contact_id.'_'.$conv->phone_number;
             $existingByKey[$key] = $conv;
         }
 
@@ -280,7 +284,7 @@ class ProcessBroadcast implements ShouldQueue
 
         foreach ($contactPhoneMap as $item) {
             $key = $item['key'];
-            
+
             // Check if conversation already exists
             if (isset($existingByKey[$key])) {
                 $conversations[$key] = $existingByKey[$key];
@@ -297,7 +301,7 @@ class ProcessBroadcast implements ShouldQueue
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
-                
+
                 // Store conversation for this contact-phone combination
                 $conversations[$key] = (object) [
                     'id' => $conversationId,
@@ -306,7 +310,7 @@ class ProcessBroadcast implements ShouldQueue
         }
 
         // Bulk insert new conversations
-        if (!empty($newConversations)) {
+        if (! empty($newConversations)) {
             DB::table('conversations')->insert($newConversations);
         }
 
@@ -319,26 +323,27 @@ class ProcessBroadcast implements ShouldQueue
     protected function sendMessagesToWhatsApp(array $messages, Collection $contacts, MetaService $metaService, TemplateComponentBuilderService $templateBuilder, WhatsAppRateLimiter $rateLimiter): void
     {
         $phoneNumberId = $this->broadcast->phoneNumber->meta_id ?? null;
-        if (!$phoneNumberId) {
+        if (! $phoneNumberId) {
             return;
         }
-        
+
         foreach ($messages as $message) {
             $waitTime = $rateLimiter->waitUntilAvailable($phoneNumberId, 1);
             if ($waitTime > 0) {
                 usleep($waitTime * 1000);
             }
-            
+
             // Reserve the slot after waiting
             $rateLimiter->attempt($phoneNumberId, 1);
-            
+
             try {
                 $contact = $contacts->first(function ($c) use ($message) {
                     $phoneNumbers = $this->getContactPhoneNumbers($c);
+
                     return in_array($message['to_phone'], $phoneNumbers);
                 });
 
-                if (!$contact) {
+                if (! $contact) {
                     continue;
                 }
 
@@ -389,9 +394,9 @@ class ProcessBroadcast implements ShouldQueue
         });
 
         $phoneNumbers = is_array($phoneField->value) ? $phoneField->value : [$phoneField->value];
-        
-        return array_filter($phoneNumbers, function($phone) {
-            return !empty($phone);
+
+        return array_filter($phoneNumbers, function ($phone) {
+            return ! empty($phone);
         });
     }
 
@@ -401,6 +406,7 @@ class ProcessBroadcast implements ShouldQueue
     protected function getContactPhoneNumber(Contact $contact): ?string
     {
         $phoneNumbers = $this->getContactPhoneNumbers($contact);
+
         return $phoneNumbers[0] ?? null;
     }
 
@@ -409,7 +415,7 @@ class ProcessBroadcast implements ShouldQueue
      */
     protected function buildMessageContent(Contact $contact, TemplateComponentBuilderService $templateBuilder): string
     {
-        if (!$this->broadcast->template) {
+        if (! $this->broadcast->template) {
             return '';
         }
 
@@ -424,7 +430,6 @@ class ProcessBroadcast implements ShouldQueue
         );
     }
 
-
     /**
      * Mark broadcast as completed
      */
@@ -434,10 +439,10 @@ class ProcessBroadcast implements ShouldQueue
         $stats = DB::table('messages')
             ->select(
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "' . MessageStatus::SENT->value . '" THEN 1 ELSE 0 END) as sent'),
-                DB::raw('SUM(CASE WHEN status = "' . MessageStatus::DELIVERED->value . '" THEN 1 ELSE 0 END) as delivered'),
-                DB::raw('SUM(CASE WHEN status = "' . MessageStatus::READ->value . '" THEN 1 ELSE 0 END) as read'),
-                DB::raw('SUM(CASE WHEN status = "' . MessageStatus::FAILED->value . '" THEN 1 ELSE 0 END) as failed')
+                DB::raw("SUM(CASE WHEN status = '".MessageStatus::SENT->value."' THEN 1 ELSE 0 END) as sent"),
+                DB::raw("SUM(CASE WHEN status = '".MessageStatus::DELIVERED->value."' THEN 1 ELSE 0 END) as delivered"),
+                DB::raw("SUM(CASE WHEN status = '".MessageStatus::READ->value."' THEN 1 ELSE 0 END) as read"),
+                DB::raw("SUM(CASE WHEN status = '".MessageStatus::FAILED->value."' THEN 1 ELSE 0 END) as failed")
             )
             ->where('broadcast_id', $this->broadcast->id)
             ->first();

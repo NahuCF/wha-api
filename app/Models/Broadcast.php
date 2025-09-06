@@ -44,7 +44,6 @@ class Broadcast extends Model
         return $this->hasMany(Message::class);
     }
 
-
     public function getTotalRecipientsCountAttribute()
     {
         $directRecipients = is_array($this->recipients) ? count($this->recipients) : 0;

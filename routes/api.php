@@ -101,7 +101,7 @@ Route::group(['middleware' => [
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
     Route::apiResource('users', UserController::class);
 
-    Route::get('phone-numbers', [PhoneNumberController::class, 'index'])->middleware([EnsureWabaId::class]);
+    Route::get('phone-numbers', [PhoneNumberController::class, 'index']);
 
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);

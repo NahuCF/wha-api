@@ -8,10 +8,11 @@ use App\Enums\QualityRating;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class PhoneNumber extends Model
 {
-    use HasUlids;
+    use BelongsToTenant, HasUlids;
 
     protected $casts = [
         'quality_rating' => QualityRating::class,

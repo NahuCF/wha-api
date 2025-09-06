@@ -255,7 +255,7 @@ class MetaService
                 ],
             ];
 
-            if (!empty($components)) {
+            if (! empty($components)) {
                 $payload['template']['components'] = $components;
             }
 
@@ -292,9 +292,11 @@ class MetaService
             }
 
             Log::error('Failed to send text message: '.$response->body());
+
             return ['error' => $response->json()];
         } catch (\Throwable $e) {
             Log::error('Error sending text message via Meta API: '.$e->getMessage());
+
             return ['error' => 'Failed to send text message', 'exception' => $e->getMessage()];
         }
     }
