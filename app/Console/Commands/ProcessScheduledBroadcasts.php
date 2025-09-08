@@ -28,7 +28,6 @@ class ProcessScheduledBroadcasts extends Command
      */
     public function handle(): int
     {
-        $this->info('Checking for scheduled broadcasts...');
 
         $scheduledBroadcasts = $this->getScheduledBroadcasts();
         $interruptedBroadcasts = $this->getInterruptedBroadcasts();
@@ -38,8 +37,6 @@ class ProcessScheduledBroadcasts extends Command
         if ($totalBroadcasts === 0) {
             return Command::SUCCESS;
         }
-
-        $this->info("Found {$totalBroadcasts} broadcast(s) to process");
 
         foreach ($scheduledBroadcasts as $broadcast) {
             ProcessBroadcast::dispatch($broadcast);
@@ -57,7 +54,6 @@ class ProcessScheduledBroadcasts extends Command
      */
     protected function getScheduledBroadcasts()
     {
-        // Query broadcasts table directly since all tenants share the same database
         return Broadcast::with('tenant')
             ->where('status', BroadcastStatus::SCHEDULED)
             ->where('scheduled_at', '<=', now())
@@ -80,8 +76,6 @@ class ProcessScheduledBroadcasts extends Command
      */
     protected function resumeInterruptedBroadcast(Broadcast $broadcast): void
     {
-        $this->warn("Resuming interrupted broadcast: {$broadcast->id} - {$broadcast->name}");
-
         $processedCount = $broadcast->messages()->count();
         $totalRecipients = $broadcast->total_recipients_count;
 
