@@ -40,7 +40,7 @@ class BroadcastController extends Controller
             ->when($startDate && $endDate, fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate]))
             ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'))
             ->orderBy('created_at', 'desc')
-            ->simplePaginate($rowsPerPage);
+            ->paginate($rowsPerPage);
 
         return BroadcastResource::collection($broadcasts);
 

@@ -14,15 +14,12 @@ use Illuminate\Validation\ValidationException;
 
 class ContactService
 {
-    public function index(
-        array $columns = ['*'],
-        array $filters = [],
-        ?string $search = null,
-        bool $simplePaginate = true,
-        int $rowsPerPage = 10
-    ) {
+    /**
+     * Get filtered query for contacts
+     */
+    public function getFilteredQuery(array $filters = [], ?string $search = null)
+    {
         $query = Contact::query()
-            ->select($columns)
             ->when($search, function ($query) use ($search) {
                 $query->whereHas('fieldValues', function ($q) use ($search) {
                     $q->whereRaw('value::text ILIKE ?', ['%'.strtolower($search).'%']);
@@ -68,7 +65,19 @@ class ContactService
             })
             ->orderBy('id', 'desc');
 
-        return $simplePaginate ? $query->simplePaginate($rowsPerPage) : $query->get();
+        return $query;
+    }
+
+    public function index(
+        array $columns = ['*'],
+        array $filters = [],
+        ?string $search = null,
+        bool $paginate = true,
+        int $rowsPerPage = 10
+    ) {
+        $query = $this->getFilteredQuery($filters, $search)->select($columns);
+
+        return $paginate ? $query->paginate($rowsPerPage) : $query->get();
     }
 
     public function store(array $fields)

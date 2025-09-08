@@ -31,7 +31,7 @@ class ContactFieldController extends Controller
             ->where(function ($query) {
                 $query->whereNull('tenant_id')
                     ->orWhere('tenant_id', tenant('id'));
-            })->simplePaginate($rowsPerPage);
+            })->paginate($rowsPerPage);
 
         return ContactFieldResource::collection($contactFields);
     }

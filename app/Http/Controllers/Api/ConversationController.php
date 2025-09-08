@@ -66,7 +66,7 @@ class ConversationController extends Controller
                 $query->where('user_id', $user->id);
             }]))
             ->orderBy('last_message_at', 'desc')
-            ->simplePaginate($rowsPerPage);
+            ->paginate($rowsPerPage);
 
         return ConversationResource::collection($conversations);
     }

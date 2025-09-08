@@ -12,6 +12,7 @@ class Group extends Model
 
     protected $cast = [
         'contact_ids' => 'array',
+        'contacts_count' => 'integer',
     ];
 
     public function contacts()
