@@ -120,8 +120,11 @@ class ContactService
 
     public function update(array $fields, Contact $contact)
     {
-        // Check duplicate contact by phone
-        $phoneField = ContactField::where('name', 'Phone')->firstOrFail();
+        $phoneField = ContactField::withoutGlobalScopes()
+            ->where(fn ($query) => $query->whereNull('tenant_id'))
+            ->where('name', 'Phone')
+            ->firstOrFail();
+
         $phoneValue = collect($fields)->firstWhere('id', $phoneField->id)['value'];
 
         $exitsContact = ContactFieldValue::query()
@@ -141,6 +144,7 @@ class ContactService
                 'id' => Str::ulid(),
                 'contact_id' => $contact->id,
                 'contact_field_id' => $f['id'],
+                'tenant_id' => tenant('id'),
                 'value' => json_encode($f['value']),
                 'created_at' => now(),
                 'updated_at' => now(),
