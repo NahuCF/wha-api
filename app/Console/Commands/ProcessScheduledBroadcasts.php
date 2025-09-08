@@ -77,7 +77,7 @@ class ProcessScheduledBroadcasts extends Command
     protected function resumeInterruptedBroadcast(Broadcast $broadcast): void
     {
         $processedCount = $broadcast->messages()->count();
-        $totalRecipients = $broadcast->total_recipients_count;
+        $totalRecipients = $broadcast->recipients_count;
 
         if ($processedCount < $totalRecipients) {
             ProcessBroadcast::dispatch($broadcast);
