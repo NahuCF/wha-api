@@ -30,8 +30,6 @@ class ProcessScheduledBroadcasts extends Command
     {
         $this->info('Checking for scheduled broadcasts...');
 
-        // Since we have single database multi-tenancy, we can query broadcasts directly
-        // with their tenant relationships
         $scheduledBroadcasts = $this->getScheduledBroadcasts();
         $interruptedBroadcasts = $this->getInterruptedBroadcasts();
 
