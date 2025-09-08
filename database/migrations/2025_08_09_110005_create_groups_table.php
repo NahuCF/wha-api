@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignUlid('user_id');
             $table->string('name');
             $table->jsonb('filters');
-            $table->integer('contacts_count')->detault(0);
+            $table->integer('contacts_count')->default(0);
             $table->timestamps();
 
             $table->index('tenant_id');
