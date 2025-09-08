@@ -16,6 +16,7 @@ class ContactResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'active_broadcasts_count' => $this->active_broadcasts_count,
             'fields' => $this->fieldValues->map(fn ($field) => [
                 'field_value_id' => $field->field->id,
                 'name' => $field->field->name,

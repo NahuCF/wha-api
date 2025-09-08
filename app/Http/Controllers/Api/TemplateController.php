@@ -103,7 +103,7 @@ class TemplateController extends Controller
             'footer' => $footer,
             'header' => $header ? json_encode($header) : null,
             'buttons' => json_encode($buttons),
-            'status' => 'PENDING',
+            'status' => AppEnvironment::isProduction() ? TemplateStatus::PENDING : TemplateStatus::APPROVED,
             'updated_count_while_approved' => 0,
         ]);
 

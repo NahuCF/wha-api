@@ -48,6 +48,13 @@ class ContactController extends Controller
 
     public function update(UpdateContactRequest $request, Contact $contact, ContactService $service)
     {
+        if ($contact->active_broadcasts_count > 0) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Cannot update contact while it has active broadcasts.',
+                'message_code' => 'contact_has_active_broadcasts',
+            ], 422));
+        }
+
         $contact = $service->update($request->validated()['fields'], $contact);
 
         return new ContactResource($contact);
@@ -59,6 +66,13 @@ class ContactController extends Controller
             throw new HttpResponseException(response()->json([
                 'message' => 'This action is unauthorized.',
             ], 403));
+        }
+
+        if ($contact->active_broadcasts_count > 0) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Cannot delete contact while it has active broadcasts.',
+                'message_code' => 'contact_has_active_broadcasts',
+            ], 422));
         }
 
         $contact->delete();

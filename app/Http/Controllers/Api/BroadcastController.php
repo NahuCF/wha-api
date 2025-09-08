@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\BroadcastStatus;
+use App\Enums\TemplateStatus;
 use App\Http\Resources\BroadcastResource;
 use App\Jobs\ProcessBroadcast;
 use App\Models\Broadcast;
+use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -115,11 +117,20 @@ class BroadcastController extends Controller
             ->where('name', $name)
             ->exists();
 
-        $user = Auth::user();
-
         if ($nameExist) {
             throw ValidationException::withMessages(['name' => 'Broadcast name already exists']);
         }
+
+        $isTemplateApproved = Template::query()
+            ->where('id', $templateId)
+            ->where('status', TemplateStatus::APPROVED)
+            ->exists();
+
+        if (! $isTemplateApproved) {
+            throw ValidationException::withMessages(['name' => 'Template is not approved']);
+        }
+
+        $user = Auth::user();
 
         $totalRecipients = $this->calculateRecipientsCount($groupIds, $sendToAllNumbers);
 

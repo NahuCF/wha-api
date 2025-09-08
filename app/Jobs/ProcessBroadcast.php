@@ -22,7 +22,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProcessBroadcast implements ShouldQueue
@@ -74,13 +73,30 @@ class ProcessBroadcast implements ShouldQueue
             }
 
             $allContactIds = $this->getContactIds();
-            $processedContactIds = $this->getProcessedContactIds();
-            $remainingContactIds = $allContactIds->diff($processedContactIds);
 
-            if ($remainingContactIds->isEmpty()) {
-                $this->markBroadcastAsCompleted();
+            // Add contacts to active broadcast tracking
+            $this->addContactsToActiveBroadcasts($allContactIds);
 
-                return;
+            // When send_to_all_numbers is true, we need to track contact-phone combinations
+            // Otherwise, just track contacts
+            if ($this->broadcast->send_to_all_numbers) {
+                $remainingWork = $this->getRemainingContactPhoneCombinations($allContactIds);
+                if ($remainingWork->isEmpty()) {
+                    $this->markBroadcastAsCompleted();
+
+                    return;
+                }
+
+                $remainingContactIds = $remainingWork->pluck('contact_id')->unique();
+            } else {
+                $processedContactIds = $this->getProcessedContactIds();
+                $remainingContactIds = $allContactIds->diff($processedContactIds);
+
+                if ($remainingContactIds->isEmpty()) {
+                    $this->markBroadcastAsCompleted();
+
+                    return;
+                }
             }
 
             // Process batch of contacts
@@ -217,6 +233,56 @@ class ProcessBroadcast implements ShouldQueue
             });
 
         return $processedIds->unique();
+    }
+
+    /**
+     * Get remaining contact-phone combinations that haven't been processed
+     */
+    protected function getRemainingContactPhoneCombinations(Collection $allContactIds): Collection
+    {
+        $sentCombinations = collect();
+
+        // Set conbinations contact_id - phone
+        DB::table('messages')
+            ->select('conversations.contact_id', 'messages.to_phone')
+            ->join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            ->where('messages.broadcast_id', $this->broadcast->id)
+            ->whereNotNull('conversations.contact_id')
+            ->chunk(1000, function ($messages) use (&$sentCombinations) {
+                $messages->each(function ($msg) use (&$sentCombinations) {
+                    $sentCombinations->push($msg->contact_id.'_'.$msg->to_phone);
+                });
+            });
+
+        $sentCombinations = $sentCombinations->unique();
+
+        // Get all contact-phone combinations that should be processed
+        $remainingWork = collect();
+
+        // Process contacts in chunks to get their phone numbers
+        Contact::query()
+            ->whereIn('id', $allContactIds)
+            ->with(['fieldValues' => function ($query) {
+                $query->with('field');
+            }])
+            ->chunk(100, function ($contacts) use (&$remainingWork, $sentCombinations) {
+                foreach ($contacts as $contact) {
+                    $phoneNumbers = $this->getContactPhoneNumbers($contact);
+
+                    foreach ($phoneNumbers as $phone) {
+                        $key = $contact->id.'_'.$phone;
+                        // Only add if not already sent
+                        if (! $sentCombinations->contains($key)) {
+                            $remainingWork->push([
+                                'contact_id' => $contact->id,
+                                'phone' => $phone,
+                            ]);
+                        }
+                    }
+                }
+            });
+
+        return $remainingWork;
     }
 
     protected function preloadContactData(Collection $contactIds): Collection
@@ -448,14 +514,107 @@ class ProcessBroadcast implements ShouldQueue
             ->where('broadcast_id', $this->broadcast->id)
             ->first();
 
+        // Calculate actual unique recipients based on unique phone numbers
+        $actualRecipients = DB::table('messages')
+            ->where('broadcast_id', $this->broadcast->id)
+            ->distinct('to_phone')
+            ->count('to_phone');
+
         $this->broadcast->update([
             'status' => BroadcastStatus::COMPLETED,
             'sent_at' => now(),
+            'recipients_count' => $actualRecipients,
             'sent_count' => $stats->sent ?? 0,
             'delivered_count' => $stats->delivered ?? 0,
             'readed_count' => $stats->read ?? 0,
             'failed_count' => $stats->failed ?? 0,
         ]);
+
+        // Remove contacts from active broadcast tracking
+        $allContactIds = $this->getContactIds();
+        $this->removeContactsFromActiveBroadcasts($allContactIds);
+    }
+
+    /**
+     * Add contacts to active broadcast tracking
+     */
+    protected function addContactsToActiveBroadcasts(Collection $contactIds): void
+    {
+        if ($contactIds->isEmpty()) {
+            return;
+        }
+
+        $broadcastId = $this->broadcast->id;
+        $tenantId = $this->broadcast->tenant_id;
+
+        // Process in chunks for performance
+        $contactIds->chunk(1000)->each(function ($chunk) use ($broadcastId, $tenantId) {
+            foreach ($chunk as $contactId) {
+                DB::statement('
+                    INSERT INTO active_broadcast_contacts (contact_id, tenant_id, broadcast_count, broadcast_ids, updated_at)
+                    VALUES (?, ?, 1, ?, NOW())
+                    ON CONFLICT (contact_id) DO UPDATE SET
+                        broadcast_count = active_broadcast_contacts.broadcast_count + 1,
+                        broadcast_ids = CASE 
+                            WHEN active_broadcast_contacts.broadcast_ids IS NULL THEN ?::jsonb
+                            ELSE active_broadcast_contacts.broadcast_ids || ?::jsonb
+                        END,
+                        updated_at = NOW()
+                ', [
+                    $contactId,
+                    $tenantId,
+                    json_encode([$broadcastId]),
+                    json_encode([$broadcastId]),
+                    json_encode([$broadcastId]),
+                ]);
+            }
+        });
+    }
+
+    /**
+     * Remove contacts from active broadcast tracking
+     */
+    protected function removeContactsFromActiveBroadcasts(Collection $contactIds): void
+    {
+        if ($contactIds->isEmpty()) {
+            return;
+        }
+
+        $broadcastId = $this->broadcast->id;
+
+        // Process in chunks for performance
+        $contactIds->chunk(1000)->each(function ($chunk) use ($broadcastId) {
+            foreach ($chunk as $contactId) {
+                // Get current data
+                $current = DB::table('active_broadcast_contacts')
+                    ->where('contact_id', $contactId)
+                    ->first();
+
+                if (! $current) {
+                    continue;
+                }
+
+                $broadcastIds = json_decode($current->broadcast_ids, true) ?? [];
+                $broadcastIds = array_filter($broadcastIds, fn ($id) => $id !== $broadcastId);
+                $newCount = count($broadcastIds);
+
+                if ($newCount === 0) {
+                    // No more active broadcasts, delete the record
+                    DB::table('active_broadcast_contacts')
+                        ->where('contact_id', $contactId)
+                        ->delete();
+                } else {
+                    // Update with remaining broadcasts
+                    DB::table('active_broadcast_contacts')
+                        ->where('contact_id', $contactId)
+                        ->update([
+                            'broadcast_count' => $newCount,
+                            'broadcast_ids' => json_encode(array_values($broadcastIds)),
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
+        });
     }
 
     /**
@@ -463,14 +622,12 @@ class ProcessBroadcast implements ShouldQueue
      */
     public function failed(Throwable $exception): void
     {
-        Log::error('Broadcast job failed', [
-            'broadcast_id' => $this->broadcast->id,
-            'offset' => $this->offset,
-            'error' => $exception->getMessage(),
-        ]);
-
         $this->broadcast->update([
             'status' => BroadcastStatus::FAILED,
         ]);
+
+        tenancy()->initialize($this->broadcast->tenant);
+        $allContactIds = $this->getContactIds();
+        $this->removeContactsFromActiveBroadcasts($allContactIds);
     }
 }
