@@ -127,7 +127,10 @@ class BroadcastController extends Controller
             ->exists();
 
         if (! $isTemplateApproved) {
-            throw ValidationException::withMessages(['name' => 'Template is not approved']);
+            return response()->json([
+                'message' => 'Template is not approved',
+                'message_code' => 'template_not_approved',
+            ]);
         }
 
         $user = Auth::user();
@@ -152,7 +155,7 @@ class BroadcastController extends Controller
         $broadcast->load(['user']);
 
         if ($sendNow) {
-            ProcessBroadcast::dispatch($broadcast);
+            ProcessBroadcast::dispatch($broadcast)->onQueue('broadcasts');
         }
 
         return BroadcastResource::make($broadcast);
@@ -178,6 +181,65 @@ class BroadcastController extends Controller
         $broadcast->load(['user', 'groups', 'phoneNumber']);
 
         return BroadcastResource::make($broadcast);
+    }
+
+    public function repeat(Request $request, Broadcast $broadcast)
+    {
+        $input = $request->validate([
+            'scheduled_at' => ['sometimes', 'date'],
+            'send_now' => ['sometimes', 'boolean'],
+        ]);
+
+        $scheduledAt = data_get($input, 'scheduled_at');
+        $sendNow = data_get($input, 'send_now', false);
+
+        if (! $scheduledAt && ! $sendNow) {
+            return response()->json([
+                'message' => 'Scheduled at or send now is required',
+                'message_code' => 'scheduled_at_or_send_now_required',
+            ]);
+        }
+
+        $groupIds = $broadcast->groups->pluck('id')->toArray();
+
+        $isTemplateApproved = Template::query()
+            ->where('id', $broadcast->template_id)
+            ->where('status', TemplateStatus::APPROVED)
+            ->exists();
+
+        if (! $isTemplateApproved) {
+            return response()->json([
+                'message' => 'Template is not approved',
+                'message_code' => 'template_not_approved',
+            ], 422);
+        }
+
+        $user = Auth::user();
+
+        $totalRecipients = $this->calculateRecipientsCount($groupIds, $broadcast->send_to_all_numbers);
+
+        $newBroadcast = Broadcast::query()
+            ->create([
+                'name' => $broadcast->name,
+                'phone_number_id' => $broadcast->phone_number_id,
+                'user_id' => $user->id,
+                'scheduled_at' => $scheduledAt,
+                'template_id' => $broadcast->template_id,
+                'variables' => $broadcast->variables,
+                'send_to_all_numbers' => $broadcast->send_to_all_numbers,
+                'status' => $scheduledAt ? BroadcastStatus::SCHEDULED : BroadcastStatus::QUEUED,
+                'recipients_count' => $totalRecipients,
+            ]);
+
+        $newBroadcast->groups()->attach($groupIds);
+
+        $newBroadcast->load(['user']);
+
+        if ($sendNow) {
+            ProcessBroadcast::dispatch($newBroadcast);
+        }
+
+        return BroadcastResource::make($newBroadcast);
     }
 
     /**

@@ -116,7 +116,10 @@ Route::group(['middleware' => [
 
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
-    Route::get('broadcasts/overview', [BroadcastController::class, 'overview']);
-    Route::post('broadcasts/{broadcast}/update-status', [BroadcastController::class, 'updateStatus']);
-    Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store', 'show']);
+    Route::group(['middleware' => [EnsureWabaId::class]], function () {
+        Route::get('broadcasts/overview', [BroadcastController::class, 'overview']);
+        Route::post('broadcasts/{broadcast}/repeat', [BroadcastController::class, 'repeat']);
+        Route::post('broadcasts/{broadcast}/update-status', [BroadcastController::class, 'updateStatus']);
+        Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store', 'show']);
+    });
 });

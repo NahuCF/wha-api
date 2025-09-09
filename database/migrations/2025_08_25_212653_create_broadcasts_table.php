@@ -11,9 +11,10 @@ return new class extends Migration
     {
         Schema::create('broadcasts', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('phone_number_id')->constrained()->nullOnDelete();
             $table->foreignUlid('user_id')->constrained();
+            $table->foreignUlid('waba_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('template_id')->nullable()->constrained()->nullOnDelete();
 
             $table->string('name');
