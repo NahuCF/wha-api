@@ -21,7 +21,7 @@ class ConversationOwnerChanged implements ShouldBroadcast
 
     public function broadcastOn(): PrivateChannel
     {
-        return new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.user.'.$this->newOwnerId.'.conversation');
+        return new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.conversation');
     }
 
     public function broadcastAs(): string

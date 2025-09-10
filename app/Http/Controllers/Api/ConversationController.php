@@ -127,7 +127,7 @@ class ConversationController extends Controller
             broadcast(
                 new ConversationNew(
                     conversation: $conversationResource->toArray(request()),
-                    tenantId: $conversation->waba->tenant_id,
+                    tenantId: tenant('id'),
                     wabaId: $conversation->waba_id
                 )
             );
@@ -143,6 +143,46 @@ class ConversationController extends Controller
         }
 
         return $conversationResource;
+    }
+
+    public function stats(Request $request)
+    {
+        $user = Auth::user();
+
+        $lastViewedAt = $user->last_chat_view_at ?? now()->subYears(10);
+
+        $user->last_chat_view_at = now();
+        $user->save();
+
+        $baseQuery = Conversation::query();
+
+        $stats = [
+            'unassigned' => $baseQuery->clone()
+                ->whereNull('user_id')
+                ->count(),
+            'mine' => $baseQuery->clone()
+                ->where('user_id', $user->id)
+                ->where(function ($q) use ($lastViewedAt) {
+                    $q->where('last_message_at', '>', $lastViewedAt)
+                        ->orWhere(function ($q2) use ($lastViewedAt) {
+                            $q2->whereNull('last_message_at')
+                                ->orWhere('created_at', '>', $lastViewedAt);
+                        });
+                })
+                ->count(),
+            'opened' => $baseQuery->clone()
+                ->where('expires_at', '>', now())
+                ->where('is_solved', false)
+                ->count(),
+            'resolved' => $baseQuery->clone()
+                ->where('is_solved', true)
+                ->where('updated_at', '>', $lastViewedAt)
+                ->count(),
+        ];
+
+        return response()->json([
+            'data' => $stats,
+        ]);
     }
 
     public function store(Request $request)

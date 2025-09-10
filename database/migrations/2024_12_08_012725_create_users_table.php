@@ -24,7 +24,10 @@ return new class extends Migration
             $table->string('cellphone_prefix')->nullable();
             $table->string('cellphone_number')->nullable();
             $table->enum('status', UserStatus::values())->default(UserStatus::SIGNED_UP);
+
+            $table->timestamp('last_chat_view_at')->nullable();
             $table->timestamps();
+
             $table->softDeletes();
 
             $table->unique(['tenant_id', 'email']);

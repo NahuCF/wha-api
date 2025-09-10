@@ -62,6 +62,7 @@ Route::group(['middleware' => [
     Broadcast::routes();
 
     Route::group(['middleware' => [EnsureWabaId::class]], function () {
+        Route::get('/conversations/stats', [ConversationController::class, 'stats']);
         Route::put('/conversations/{conversation}/change-solved', [ConversationController::class, 'changeSolved']);
         Route::put('/conversations/{conversation}/change-owner', [ConversationController::class, 'changeOwner']);
         Route::apiResource('/conversations', ConversationController::class)->only(['index', 'store', 'show']);
