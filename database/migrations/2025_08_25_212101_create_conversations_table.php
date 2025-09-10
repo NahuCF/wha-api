@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('conversations', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
+            $table->foreignUlid('phone_number_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('waba_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('contact_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('phone_number')->nullable();
+
+            $table->string('to_phone')->nullable();
             $table->boolean('is_solved')->default(false);
             $table->timestamp('last_message_at')->nullable();
             $table->integer('unread_count')->default(0);
@@ -27,8 +29,8 @@ return new class extends Migration
             $table->index(['waba_id', 'is_solved']);
             $table->index(['contact_id', 'is_solved']);
             $table->index('last_message_at');
-            $table->index(['contact_id', 'phone_number']);
-            $table->index('phone_number');
+            $table->index(['contact_id', 'to_phone']);
+            $table->index('to_phone');
         });
     }
 

@@ -143,6 +143,7 @@ class ProcessBroadcast implements ShouldQueue
                         'id' => \Illuminate\Support\Str::ulid(),
                         'tenant_id' => $this->broadcast->tenant_id,
                         'conversation_id' => $conversation->id,
+                        'contact_id' => $contact->id,
                         'broadcast_id' => $this->broadcast->id,
                         'template_id' => $this->broadcast->template_id,
                         'direction' => MessageDirection::OUTBOUND->value,
@@ -150,7 +151,6 @@ class ProcessBroadcast implements ShouldQueue
                         'status' => MessageStatus::PENDING->value,
                         'source' => MessageSource::BROADCAST->value,
                         'content' => $this->buildMessageContent($contact, $templateBuilder),
-                        'from_phone' => $this->broadcast->phoneNumber->phone_number ?? null,
                         'to_phone' => $phoneNumber,
                         'meta_id' => uniqid('broadcast_', true),
                         'created_at' => $now,
@@ -248,6 +248,7 @@ class ProcessBroadcast implements ShouldQueue
             ->join('conversations', 'messages.conversation_id', '=', 'conversations.id')
             ->where('messages.broadcast_id', $this->broadcast->id)
             ->whereNotNull('conversations.contact_id')
+            ->orderBy('messages.id')
             ->chunk(1000, function ($messages) use (&$sentCombinations) {
                 $messages->each(function ($msg) use (&$sentCombinations) {
                     $sentCombinations->push($msg->contact_id.'_'.$msg->to_phone);
@@ -265,6 +266,7 @@ class ProcessBroadcast implements ShouldQueue
             ->with(['fieldValues' => function ($query) {
                 $query->with('field');
             }])
+            ->orderBy('id')
             ->chunk(100, function ($contacts) use (&$remainingWork, $sentCombinations) {
                 foreach ($contacts as $contact) {
                     $phoneNumbers = $this->getContactPhoneNumbers($contact);
@@ -332,7 +334,7 @@ class ProcessBroadcast implements ShouldQueue
                 foreach ($contactPhoneMap as $item) {
                     $query->orWhere(function ($q) use ($item) {
                         $q->where('contact_id', $item['contact_id'])
-                            ->where('phone_number', $item['phone']);
+                            ->where('to_phone', $item['phone']);
                     });
                 }
             })
@@ -341,7 +343,7 @@ class ProcessBroadcast implements ShouldQueue
         // Index existing conversations by contact_id + phone_number
         $existingByKey = [];
         foreach ($existingConversations as $conv) {
-            $key = $conv->contact_id.'_'.$conv->phone_number;
+            $key = $conv->contact_id.'_'.$conv->to_phone;
             $existingByKey[$key] = $conv;
         }
 
@@ -361,8 +363,9 @@ class ProcessBroadcast implements ShouldQueue
                 $newConversations[] = [
                     'id' => $conversationId,
                     'tenant_id' => $this->broadcast->tenant_id,
+                    'phone_number_id' => $this->broadcast->phone_number_id,
                     'contact_id' => $item['contact_id'],
-                    'phone_number' => $item['phone'],
+                    'to_phone' => $item['phone'],
                     'waba_id' => $wabaId,
                     'last_message_at' => $now,
                     'created_at' => $now,
@@ -552,7 +555,7 @@ class ProcessBroadcast implements ShouldQueue
             foreach ($chunk as $contactId) {
                 DB::statement('
                     INSERT INTO active_broadcast_contacts (contact_id, tenant_id, broadcast_count, broadcast_ids, updated_at)
-                    VALUES (?, ?, 1, ?, NOW())
+                    VALUES (?, ?, 1, ?::jsonb, NOW())
                     ON CONFLICT (contact_id) DO UPDATE SET
                         broadcast_count = active_broadcast_contacts.broadcast_count + 1,
                         broadcast_ids = CASE 

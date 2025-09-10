@@ -20,11 +20,14 @@ class ConversationResource extends JsonResource
             'is_solved' => $this->is_solved,
             'unread_count' => $this->unread_count,
             'is_expired' => $this->isExpired(),
-            'contact' => new ContactResource($this->whenLoaded('contact')),
-            'assigned_user' => new UserResource($this->whenLoaded('assignedUser')),
-            'waba' => new WabaResource($this->whenLoaded('waba')),
-            'last_message' => new MessageResource($this->whenLoaded('latestMessage')),
+            'contact' => $this->whenLoaded('contact', fn () => new ContactResource($this->contact)),
+            'assigned_user' => $this->whenLoaded('assignedUser', fn () => new UserResource($this->assignedUser)),
+            'waba' => $this->whenLoaded('waba', fn () => new WabaResource($this->waba)),
+            'phone_number' => $this->whenLoaded('phoneNumber', fn () => new PhoneNumberResource($this->phoneNumber)),
+            'to_phone' => $this->to_phone,
+            'last_message' => $this->whenLoaded('latestMessage', fn () => new MessageResource($this->latestMessage)),
             'last_message_at' => $this->last_message_at,
+            'is_initiated' => $this->expired_at !== null,
             'expires_at' => $this->expires_at,
         ];
     }

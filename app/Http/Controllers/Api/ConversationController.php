@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\MessageSent;
+use App\Events\ConversationNew;
+use App\Events\ConversationOwnerChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
@@ -37,7 +38,7 @@ class ConversationController extends Controller
         $searchType = data_get($input, 'search_type', 'contact');
 
         $conversations = Conversation::query()
-            ->with(['contact', 'assignedUser', 'latestMessage', 'waba'])
+            ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
             ->when($search && $searchType === 'message', function ($q) use ($search) {
                 $q->whereHas('messages', function ($query) use ($search) {
                     $query->where('content', 'ILIKE', '%'.$search.'%');
@@ -71,63 +72,153 @@ class ConversationController extends Controller
         return ConversationResource::collection($conversations);
     }
 
-    public function store(Request $request): ConversationResource
+    public function show(Request $request, Conversation $conversation)
+    {
+        return new ConversationResource($conversation);
+    }
+
+    public function changeSolved(Request $request, Conversation $conversation)
     {
         $input = $request->validate([
-            'contact_id' => ['required', 'exists:contacts,id'],
-            'waba_id' => ['required', 'exists:wabas,id'],
-            'meta_id' => ['required', 'string', 'unique:conversations,meta_id'],
-            'user_id' => ['nullable', 'exists:users,id'],
-            'is_solved' => ['nullable', 'boolean'],
-            'expires_at' => ['nullable', 'date'],
+            'is_solved' => ['required', 'boolean'],
         ]);
 
         $user = Auth::user();
-        $contactId = data_get($input, 'contact_id');
-        $wabaId = data_get($input, 'waba_id');
-        $metaId = data_get($input, 'meta_id');
-        $userId = data_get($input, 'user_id');
-        $isSolved = data_get($input, 'is_solved', false);
-        $expiresAt = data_get($input, 'expires_at');
+        $isSolved = data_get($input, 'is_solved');
 
-        $conversation = Conversation::create([
-            'contact_id' => $contactId,
-            'waba_id' => $wabaId,
-            'meta_id' => $metaId,
-            'user_id' => $userId,
-            'is_solved' => $isSolved,
-            'expires_at' => $expiresAt,
-            'last_message_at' => now(),
-            'unread_count' => 0,
-        ]);
-
-        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba']);
-
-        if ($user) {
-            $conversation->load(['pinnedByUsers' => function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            }]);
+        if ($conversation->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized',
+                'message_code' => 'unauthorized',
+            ], 403);
         }
+
+        $conversation->is_solved = $isSolved;
+
+        $conversation->update();
 
         return new ConversationResource($conversation);
     }
 
-    public function sendMessage(Request $request)
+    public function changeOwner(Request $request, Conversation $conversation)
     {
-        $validated = $request->validate([
-            'message' => ['required', 'string', 'max:500'],
-            'user' => ['required', 'string', 'max:100'],
+        $input = $request->validate([
+            'user_id' => ['nullable', 'exists:users,id'],
         ]);
 
-        broadcast(new MessageSent(
-            $validated['message'],
-            $validated['user'],
-            now()->toISOString()
-        ))->toOthers();
+        $user = Auth::user();
+        $userId = data_get($input, 'user_id');
 
-        return response()->json([
-            'status' => 'Message sent successfully',
-            'data' => $validated,
+        if ($conversation->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized',
+                'message_code' => 'unauthorized',
+            ], 403);
+        }
+
+        $conversation->user_id = $userId;
+        $conversation->update();
+
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+        $conversationResource = new ConversationResource($conversation);
+
+        if (! $userId) {
+            broadcast(
+                new ConversationNew(
+                    conversation: $conversationResource->toArray(request()),
+                    tenantId: $conversation->waba->tenant_id,
+                    wabaId: $conversation->waba_id
+                )
+            );
+        } else {
+            broadcast(
+                new ConversationOwnerChanged(
+                    conversation: $conversationResource->toArray(request()),
+                    tenantId: tenant('id'),
+                    wabaId: $conversation->waba_id,
+                    newOwnerId: $userId
+                )
+            );
+        }
+
+        return $conversationResource;
+    }
+
+    public function store(Request $request)
+    {
+        $input = $request->validate([
+            'contact_id' => ['required', 'exists:contacts,id'],
+            'waba_id' => ['required', 'exists:wabas,id'],
+            'phone_number_id' => ['required', 'exists:phone_numbers,id'],
+            'to_phone' => ['required', 'string'],
         ]);
+
+        $user = Auth::user();
+
+        $contactId = data_get($input, 'contact_id');
+        $wabaId = data_get($input, 'waba_id');
+        $phoneNumberId = data_get($input, 'phone_number_id');
+        $toPhone = data_get($input, 'to_phone');
+
+        $conversationQuery = Conversation::query()
+            ->where('contact_id', $contactId)
+            ->where('waba_id', $wabaId)
+            ->where('phone_number_id', $phoneNumberId)
+            ->where('to_phone', $toPhone);
+
+        // Check if there is an active conversation
+        $activeConversation = $conversationQuery
+            ->clone()
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($activeConversation) {
+            return response()->json([
+                'message' => 'Exist active conversation',
+                'message_code' => 'exist_active_conversation',
+                'data' => [
+                    'conversation_id' => $activeConversation->id,
+                    'assigned_user_name' => $activeConversation->assignedUser->name,
+                ],
+            ]);
+        }
+
+        // Check if exist the conversation
+        $draftConversation = $conversationQuery
+            ->clone()
+            ->whereNull('expires_at')
+            ->first();
+
+        if ($draftConversation) {
+            return response()->json([
+                'message' => 'Exist draft conversation',
+                'message_code' => 'exist_draft_conversation',
+                'data' => [
+                    'conversation_id' => $draftConversation->id,
+                ],
+            ]);
+        }
+
+        // Create a conversation but do not start it (expries at = null)
+        $conversation = Conversation::create([
+            'contact_id' => $contactId,
+            'waba_id' => $wabaId,
+            'user_id' => $user->id,
+            'phone_number_id' => $phoneNumberId,
+            'to_phone' => $toPhone,
+        ]);
+
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+        $conversationResource = new ConversationResource($conversation);
+
+        broadcast(new ConversationNew(
+            $conversationResource->toArray(request()),
+            tenant('id'),
+            $wabaId
+        ));
+
+        return $conversationResource;
     }
 }

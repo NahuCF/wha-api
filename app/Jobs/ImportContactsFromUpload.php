@@ -21,6 +21,10 @@ use Throwable;
 
 class ImportContactsFromUpload implements ShouldQueue
 {
+    public $queue = 'imports';  // Low priority import queue
+
+    public $timeout = 900;  // 15 minutes for large imports
+
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private const CHUNK_SIZE = 500;

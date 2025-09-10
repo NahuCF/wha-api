@@ -7,6 +7,7 @@ enum MessageSource: string
     case WHATSAPP = 'whatsapp';
     case BOT = 'bot';
     case BROADCAST = 'broadcast';
+    case CHAT = 'chat';
 
     public static function values(): array
     {

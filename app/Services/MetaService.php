@@ -291,13 +291,205 @@ class MetaService
                 return $response->json();
             }
 
-            Log::error('Failed to send text message: '.$response->body());
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send text message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendImageMessage(string $phoneNumberId, string $to, string $link, ?string $caption = null)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'image',
+                'image' => [
+                    'link' => $link,
+                ],
+            ];
+
+            if ($caption) {
+                $payload['image']['caption'] = $caption;
+            }
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
 
             return ['error' => $response->json()];
         } catch (\Throwable $e) {
-            Log::error('Error sending text message via Meta API: '.$e->getMessage());
+            return ['error' => 'Failed to send image message', 'exception' => $e->getMessage()];
+        }
+    }
 
-            return ['error' => 'Failed to send text message', 'exception' => $e->getMessage()];
+    public function sendVideoMessage(string $phoneNumberId, string $to, string $link, ?string $caption = null)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'video',
+                'video' => [
+                    'link' => $link,
+                ],
+            ];
+
+            if ($caption) {
+                $payload['video']['caption'] = $caption;
+            }
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send video message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendAudioMessage(string $phoneNumberId, string $to, string $link)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'audio',
+                'audio' => [
+                    'link' => $link,
+                ],
+            ];
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send audio message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendDocumentMessage(string $phoneNumberId, string $to, string $link, ?string $caption = null, ?string $filename = null)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'document',
+                'document' => [
+                    'link' => $link,
+                ],
+            ];
+
+            if ($caption) {
+                $payload['document']['caption'] = $caption;
+            }
+
+            if ($filename) {
+                $payload['document']['filename'] = $filename;
+            }
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send document message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendLocationMessage(string $phoneNumberId, string $to, float $latitude, float $longitude, ?string $name = null, ?string $address = null)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'location',
+                'location' => [
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
+                ],
+            ];
+
+            if ($name) {
+                $payload['location']['name'] = $name;
+            }
+
+            if ($address) {
+                $payload['location']['address'] = $address;
+            }
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send location message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendContactsMessage(string $phoneNumberId, string $to, array $contacts)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'contacts',
+                'contacts' => $contacts,
+            ];
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send contacts message', 'exception' => $e->getMessage()];
+        }
+    }
+
+    public function sendInteractiveMessage(string $phoneNumberId, string $to, string $type, array $interactive)
+    {
+        try {
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'to' => preg_replace('/[^0-9]/', '', $to),
+                'type' => 'interactive',
+                'interactive' => array_merge(['type' => $type], $interactive),
+            ];
+
+            $response = Http::withToken($this->getToken())
+                ->post($this->buildUrl("{$phoneNumberId}/messages"), $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return ['error' => $response->json()];
+        } catch (\Throwable $e) {
+            return ['error' => 'Failed to send interactive message', 'exception' => $e->getMessage()];
         }
     }
 }

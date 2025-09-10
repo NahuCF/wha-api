@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Mail;
 
 class SendVerifyAccountEmail implements ShouldQueue
 {
+    public $queue = 'emails';  // High priority email queue
+
     use Queueable;
 
     /**

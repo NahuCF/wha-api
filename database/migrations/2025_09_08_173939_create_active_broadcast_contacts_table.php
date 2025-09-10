@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignUlid('contact_id')->primary();
             $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
             $table->integer('broadcast_count')->default(0);
-            $table->json('broadcast_ids')->nullable();
+            $table->jsonb('broadcast_ids')->nullable();
             $table->timestamp('updated_at');
 
             $table->index('tenant_id');

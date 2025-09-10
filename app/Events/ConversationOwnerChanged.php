@@ -8,32 +8,31 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcast
+class ConversationOwnerChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public readonly array $message,
-        public readonly string $conversationId,
+        public readonly array $conversation,
         public readonly string $tenantId,
-        public readonly string $wabaId
+        public readonly string $wabaId,
+        public readonly string $newOwnerId
     ) {}
 
     public function broadcastOn(): PrivateChannel
     {
-        return new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.conversation');
+        return new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.user.'.$this->newOwnerId.'.conversation');
     }
 
     public function broadcastAs(): string
     {
-        return 'message.sent';
+        return 'conversation.owner.changed';
     }
 
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
-            'conversation_id' => $this->conversationId,
+            'conversation' => $this->conversation,
         ];
     }
 }

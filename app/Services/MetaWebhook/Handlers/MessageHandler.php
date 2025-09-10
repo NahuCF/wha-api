@@ -80,18 +80,6 @@ class MessageHandler implements HandlerInterface
             $updateData['errors'] = $errors;
         }
 
-        // Store conversation and pricing info if needed
-        if ($conversationData || $pricing) {
-            $context = $message->context ?? [];
-            if ($conversationData) {
-                $context['conversation'] = $conversationData;
-            }
-            if ($pricing) {
-                $context['pricing'] = $pricing;
-            }
-            $updateData['context'] = $context;
-        }
-
         $message->update($updateData);
 
         // Update conversation expiration if provided
@@ -146,7 +134,6 @@ class MessageHandler implements HandlerInterface
             'direction' => MessageDirection::INBOUND,
             'type' => MessageType::from($type),
             'status' => MessageStatus::DELIVERED,
-            'from_phone' => $from,
             'to_phone' => $displayPhoneNumber,
             'delivered_at' => $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now(),
         ]);

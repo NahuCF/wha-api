@@ -25,7 +25,7 @@ class Message extends Model
         'interactive_data' => 'array',
         'location_data' => 'array',
         'contacts_data' => 'array',
-        'context' => 'array',
+        'variables' => 'array',
         'errors' => 'array',
         'sent_at' => 'datetime',
         'delivered_at' => 'datetime',
@@ -51,6 +51,11 @@ class Message extends Model
     public function broadcast(): BelongsTo
     {
         return $this->belongsTo(Broadcast::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(Template::class);
     }
 
     public function isInbound(): bool

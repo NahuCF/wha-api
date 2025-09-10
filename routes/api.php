@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WabaController;
 use App\Http\Middleware\EnsureWabaId;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
@@ -57,15 +58,15 @@ Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
     'auth:api',
 ]], function () {
+    // Broadcasting authorization routes for private channels
+    Broadcast::routes();
 
-    Route::get('/conversations', [ConversationController::class, 'index'])->middleware([EnsureWabaId::class]);
-    Route::get('/messages', [MessageController::class, 'index']);
-
-    // DEBGU ENDPOINTs
-    Route::post('/conversations', [ConversationController::class, 'store']);
-    Route::post('/messages', [MessageController::class, 'store']);
-
-    Route::post('/send-message', [ConversationController::class, 'sendMessage']);
+    Route::group(['middleware' => [EnsureWabaId::class]], function () {
+        Route::put('/conversations/{conversation}/change-solved', [ConversationController::class, 'changeSolved']);
+        Route::put('/conversations/{conversation}/change-owner', [ConversationController::class, 'changeOwner']);
+        Route::apiResource('/conversations', ConversationController::class)->only(['index', 'store', 'show']);
+        Route::apiResource('/messages', MessageController::class)->only(['index', 'store']);
+    });
 
     Route::prefix('meta')->group(function () {
         Route::get('app-id', [MetaController::class, 'getAppId']);

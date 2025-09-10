@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Scopes\WabaIdScope;
+use App\Traits\HasWabaId;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,20 +14,7 @@ use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class Conversation extends Model
 {
-    use BelongsToTenant, HasFactory, HasUlids;
-
-    protected $fillable = [
-        'tenant_id',
-        'waba_id',
-        'contact_id',
-        'phone_number',
-        'meta_id',
-        'user_id',
-        'is_solved',
-        'expires_at',
-        'last_message_at',
-        'unread_count',
-    ];
+    use BelongsToTenant, HasFactory, HasUlids, HasWabaId;
 
     protected $casts = [
         'is_solved' => 'boolean',
@@ -43,6 +31,11 @@ class Conversation extends Model
     public function waba(): BelongsTo
     {
         return $this->belongsTo(Waba::class);
+    }
+
+    public function phoneNumber(): BelongsTo
+    {
+        return $this->belongsTo(PhoneNumber::class);
     }
 
     public function contact(): BelongsTo
@@ -73,6 +66,11 @@ class Conversation extends Model
     public function isExpired(): bool
     {
         return $this->expires_at && $this->expires_at->isPast();
+    }
+
+    public function notStarted(): bool
+    {
+        return $this->expires_at === null;
     }
 
     public function isActive(): bool

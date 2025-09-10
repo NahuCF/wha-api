@@ -6,13 +6,16 @@ use App\Enums\MessageDirection;
 use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
+use App\Enums\TemplateStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB;
 
 class MessageController extends Controller
 {
@@ -40,58 +43,97 @@ class MessageController extends Controller
         return MessageResource::collection($messages);
     }
 
-    public function store(Request $request): MessageResource
+    public function store(Request $request)
     {
         $input = $request->validate([
             'conversation_id' => ['required', 'exists:conversations,id'],
-            'template_id' => ['nullable', 'exists:templates,id'],
-            'broadcast_id' => ['nullable', 'ulid', 'exists:broadcasts,id'],
+            'template_id' => ['sometimes', 'exists:templates,id'],
+            'variables' => ['nullable', 'array'],
             'reply_to_message_id' => ['nullable', 'exists:messages,id'],
-            'direction' => ['required', 'in:'.implode(',', MessageDirection::values())],
             'type' => ['required', 'in:'.implode(',', MessageType::values())],
-            'status' => ['nullable', 'in:'.implode(',', MessageStatus::values())],
-            'source' => ['nullable', 'in:'.implode(',', MessageSource::values())],
-            'content' => ['nullable', 'string'],
-            'media' => ['nullable', 'array'],
-            'from_phone' => ['nullable', 'string'],
-            'to_phone' => ['nullable', 'string'],
+            'content' => ['sometimes', 'string'],
+            'media' => ['sometimes', 'array'],
+            'to_phone' => ['required', 'string'],
         ]);
 
         $conversationId = data_get($input, 'conversation_id');
         $templateId = data_get($input, 'template_id');
-        $broadcastId = data_get($input, 'broadcast_id');
+        $variables = data_get($input, 'variables', []);
         $replyToMessageId = data_get($input, 'reply_to_message_id');
-        $direction = data_get($input, 'direction');
         $type = data_get($input, 'type');
-        $status = data_get($input, 'status', MessageStatus::SENT->value);
-        $source = data_get($input, 'source', MessageSource::WHATSAPP->value);
         $content = data_get($input, 'content');
         $media = data_get($input, 'media');
-        $fromPhone = data_get($input, 'from_phone');
         $toPhone = data_get($input, 'to_phone');
 
+        $now = now();
+        $nextDay = $now->addDays(1);
+
+        $conversation = Conversation::find($conversationId);
+
+        if ($conversation->isExpired()) {
+            return response()->json([
+                'message' => 'Conversation is expired',
+                'message_code' => 'conversation_is_expired',
+            ], 422);
+        }
+
+        if ($conversation->notStarted() && ! $templateId) {
+            return response()->json([
+                'message' => 'Template is required',
+                'message_code' => 'template_is_required',
+            ], 422);
+
+            $template = Template::find($templateId);
+
+            if ($template->status !== TemplateStatus::APPROVED->value) {
+                return response()->json([
+                    'message' => 'Template is not approved',
+                    'message_code' => 'template_is_not_approved',
+                ], 422);
+            }
+        }
+
+        // Check if havent received a message yet
+        if ($conversation->notStarted()) {
+            $conversation->update([
+                'last_message_at' => $now,
+                'expires_at' => $nextDay,
+            ]);
+        }
+
         $message = Message::create([
-            'conversation_id' => $conversationId,
+            'conversation_id' => $conversationId ?: $conversation->id,
             'template_id' => $templateId,
-            'broadcast_id' => $broadcastId,
+            'variables' => $variables,
+            'tenant_id' => tenant('id'),
+            'contact_id' => $conversation->contact_id,
             'reply_to_message_id' => $replyToMessageId,
-            'direction' => $direction,
-            'meta_id' => rand(),
+            'direction' => MessageDirection::OUTBOUND->value,
             'type' => $type,
-            'status' => $status,
-            'source' => $source,
+            'status' => MessageStatus::PENDING->value,
+            'source' => MessageSource::CHAT->value,
             'content' => $content,
             'media' => $media,
-            'from_phone' => $fromPhone,
             'to_phone' => $toPhone,
-            'sent_at' => $direction === MessageDirection::OUTBOUND->value ? now() : null,
         ]);
 
-        Conversation::where('id', $conversationId)->update([
-            'last_message_at' => now(),
-            'unread_count' => DB::raw('unread_count + 1'),
-        ]);
+        $message->load(['conversation.waba', 'conversation.phoneNumber', 'conversation.contact']);
 
-        return new MessageResource($message);
+        $phoneNumber = $message->conversation->phoneNumber;
+        $waba = $message->conversation->waba;
+
+        SendWhatsAppMessage::dispatch(
+            messageData: $message->toArray(),
+            tenantId: tenant('id'),
+            phoneNumberId: $phoneNumber->meta_id,
+            wabaId: $waba->id,
+            conversationId: $conversation->id,
+        )->onQueue('messages');
+
+        return MessageResource::make($message)->additional([
+            'meta' => [
+                'conversation' => ConversationResource::make($message->conversation),
+            ],
+        ]);
     }
 }

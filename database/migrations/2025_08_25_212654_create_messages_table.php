@@ -17,13 +17,14 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->foreignUlid('tenant_id')->constrained()->onDelete('cascade');
-            $table->foreignUlid('conversation_id')->constrained()->onDelete('cascade');
+            $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('conversation_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('contact_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('template_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignUlid('broadcast_id')->nullable()->constrained()->onDelete('set null');
+            $table->foreignUlid('broadcast_id')->nullable()->constrained();
 
             $table->ulid('reply_to_message_id')->nullable()->index();
-            $table->string('meta_id')->unique()->index();
+            $table->string('meta_id')->nullable()->unique()->index();
             $table->enum('direction', MessageDirection::values());
             $table->enum('type', MessageType::values());
             $table->enum('status', MessageStatus::values())->nullable();
@@ -33,10 +34,10 @@ return new class extends Migration
             $table->json('interactive_data')->nullable();
             $table->json('location_data')->nullable();
             $table->json('contacts_data')->nullable();
-            $table->json('context')->nullable();
+            $table->json('variables')->nullable();
             $table->json('errors')->nullable();
-            $table->string('from_phone')->nullable();
             $table->string('to_phone')->nullable();
+
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
             $table->timestamp('read_at')->nullable();
