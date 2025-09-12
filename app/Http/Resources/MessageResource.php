@@ -19,7 +19,7 @@ class MessageResource extends JsonResource
             'meta_id' => $this->meta_id,
             'conversation_id' => $this->conversation_id,
             'template_id' => $this->template_id,
-            'reply_to_message_id' => $this->reply_to_message_id,
+            'reply_to_message' => MessageResource::make($this->whenLoaded('replyToMessage')),
             'type' => $this->type,
             'direction' => $this->direction,
             'status' => $this->status,

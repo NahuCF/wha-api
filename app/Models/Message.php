@@ -38,14 +38,9 @@ class Message extends Model
         return $this->belongsTo(Conversation::class);
     }
 
-    public function replyTo(): BelongsTo
+    public function replyToMessage(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'reply_to_message_id');
-    }
-
-    public function replies()
-    {
-        return $this->hasMany(Message::class, 'reply_to_message_id');
     }
 
     public function broadcast(): BelongsTo
@@ -91,11 +86,6 @@ class Message extends Model
     public function isReply(): bool
     {
         return $this->reply_to_message_id !== null;
-    }
-
-    public function hasReplies(): bool
-    {
-        return $this->replies()->exists();
     }
 
     public function markAsDelivered(): void

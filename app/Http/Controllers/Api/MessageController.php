@@ -34,6 +34,7 @@ class MessageController extends Controller
         $search = data_get($input, 'search');
 
         $messages = Message::query()
+            ->with(['replyToMessage'])
             ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
             ->when($broadcastId, fn ($q) => $q->where('broadcast_id', $broadcastId))
             ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%'))
