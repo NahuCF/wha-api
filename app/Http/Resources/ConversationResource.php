@@ -27,7 +27,7 @@ class ConversationResource extends JsonResource
             'to_phone' => $this->to_phone,
             'last_message' => $this->whenLoaded('latestMessage', fn () => new MessageResource($this->latestMessage)),
             'last_message_at' => $this->last_message_at,
-            'is_initiated' => $this->expired_at !== null,
+            'is_initiated' => $this->expires_at !== null,
             'expires_at' => $this->expires_at,
         ];
     }
