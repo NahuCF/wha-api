@@ -29,6 +29,7 @@ class MessageResource extends JsonResource
             'location_data' => $this->location_data,
             'contacts_data' => $this->contacts_data,
             'variables' => $this->variables,
+            'mentions' => $this->mentions,
             'errors' => $this->errors,
             'to_phone' => $this->to_phone,
             'sent_at' => $this->sent_at,

@@ -25,6 +25,7 @@ class ConversationController extends Controller
             'only_pinned' => ['nullable', 'boolean'],
             'only_solved' => ['nullable', 'boolean'],
             'only_opened' => ['nullable', 'boolean'],
+            'only_mentioned' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'min:1'],
             'search_type' => ['nullable', 'in:contact,message'],
         ]);
@@ -37,6 +38,7 @@ class ConversationController extends Controller
         $onlyPinned = data_get($input, 'only_pinned');
         $onlySolved = data_get($input, 'only_solved');
         $onlyOpened = data_get($input, 'only_opened');
+        $onlyMentioned = data_get($input, 'only_mentioned');
         $search = data_get($input, 'search');
         $searchType = data_get($input, 'search_type', 'contact');
 
@@ -65,6 +67,12 @@ class ConversationController extends Controller
             ->when($onlyOpened, fn ($q) => $q->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
+            }))
+            ->when($onlyMentioned && $user, fn ($q) => $q->whereHas('messages', function ($query) use ($user) {
+                $query->whereRaw('EXISTS (
+                    SELECT 1 FROM jsonb_array_elements(mentions::jsonb) AS elem
+                    WHERE elem->>? = ?
+                )', [$user->name, $user->id]);
             }))
             ->when($user, fn ($q) => $q->with(['pinnedByUsers' => function ($query) use ($user) {
                 $query->where('user_id', $user->id);
@@ -180,38 +188,67 @@ class ConversationController extends Controller
         return $conversationResource;
     }
 
-    public function stats()
+    public function stats(Request $request)
     {
+        $input = $request->validate([
+            'view' => ['required', 'string', 'in:unassigned,mine,opened,resolved,mentioned'],
+        ]);
+
         $user = Auth::user();
+        $updateView = data_get($input, 'view');
 
-        $lastViewedAt = $user->last_chat_view_at ?? now()->subYears(10);
-
-        $user->last_chat_view_at = now();
-        $user->save();
+        if ($updateView) {
+            $columnName = 'last_'.$updateView.'_view_at';
+            $user->update([$columnName => now()]);
+        }
 
         $baseQuery = Conversation::query();
+        $defaultTime = now()->subYears(10);
+
+        $lastUnassignedView = $user->last_unassigned_view_at ?? $defaultTime;
+        $lastMineView = $user->last_mine_view_at ?? $defaultTime;
+        $lastOpenedView = $user->last_opened_view_at ?? $defaultTime;
+        $lastResolvedView = $user->last_resolved_view_at ?? $defaultTime;
+        $lastMentionedView = $user->last_mentioned_view_at ?? $defaultTime;
 
         $stats = [
             'unassigned' => $baseQuery->clone()
                 ->whereNull('user_id')
+                ->where(function ($q) use ($lastUnassignedView) {
+                    $q->where('created_at', '>', $lastUnassignedView)
+                        ->orWhere('last_message_at', '>', $lastUnassignedView);
+                })
                 ->count(),
             'mine' => $baseQuery->clone()
                 ->where('user_id', $user->id)
-                ->where(function ($q) use ($lastViewedAt) {
-                    $q->where('last_message_at', '>', $lastViewedAt)
-                        ->orWhere(function ($q2) use ($lastViewedAt) {
+                ->where(function ($q) use ($lastMineView) {
+                    $q->where('last_message_at', '>', $lastMineView)
+                        ->orWhere(function ($q2) use ($lastMineView) {
                             $q2->whereNull('last_message_at')
-                                ->orWhere('created_at', '>', $lastViewedAt);
+                                ->where('created_at', '>', $lastMineView);
                         });
                 })
                 ->count(),
             'opened' => $baseQuery->clone()
                 ->where('expires_at', '>', now())
                 ->where('is_solved', false)
+                ->where(function ($q) use ($lastOpenedView) {
+                    $q->where('created_at', '>', $lastOpenedView)
+                        ->orWhere('last_message_at', '>', $lastOpenedView);
+                })
                 ->count(),
             'resolved' => $baseQuery->clone()
                 ->where('is_solved', true)
-                ->where('updated_at', '>', $lastViewedAt)
+                ->where('updated_at', '>', $lastResolvedView)
+                ->count(),
+            'mentioned' => $baseQuery->clone()
+                ->whereHas('messages', function ($query) use ($user, $lastMentionedView) {
+                    $query->whereRaw('EXISTS (
+                        SELECT 1 FROM jsonb_array_elements(mentions::jsonb) AS elem
+                        WHERE elem->>? = ?
+                    )', [$user->name, $user->id])
+                        ->where('created_at', '>', $lastMentionedView);
+                })
                 ->count(),
         ];
 

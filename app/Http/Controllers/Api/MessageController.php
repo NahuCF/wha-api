@@ -11,6 +11,7 @@ use App\Enums\TemplateStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
+use App\Jobs\NotifyMentionedUsers;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\Conversation;
 use App\Models\ConversationActivity;
@@ -56,6 +57,7 @@ class MessageController extends Controller
             'type' => ['required', 'in:'.implode(',', MessageType::values())],
             'content' => ['sometimes', 'string'],
             'media' => ['sometimes', 'array'],
+            'mentions' => ['nullable', 'array'],
             'to_phone' => ['required', 'string'],
         ]);
 
@@ -67,6 +69,7 @@ class MessageController extends Controller
         $content = data_get($input, 'content');
         $media = data_get($input, 'media');
         $toPhone = data_get($input, 'to_phone');
+        $mentions = data_get($input, 'mentions');
 
         $now = now();
         $nextDay = $now->addDays(1);
@@ -120,6 +123,7 @@ class MessageController extends Controller
             'source' => MessageSource::CHAT->value,
             'content' => $content,
             'media' => $media,
+            'mentions' => $mentions,
             'to_phone' => $toPhone,
         ]);
 
@@ -145,6 +149,15 @@ class MessageController extends Controller
             'type' => ConversationActivityType::CONVERSATION_STARTED,
             'data' => ['user_name' => $user->name],
         ]);
+
+        if (! empty($mentions)) {
+            NotifyMentionedUsers::dispatch(
+                messageId: $message->id,
+                mentions: $mentions,
+                tenantId: tenant('id'),
+                wabaId: $waba->id
+            )->onQueue('notifications');
+        }
 
         return MessageResource::make($message)->additional([
             'meta' => [

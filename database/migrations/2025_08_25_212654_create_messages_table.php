@@ -35,6 +35,7 @@ return new class extends Migration
             $table->json('location_data')->nullable();
             $table->json('contacts_data')->nullable();
             $table->json('variables')->nullable();
+            $table->json('mentions')->nullable();
             $table->json('errors')->nullable();
             $table->string('to_phone')->nullable();
 

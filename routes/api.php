@@ -62,7 +62,7 @@ Route::group(['middleware' => [
     Broadcast::routes();
 
     Route::group(['middleware' => [EnsureWabaId::class]], function () {
-        Route::get('/conversations/stats', [ConversationController::class, 'stats']);
+        Route::post('/conversations/stats', [ConversationController::class, 'stats']);
         Route::put('/conversations/{conversation}/change-solved', [ConversationController::class, 'changeSolved']);
         Route::put('/conversations/{conversation}/change-owner', [ConversationController::class, 'changeOwner']);
         Route::get('/conversations/{conversation}/activities', [ConversationController::class, 'activities']);

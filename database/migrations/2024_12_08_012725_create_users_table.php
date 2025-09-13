@@ -25,7 +25,12 @@ return new class extends Migration
             $table->string('cellphone_number')->nullable();
             $table->enum('status', UserStatus::values())->default(UserStatus::SIGNED_UP);
 
-            $table->timestamp('last_chat_view_at')->nullable();
+            $table->timestamp('last_unassigned_view_at')->nullable();
+            $table->timestamp('last_mine_view_at')->nullable();
+            $table->timestamp('last_opened_view_at')->nullable();
+            $table->timestamp('last_resolved_view_at')->nullable();
+            $table->timestamp('last_mentioned_view_at')->nullable();
+            $table->timestamp('last_pinned_view_at')->nullable();
             $table->timestamps();
 
             $table->softDeletes();

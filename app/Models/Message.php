@@ -26,6 +26,7 @@ class Message extends Model
         'location_data' => 'array',
         'contacts_data' => 'array',
         'variables' => 'array',
+        'mentions' => 'array',
         'errors' => 'array',
         'sent_at' => 'datetime',
         'delivered_at' => 'datetime',
