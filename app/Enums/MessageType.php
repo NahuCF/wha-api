@@ -19,6 +19,7 @@ enum MessageType: string
     case ORDER = 'order';
     case SYSTEM = 'system';
     case INVOICE = 'invoice';
+    case NOTE = 'note';
 
     public function isMedia(): bool
     {

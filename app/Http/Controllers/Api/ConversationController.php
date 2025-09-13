@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ConversationActivityType;
 use App\Events\ConversationNew;
 use App\Events\ConversationOwnerChanged;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ConversationActivityResource;
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
+use App\Models\ConversationActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
@@ -66,13 +69,23 @@ class ConversationController extends Controller
             ->when($user, fn ($q) => $q->with(['pinnedByUsers' => function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             }]))
-            ->orderBy('last_message_at', 'desc')
+            ->orderBy('last_message_at', 'asc')
             ->paginate($rowsPerPage);
 
         return ConversationResource::collection($conversations);
     }
 
-    public function show(Request $request, Conversation $conversation)
+    public function activities(Conversation $conversation)
+    {
+        $activities = ConversationActivity::query()
+            ->where('conversation_id', $conversation->id)
+            ->orderBy('id', 'asc')
+            ->get();
+
+        return ConversationActivityResource::collection($activities);
+    }
+
+    public function show(Conversation $conversation)
     {
         return new ConversationResource($conversation);
     }
@@ -94,8 +107,17 @@ class ConversationController extends Controller
         }
 
         $conversation->is_solved = $isSolved;
-
         $conversation->update();
+
+        ConversationActivity::create([
+            'tenant_id' => tenant('id'),
+            'conversation_id' => $conversation->id,
+            'user_id' => $user->id,
+            'type' => $isSolved ? ConversationActivityType::RESOLVED : ConversationActivityType::REOPENED,
+            'data' => [
+                'user_name' => $user->name,
+            ],
+        ]);
 
         return new ConversationResource($conversation);
     }
@@ -109,17 +131,30 @@ class ConversationController extends Controller
         $user = Auth::user();
         $userId = data_get($input, 'user_id');
 
-        if ($conversation->user_id !== $user->id) {
+        if ($conversation->user_id && $conversation->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized',
                 'message_code' => 'unauthorized',
             ], 403);
         }
 
+        $oldUser = $conversation->assignedUser;
+
         $conversation->user_id = $userId;
         $conversation->update();
 
         $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+        ConversationActivity::create([
+            'tenant_id' => tenant('id'),
+            'conversation_id' => $conversation->id,
+            'user_id' => $user->id,
+            'type' => $userId ? ConversationActivityType::ASSIGNED : ConversationActivityType::UNASSIGNED,
+            'data' => [
+                'old_user_name' => $oldUser?->name,
+                'new_user_name' => $userId ? $conversation->assignedUser->name : null,
+            ],
+        ]);
 
         $conversationResource = new ConversationResource($conversation);
 
@@ -145,7 +180,7 @@ class ConversationController extends Controller
         return $conversationResource;
     }
 
-    public function stats(Request $request)
+    public function stats()
     {
         $user = Auth::user();
 

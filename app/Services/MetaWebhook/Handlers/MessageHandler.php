@@ -2,11 +2,13 @@
 
 namespace App\Services\MetaWebhook\Handlers;
 
+use App\Enums\ConversationActivityType;
 use App\Enums\MessageDirection;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use App\Models\Contact;
 use App\Models\Conversation;
+use App\Models\ConversationActivity;
 use App\Models\Message;
 use App\Models\Waba;
 use Illuminate\Support\Facades\DB;
@@ -280,6 +282,17 @@ class MessageHandler implements HandlerInterface
                 'waba_phone_id' => $phoneNumberId,
                 'last_message_at' => now(),
                 'expires_at' => now()->addDays(1),
+            ]);
+
+            // Create activity for new conversation created by incoming message
+            ConversationActivity::create([
+                'tenant_id' => $waba->tenant_id,
+                'conversation_id' => $conversation->id,
+                'user_id' => null,
+                'type' => ConversationActivityType::CONVERSATION_STARTED,
+                'data' => [
+                    'contact_name' => $contact->name ?? $phone,
+                ],
             ]);
         }
 

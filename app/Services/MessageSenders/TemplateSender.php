@@ -15,7 +15,7 @@ class TemplateSender implements MessageSenderInterface
 
     public function canHandle(Message $message): bool
     {
-        return $message->template_id && $message->template;
+        return $message->template_id;
     }
 
     public function send(Message $message, string $phoneNumberId): array

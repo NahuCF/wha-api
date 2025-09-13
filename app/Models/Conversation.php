@@ -48,6 +48,11 @@ class Conversation extends Model
         return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
     }
 
+    public function activities(): HasMany
+    {
+        return $this->hasMany(ConversationActivity::class)->orderBy('created_at', 'desc');
+    }
+
     public function latestMessage()
     {
         return $this->hasOne(Message::class)->latestOfMany();
