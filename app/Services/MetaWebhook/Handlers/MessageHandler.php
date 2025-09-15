@@ -6,7 +6,9 @@ use App\Enums\ConversationActivityType;
 use App\Enums\MessageDirection;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
+use App\Events\ConversationNew;
 use App\Events\MessageDelivered;
+use App\Events\MessageNew;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationActivity;
@@ -148,12 +150,20 @@ class MessageHandler implements HandlerInterface
             'tenant_id' => $waba->tenant_id,
             'conversation_id' => $conversation->id,
             'meta_id' => $metaId,
+            'contact_id' => $contact->id,
             'direction' => MessageDirection::INBOUND,
             'type' => MessageType::from($type),
             'status' => MessageStatus::DELIVERED,
             'to_phone' => $displayPhoneNumber,
             'delivered_at' => $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now(),
         ]);
+
+        broadcast(new MessageNew(
+            message: $message->toArray(),
+            conversation: $conversation->toArray(),
+            tenantId: tenant('id'),
+            wabaId: $waba->id
+        ));
 
         // Handle reply context
         if ($context && isset($context['id'])) {
@@ -309,6 +319,12 @@ class MessageHandler implements HandlerInterface
                     'contact_name' => $contact->name ?? $phone,
                 ],
             ]);
+
+            broadcast(new ConversationNew(
+                conversation: $conversation,
+                tenantId: $waba->tenant_id,
+                wabaId: $waba->id
+            ));
         }
 
         return $conversation;

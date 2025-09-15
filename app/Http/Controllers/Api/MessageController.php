@@ -20,6 +20,7 @@ use App\Models\Message;
 use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
@@ -46,6 +47,59 @@ class MessageController extends Controller
             ->paginate($rowsPerPage);
 
         return MessageResource::collection($messages);
+    }
+
+    public function storeTest(Request $request)
+    {
+        $input = $request->validate([
+            'conversation_id' => ['required', 'exists:conversations,id'],
+            'reply_to_message_id' => ['nullable', 'exists:messages,id'],
+            'type' => ['required', 'in:'.implode(',', MessageType::values())],
+            'content' => ['sometimes', 'string'],
+            'media' => ['sometimes', 'array'],
+            'contact_id' => ['required', 'exists:contacts,id'],
+            'display_number' => ['required', 'string'],
+        ]);
+
+        $conversationId = data_get($input, 'conversation_id');
+        $replyToMessageId = data_get($input, 'reply_to_message_id');
+        $type = data_get($input, 'type');
+        $displayNumber = data_get($input, 'display_number');
+        $contactId = data_get($input, 'contact_id');
+
+        $conversation = Conversation::query()
+            ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
+            ->where('id', $conversationId)
+            ->first();
+
+        if (! $conversation) {
+            return response()->json([
+                'message' => 'Conversation not found',
+                'message_code' => 'conversation_not_found',
+            ], 404);
+        }
+
+        $message = Message::create([
+            'tenant_id' => tenant('id'),
+            'conversation_id' => $conversation->id,
+            'meta_id' => Str::random(10),
+            'contact_id' => $contactId,
+            'direction' => MessageDirection::INBOUND,
+            'reply_to_message_id' => $replyToMessageId,
+            'type' => MessageType::from($type),
+            'status' => MessageStatus::DELIVERED,
+            'to_phone' => $displayNumber,
+            'delivered_at' => now(),
+        ]);
+
+        broadcast(new MessageNew(
+            message: $message->toArray(),
+            conversation: $conversation->toArray(),
+            tenantId: tenant('id'),
+            wabaId: $conversation->waba->id
+        ));
+
+        return MessageResource::make($message);
     }
 
     public function store(Request $request)

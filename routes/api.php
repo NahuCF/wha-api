@@ -67,6 +67,7 @@ Route::group(['middleware' => [
         Route::put('/conversations/{conversation}/change-owner', [ConversationController::class, 'changeOwner']);
         Route::get('/conversations/{conversation}/activities', [ConversationController::class, 'activities']);
         Route::apiResource('/conversations', ConversationController::class)->only(['index', 'store', 'show']);
+        Route::post('/message-contact', [MessageController::class, 'storeTest']);
         Route::apiResource('/messages', MessageController::class)->only(['index', 'store']);
     });
 
