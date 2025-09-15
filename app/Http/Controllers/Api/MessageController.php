@@ -8,6 +8,7 @@ use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use App\Enums\TemplateStatus;
+use App\Events\MessageNew;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
@@ -70,12 +71,18 @@ class MessageController extends Controller
         $media = data_get($input, 'media');
         $toPhone = data_get($input, 'to_phone');
         $mentions = data_get($input, 'mentions');
+        $mentionUserIds = collect($mentions)
+            ->map(fn ($mention) => array_values($mention)[0])
+            ->toArray();
 
         $now = now();
         $nextDay = $now->addDays(1);
         $user = Auth::user();
 
-        $conversation = Conversation::find($conversationId);
+        $conversation = Conversation::query()
+            ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
+            ->where('id', $conversationId)
+            ->first();
 
         if ($conversation->isExpired()) {
             return response()->json([
@@ -127,10 +134,8 @@ class MessageController extends Controller
             'to_phone' => $toPhone,
         ]);
 
-        $message->load(['conversation.waba', 'conversation.phoneNumber', 'conversation.contact']);
-
-        $phoneNumber = $message->conversation->phoneNumber;
-        $waba = $message->conversation->waba;
+        $phoneNumber = $conversation->phoneNumber;
+        $waba = $conversation->waba;
 
         if (! $isTypeNote) {
             SendWhatsAppMessage::dispatch(
@@ -150,14 +155,25 @@ class MessageController extends Controller
             'data' => ['user_name' => $user->name],
         ]);
 
-        if (! empty($mentions)) {
+        $messageArray = $message->toArray();
+        $conversationArray = $conversation->toArray();
+
+        if (! empty($mentionUserIds)) {
             NotifyMentionedUsers::dispatch(
-                messageId: $message->id,
-                mentions: $mentions,
+                message: $messageArray,
+                conversation: $conversationArray,
+                userIds: $mentionUserIds,
                 tenantId: tenant('id'),
                 wabaId: $waba->id
-            )->onQueue('notifications');
+            );
         }
+
+        broadcast(new MessageNew(
+            message: $messageArray,
+            conversation: $conversationArray,
+            tenantId: tenant('id'),
+            wabaId: $waba->id
+        ));
 
         return MessageResource::make($message)->additional([
             'meta' => [

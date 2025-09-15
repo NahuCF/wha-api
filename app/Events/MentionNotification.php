@@ -14,7 +14,6 @@ class MentionNotification implements ShouldBroadcast
 
     public function __construct(
         public array $message,
-        public array $mentionedUser,
         public array $conversation,
         public string $tenantId,
         public string $wabaId,
@@ -24,7 +23,7 @@ class MentionNotification implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.user.'.$this->mentionedUserId),
+            new PrivateChannel('tenant.'.$this->tenantId.'.waba.'.$this->wabaId.'.user.'.$this->mentionedUserId.'.conversation'),
         ];
     }
 
@@ -37,7 +36,6 @@ class MentionNotification implements ShouldBroadcast
     {
         return [
             'message' => $this->message,
-            'mentioned_user' => $this->mentionedUser,
             'conversation' => $this->conversation,
         ];
     }

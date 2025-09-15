@@ -8,15 +8,16 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageNew implements ShouldBroadcast
+class MessageDelivered implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public readonly array $message,
-        public readonly array $conversation,
+        public readonly int $messageId,
+        public readonly int $conversationId,
         public readonly string $tenantId,
-        public readonly string $wabaId
+        public readonly string $wabaId,
+        public readonly string $status
     ) {}
 
     public function broadcastOn(): PrivateChannel
@@ -26,14 +27,15 @@ class MessageNew implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'message.new';
+        return 'message.delivered';
     }
 
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
-            'conversation' => $this->conversation,
+            'message_id' => $this->messageId,
+            'conversation_id' => $this->conversationId,
+            'status' => $this->status,
         ];
     }
 }

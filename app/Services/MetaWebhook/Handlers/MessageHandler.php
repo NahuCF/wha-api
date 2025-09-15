@@ -6,6 +6,7 @@ use App\Enums\ConversationActivityType;
 use App\Enums\MessageDirection;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
+use App\Events\MessageDelivered;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationActivity;
@@ -92,6 +93,20 @@ class MessageHandler implements HandlerInterface
                 $expiresAt = \Carbon\Carbon::createFromTimestamp($conversationData['expiration_timestamp']);
                 $conversation->update(['expires_at' => $expiresAt]);
             }
+        }
+
+        // Broadcast message status update
+        if ($message && $message->conversation) {
+            $conversation = $message->conversation;
+            $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+            broadcast(new MessageDelivered(
+                messageId: $message->id,
+                conversationId: $conversation->id,
+                tenantId: $message->tenant_id,
+                wabaId: $conversation->waba_id,
+                status: $newStatus->value
+            ));
         }
     }
 
