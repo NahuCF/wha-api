@@ -18,6 +18,7 @@ use App\Models\Conversation;
 use App\Models\ConversationActivity;
 use App\Models\Message;
 use App\Models\Template;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -129,7 +130,7 @@ class MessageController extends Controller
             ->map(fn ($mention) => array_values($mention)[0])
             ->toArray();
 
-        $now = now();
+        $now = CarbonImmutable::now();
         $nextDay = $now->addDays(1);
         $user = Auth::user();
 
