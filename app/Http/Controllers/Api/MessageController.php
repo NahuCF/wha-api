@@ -163,7 +163,8 @@ class MessageController extends Controller
         }
 
         // Check if havent received a message yet
-        if ($conversation->notStarted()) {
+        $notStarted = $conversation->notStarted();
+        if ($notStarted) {
             $conversation->update([
                 'last_message_at' => $now,
                 'expires_at' => $nextDay,
@@ -202,13 +203,15 @@ class MessageController extends Controller
             )->onQueue('messages');
         }
 
-        ConversationActivity::create([
-            'tenant_id' => tenant('id'),
-            'conversation_id' => $conversation->id,
-            'user_id' => $user->id,
-            'type' => ConversationActivityType::CONVERSATION_STARTED,
-            'data' => ['user_name' => $user->name],
-        ]);
+        if($notStarted) {
+            ConversationActivity::create([
+                'tenant_id' => tenant('id'),
+                'conversation_id' => $conversation->id,
+                'user_id' => $user->id,
+                'type' => ConversationActivityType::CONVERSATION_STARTED,
+                'data' => ['user_name' => $user->name],
+            ]);
+        }
 
         $messageArray = $message->toArray();
         $conversationArray = $conversation->toArray();
