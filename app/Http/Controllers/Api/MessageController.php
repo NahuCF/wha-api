@@ -93,6 +93,8 @@ class MessageController extends Controller
             'delivered_at' => now(),
         ]);
 
+        $message->load('replyToMessage');
+
         broadcast(new MessageNew(
             message: $message->toArray(),
             conversation: $conversation->toArray(),
@@ -189,6 +191,8 @@ class MessageController extends Controller
             'mentions' => $mentions,
             'to_phone' => $toPhone,
         ]);
+
+        $message->load('replyToMessage');
 
         $phoneNumber = $conversation->phoneNumber;
         $waba = $conversation->waba;
