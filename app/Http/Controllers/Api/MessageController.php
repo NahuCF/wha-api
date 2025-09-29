@@ -12,7 +12,6 @@ use App\Events\MessageNew;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
-use App\Jobs\NotifyMentionedUsers;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\Conversation;
 use App\Models\ConversationActivity;
@@ -219,16 +218,6 @@ class MessageController extends Controller
 
         $messageArray = $message->toArray();
         $conversationArray = $conversation->toArray();
-
-        if (! empty($mentionUserIds)) {
-            NotifyMentionedUsers::dispatch(
-                message: $messageArray,
-                conversation: $conversationArray,
-                userIds: $mentionUserIds,
-                tenantId: tenant('id'),
-                wabaId: $waba->id
-            );
-        }
 
         broadcast(new MessageNew(
             message: $messageArray,
