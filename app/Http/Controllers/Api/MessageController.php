@@ -66,6 +66,7 @@ class MessageController extends Controller
         $type = data_get($input, 'type');
         $displayNumber = data_get($input, 'display_number');
         $contactId = data_get($input, 'contact_id');
+        $content = data_get($input, 'content');
 
         $conversation = Conversation::query()
             ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
@@ -84,6 +85,7 @@ class MessageController extends Controller
             'conversation_id' => $conversation->id,
             'meta_id' => Str::random(10),
             'contact_id' => $contactId,
+            'content' => $content,
             'direction' => MessageDirection::INBOUND,
             'reply_to_message_id' => $replyToMessageId,
             'type' => MessageType::from($type),
