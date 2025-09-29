@@ -110,7 +110,7 @@ class UserController extends Controller
 
         $user->load('roles', 'permissions', 'teams', 'wabas', 'defaultWaba');
 
-        return UserResource::make($user);
+        return UserResource::make($user->fresh());
     }
 
     public function show(User $user)
