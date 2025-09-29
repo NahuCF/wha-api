@@ -43,7 +43,7 @@ class MessageController extends Controller
             ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
             ->when($broadcastId, fn ($q) => $q->where('broadcast_id', $broadcastId))
             ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%'))
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
 
         return MessageResource::collection($messages);
