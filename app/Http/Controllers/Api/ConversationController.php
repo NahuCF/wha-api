@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\ConversationActivityType;
-use App\Events\ConversationNew;
-use App\Events\ConversationOwnerChanged;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\ConversationActivityResource;
-use App\Http\Resources\ConversationResource;
+use App\Models\Bot;
 use App\Models\Conversation;
-use App\Models\ConversationActivity;
+use App\Services\BotService;
+use App\Services\ConversationService;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Events\ConversationNew;
+use App\Http\Controllers\Controller;
+use App\Models\ConversationActivity;
 use Illuminate\Support\Facades\Auth;
+use App\Enums\ConversationActivityType;
+use App\Events\ConversationOwnerChanged;
+use App\Http\Resources\ConversationResource;
+use App\Http\Resources\ConversationActivityResource;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ConversationController extends Controller
 {
@@ -28,57 +31,11 @@ class ConversationController extends Controller
             'only_mentioned' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'min:1'],
             'search_type' => ['nullable', 'in:contact,message'],
+            'messages_per_page' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $user = Auth::user();
-
-        $rowsPerPage = data_get($input, 'rows_per_page', 15);
-        $onlyUnassigned = data_get($input, 'only_unassigned');
-        $userId = data_get($input, 'user_id');
-        $onlyPinned = data_get($input, 'only_pinned');
-        $onlySolved = data_get($input, 'only_solved');
-        $onlyOpened = data_get($input, 'only_opened');
-        $onlyMentioned = data_get($input, 'only_mentioned');
-        $search = data_get($input, 'search');
-        $searchType = data_get($input, 'search_type', 'contact');
-
-        $conversations = Conversation::query()
-            ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
-            ->when($search && $searchType === 'message', function ($q) use ($search) {
-                $q->whereHas('messages', function ($query) use ($search) {
-                    $query->where('content', 'ILIKE', '%'.$search.'%');
-                });
-            })
-            ->when($search && $searchType === 'contact', function ($q) use ($search) {
-                $q->whereHas('contact', function ($query) use ($search) {
-                    $query->whereHas('fieldValues', function ($subQuery) use ($search) {
-                        $subQuery->where('value', 'ILIKE', '%'.$search.'%')
-                            ->whereHas('field', function ($fieldQuery) {
-                                $fieldQuery->where('internal_name', 'Name')
-                                    ->where('is_primary_field', true);
-                            });
-                    });
-                });
-            })
-            ->when($onlyUnassigned, fn ($q) => $q->whereNull('user_id'))
-            ->when($userId, fn ($q) => $q->where('user_id', $userId))
-            ->when($onlyPinned && $user, fn ($q) => $q->pinnedBy($user))
-            ->when($onlySolved, fn ($q) => $q->where('is_solved', true))
-            ->when($onlyOpened, fn ($q) => $q->where(function ($query) {
-                $query->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            }))
-            ->when($onlyMentioned && $user, fn ($q) => $q->whereHas('messages', function ($query) use ($user) {
-                $query->whereRaw('EXISTS (
-                    SELECT 1 FROM jsonb_array_elements(mentions::jsonb) AS elem
-                    WHERE elem->>? = ?
-                )', [$user->name, $user->id]);
-            }))
-            ->when($user, fn ($q) => $q->with(['pinnedByUsers' => function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            }]))
-            ->orderBy('last_message_at', 'asc')
-            ->paginate($rowsPerPage);
+        $conversations = (new ConversationService())->searchConversations($input, $user);
 
         return ConversationResource::collection($conversations);
     }
@@ -134,11 +91,16 @@ class ConversationController extends Controller
     {
         $input = $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
+            'bot_id' => ['nullable', 'exists:bots,id'],
+            'type' => ['nullable', 'in:user,bot'],
         ]);
 
         $user = Auth::user();
         $userId = data_get($input, 'user_id');
+        $botId = data_get($input, 'bot_id');
+        $type = data_get($input, 'type', 'user');
 
+        // Check authorization for current assignment
         if ($conversation->user_id && $conversation->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Unauthorized',
@@ -147,9 +109,71 @@ class ConversationController extends Controller
         }
 
         $oldUser = $conversation->assignedUser;
+        $oldBot = $conversation->assignedBot ?? null;
 
-        $conversation->user_id = $userId;
-        $conversation->update();
+        // Handle bot assignment
+        if ($type === 'bot' && $botId) {
+            $bot = Bot::find($botId);
+            if (!$bot || $bot->tenant_id !== tenant('id')) {
+                return response()->json([
+                    'message' => 'Bot not found',
+                    'message_code' => 'bot_not_found',
+                ], 404);
+            }
+
+            // Clear user assignment and set bot
+            $conversation->user_id = null;
+            $conversation->assigned_bot_id = $botId;
+            $conversation->update();
+
+            // Start bot session
+            $botService = new BotService();
+            $botService->startBotSession($bot, $conversation, $conversation->contact);
+
+            $activityType = ConversationActivityType::ASSIGNED;
+            $activityData = [
+                'old_user_name' => $oldUser?->name,
+                'old_bot_name' => $oldBot?->name,
+                'new_bot_name' => $bot->name,
+                'assignment_type' => 'bot',
+            ];
+        } 
+        // Handle user assignment
+        elseif ($type === 'user' && $userId) {
+            $conversation->user_id = $userId;
+            $conversation->assigned_bot_id = null;
+            $conversation->update();
+
+            // End any active bot sessions
+            \App\Models\BotSession::where('conversation_id', $conversation->id)
+                ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+                ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+
+            $activityType = ConversationActivityType::ASSIGNED;
+            $activityData = [
+                'old_user_name' => $oldUser?->name,
+                'old_bot_name' => $oldBot?->name,
+                'new_user_name' => $conversation->assignedUser->name,
+                'assignment_type' => 'user',
+            ];
+        }
+        // Handle unassignment
+        else {
+            $conversation->user_id = null;
+            $conversation->assigned_bot_id = null;
+            $conversation->update();
+
+            // End any active bot sessions
+            \App\Models\BotSession::where('conversation_id', $conversation->id)
+                ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+                ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+
+            $activityType = ConversationActivityType::UNASSIGNED;
+            $activityData = [
+                'old_user_name' => $oldUser?->name,
+                'old_bot_name' => $oldBot?->name,
+            ];
+        }
 
         $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
 
@@ -157,16 +181,13 @@ class ConversationController extends Controller
             'tenant_id' => tenant('id'),
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
-            'type' => $userId ? ConversationActivityType::ASSIGNED : ConversationActivityType::UNASSIGNED,
-            'data' => [
-                'old_user_name' => $oldUser?->name,
-                'new_user_name' => $userId ? $conversation->assignedUser->name : null,
-            ],
+            'type' => $activityType,
+            'data' => $activityData,
         ]);
 
         $conversationResource = new ConversationResource($conversation);
 
-        if (! $userId) {
+        if (!$userId && !$botId) {
             broadcast(
                 new ConversationNew(
                     conversation: $conversationResource->toArray(request()),
@@ -180,7 +201,7 @@ class ConversationController extends Controller
                     conversation: $conversationResource->toArray(request()),
                     tenantId: tenant('id'),
                     wabaId: $conversation->waba_id,
-                    newOwnerId: $userId
+                    newOwnerId: $userId ?? $botId
                 )
             );
         }
@@ -196,61 +217,8 @@ class ConversationController extends Controller
 
         $user = Auth::user();
         $updateView = data_get($input, 'view');
-
-        if ($updateView) {
-            $columnName = 'last_'.$updateView.'_view_at';
-            $user->update([$columnName => now()]);
-        }
-
-        $baseQuery = Conversation::query();
-        $defaultTime = now()->subYears(10);
-
-        $lastUnassignedView = $user->last_unassigned_view_at ?? $defaultTime;
-        $lastMineView = $user->last_mine_view_at ?? $defaultTime;
-        $lastOpenedView = $user->last_opened_view_at ?? $defaultTime;
-        $lastResolvedView = $user->last_resolved_view_at ?? $defaultTime;
-        $lastMentionedView = $user->last_mentioned_view_at ?? $defaultTime;
-
-        $stats = [
-            'unassigned' => $baseQuery->clone()
-                ->whereNull('user_id')
-                ->where(function ($q) use ($lastUnassignedView) {
-                    $q->where('created_at', '>', $lastUnassignedView)
-                        ->orWhere('last_message_at', '>', $lastUnassignedView);
-                })
-                ->count(),
-            'mine' => $baseQuery->clone()
-                ->where('user_id', $user->id)
-                ->where(function ($q) use ($lastMineView) {
-                    $q->where('last_message_at', '>', $lastMineView)
-                        ->orWhere(function ($q2) use ($lastMineView) {
-                            $q2->whereNull('last_message_at')
-                                ->where('created_at', '>', $lastMineView);
-                        });
-                })
-                ->count(),
-            'opened' => $baseQuery->clone()
-                ->where('expires_at', '>', now())
-                ->where('is_solved', false)
-                ->where(function ($q) use ($lastOpenedView) {
-                    $q->where('created_at', '>', $lastOpenedView)
-                        ->orWhere('last_message_at', '>', $lastOpenedView);
-                })
-                ->count(),
-            'resolved' => $baseQuery->clone()
-                ->where('is_solved', true)
-                ->where('updated_at', '>', $lastResolvedView)
-                ->count(),
-            'mentioned' => $baseQuery->clone()
-                ->whereHas('messages', function ($query) use ($user, $lastMentionedView) {
-                    $query->whereRaw('EXISTS (
-                        SELECT 1 FROM jsonb_array_elements(mentions::jsonb) AS elem
-                        WHERE elem->>? = ?
-                    )', [$user->name, $user->id])
-                        ->where('created_at', '>', $lastMentionedView);
-                })
-                ->count(),
-        ];
+        
+        $stats = (new ConversationService())->getConversationStats($user, $updateView);
 
         return response()->json([
             'data' => $stats,
