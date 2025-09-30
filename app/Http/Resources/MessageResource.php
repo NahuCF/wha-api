@@ -36,7 +36,8 @@ class MessageResource extends JsonResource
             'delivered_at' => $this->delivered_at,
             'read_at' => $this->read_at,
             'failed_at' => $this->failed_at,
-            'created_at' => $this->created_at
+            'created_at' => $this->created_at,
+            'search_match' => $this->when($this->hasAttribute('search_match'), fn () => $this->getAttribute('search_match')),
         ];
     }
 }

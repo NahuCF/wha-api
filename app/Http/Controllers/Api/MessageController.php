@@ -8,6 +8,7 @@ use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use App\Enums\TemplateStatus;
+use App\Events\MessageDeleted;
 use App\Events\MessageNew;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
@@ -45,6 +46,25 @@ class MessageController extends Controller
             ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%'))
             ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
+
+        if ($search && $conversationId) {
+            foreach ($messages as $message) {
+                if (stripos($message->content, $search) !== false) {
+                    $newerMessagesCount = Message::query()
+                        ->where('conversation_id', $conversationId)
+                        ->where('created_at', '>', $message->created_at)
+                        ->count();
+                    
+                    $positionFromEnd = $newerMessagesCount + 1;
+                    $pageNumber = ceil($positionFromEnd / $rowsPerPage);
+                    
+                    $message->setAttribute('search_match', [
+                        'page' => $pageNumber,
+                        'position_from_end' => $positionFromEnd,
+                    ]);
+                }
+            }
+        }
 
         return MessageResource::collection($messages);
     }
@@ -233,5 +253,76 @@ class MessageController extends Controller
                 'conversation' => ConversationResource::make($message->conversation),
             ],
         ]);
+    }
+
+    /**
+     * Test endpoint to simulate a deleted message event
+     */
+    public function testDeletedEvent(Request $request, Message $message)
+    {
+        // Load the conversation with all relationships
+        $conversation = $message->conversation()
+            ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
+            ->first();
+        
+        if (!$conversation) {
+            return response()->json(['error' => 'Conversation not found'], 404);
+        }
+
+        // Update message status to DELETED
+        $message->update([
+            'status' => MessageStatus::DELETED,
+            'deleted_at' => now(),
+        ]);
+
+        broadcast(new MessageDeleted(
+            messageId: $message->id,
+            conversationId: $conversation->id,
+            tenantId: tenant('id'),
+            wabaId: $conversation->waba_id,
+            deletedBy: [
+                'type' => 'test',
+                'user' => auth()->user()->name ?? 'Test User',
+                'timestamp' => now()->toIso8601String(),
+            ]
+        ));
+
+        return response()->json([
+            'message' => 'MessageDeleted event dispatched successfully',
+            'data' => [
+                'message_id' => $message->id,
+                'conversation_id' => $conversation->id,
+                'status' => $message->status->value,
+                'deleted_at' => $message->deleted_at,
+                'event_channel' => 'tenant.' . tenant('id') . '.waba.' . $conversation->waba_id . '.conversation',
+                'event_name' => 'message.deleted'
+            ]
+        ]);
+    }
+
+    /**
+     * Get a highlighted preview of the content with the search term
+     */
+    private function getHighlightedPreview(string $content, string $search, int $contextLength = 50): string
+    {
+        $position = stripos($content, $search);
+        if ($position === false) {
+            return $content;
+        }
+
+        $start = max(0, $position - $contextLength);
+        $length = strlen($search) + ($contextLength * 2);
+        
+        $preview = substr($content, $start, $length);
+        
+        // Add ellipsis if needed
+        if ($start > 0) {
+            $preview = '...' . $preview;
+        }
+        if ($start + $length < strlen($content)) {
+            $preview = $preview . '...';
+        }
+        
+        return $preview;
     }
 }

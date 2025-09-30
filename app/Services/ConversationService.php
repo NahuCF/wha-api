@@ -139,7 +139,7 @@ class ConversationService
                 $item->conversation_id => [
                     'message_content' => $item->message_content,
                     'message_id' => $item->message_id,
-                    'page_number' => $pageNumber,
+                    'page' => $pageNumber,
                     'position_from_end' => $positionFromEnd,
                 ]
             ];

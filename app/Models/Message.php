@@ -32,6 +32,7 @@ class Message extends Model
         'delivered_at' => 'datetime',
         'read_at' => 'datetime',
         'failed_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     public function conversation(): BelongsTo

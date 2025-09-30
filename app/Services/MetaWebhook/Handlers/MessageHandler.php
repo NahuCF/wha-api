@@ -7,6 +7,7 @@ use App\Enums\MessageDirection;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use App\Events\ConversationNew;
+use App\Events\MessageDeleted;
 use App\Events\MessageDelivered;
 use App\Events\MessageNew;
 use App\Models\Contact;
@@ -14,6 +15,7 @@ use App\Models\Conversation;
 use App\Models\ConversationActivity;
 use App\Models\Message;
 use App\Models\Waba;
+use App\Services\BotService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -78,6 +80,9 @@ class MessageHandler implements HandlerInterface
                 case MessageStatus::FAILED:
                     $updateData['failed_at'] = $timestampDate;
                     break;
+                case MessageStatus::DELETED:
+                    $updateData['deleted_at'] = $timestampDate;
+                    break;
             }
         }
 
@@ -102,13 +107,27 @@ class MessageHandler implements HandlerInterface
             $conversation = $message->conversation;
             $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
 
-            broadcast(new MessageDelivered(
-                messageId: $message->id,
-                conversationId: $conversation->id,
-                tenantId: $message->tenant_id,
-                wabaId: $conversation->waba_id,
-                status: $newStatus->value
-            ));
+            // Broadcast deleted message event separately
+            if ($newStatus === MessageStatus::DELETED) {
+                broadcast(new MessageDeleted(
+                    messageId: $message->id,
+                    conversationId: $conversation->id,
+                    tenantId: $message->tenant_id,
+                    wabaId: $conversation->waba_id,
+                    deletedBy: [
+                        'type' => 'user',
+                        'phone' => $message->direction === MessageDirection::OUTBOUND ? $message->to_phone : null
+                    ]
+                ));
+            } else {
+                broadcast(new MessageDelivered(
+                    messageId: $message->id,
+                    conversationId: $conversation->id,
+                    tenantId: $message->tenant_id,
+                    wabaId: $conversation->waba_id,
+                    status: $newStatus->value
+                ));
+            }
         }
     }
 
@@ -183,6 +202,10 @@ class MessageHandler implements HandlerInterface
             'unread_count' => $conversation->unread_count + 1,
             'expires_at' => $message->delivered_at->addHours(24),
         ]);
+
+        // Handle bot logic for incoming messages
+        $botService = new BotService();
+        $botService->handleIncomingMessage($message, $conversation, $contact);
     }
 
     private function processMessageContent(Message $message, array $messageData, string $type): void
@@ -337,6 +360,7 @@ class MessageHandler implements HandlerInterface
             'delivered' => MessageStatus::DELIVERED,
             'read' => MessageStatus::READ,
             'failed' => MessageStatus::FAILED,
+            'deleted' => MessageStatus::DELETED,
             default => null,
         };
     }
