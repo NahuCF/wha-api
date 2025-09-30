@@ -153,7 +153,7 @@ class ConversationController extends Controller
             $activityData = [
                 'old_user_name' => $oldUser?->name,
                 'old_bot_name' => $oldBot?->name,
-                'new_user_name' => $conversation->assignedUser->name,
+                'new_user_name' => $conversation?->assignedUser?->name,
                 'assignment_type' => 'user',
             ];
         }
@@ -259,7 +259,7 @@ class ConversationController extends Controller
                 'message_code' => 'exist_active_conversation',
                 'data' => [
                     'conversation_id' => $activeConversation->id,
-                    'assigned_user_name' => $activeConversation->assignedUser->name,
+                    'assigned_user_name' => $activeConversation?->assignedUser?->name,
                 ],
             ]);
         }
