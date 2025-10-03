@@ -54,10 +54,10 @@ class MessageController extends Controller
                         ->where('conversation_id', $conversationId)
                         ->where('created_at', '>', $message->created_at)
                         ->count();
-                    
+
                     $positionFromEnd = $newerMessagesCount + 1;
                     $pageNumber = ceil($positionFromEnd / $rowsPerPage);
-                    
+
                     $message->setAttribute('search_match', [
                         'page' => $pageNumber,
                         'position_from_end' => $positionFromEnd,
@@ -228,7 +228,7 @@ class MessageController extends Controller
             )->onQueue('messages');
         }
 
-        if($notStarted) {
+        if ($notStarted) {
             ConversationActivity::create([
                 'tenant_id' => tenant('id'),
                 'conversation_id' => $conversation->id,
@@ -264,8 +264,8 @@ class MessageController extends Controller
         $conversation = $message->conversation()
             ->with(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber'])
             ->first();
-        
-        if (!$conversation) {
+
+        if (! $conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
@@ -294,9 +294,9 @@ class MessageController extends Controller
                 'conversation_id' => $conversation->id,
                 'status' => $message->status->value,
                 'deleted_at' => $message->deleted_at,
-                'event_channel' => 'tenant.' . tenant('id') . '.waba.' . $conversation->waba_id . '.conversation',
-                'event_name' => 'message.deleted'
-            ]
+                'event_channel' => 'tenant.'.tenant('id').'.waba.'.$conversation->waba_id.'.conversation',
+                'event_name' => 'message.deleted',
+            ],
         ]);
     }
 
@@ -312,17 +312,17 @@ class MessageController extends Controller
 
         $start = max(0, $position - $contextLength);
         $length = strlen($search) + ($contextLength * 2);
-        
+
         $preview = substr($content, $start, $length);
-        
+
         // Add ellipsis if needed
         if ($start > 0) {
-            $preview = '...' . $preview;
+            $preview = '...'.$preview;
         }
         if ($start + $length < strlen($content)) {
-            $preview = $preview . '...';
+            $preview = $preview.'...';
         }
-        
+
         return $preview;
     }
 }

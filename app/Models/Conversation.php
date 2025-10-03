@@ -102,6 +102,16 @@ class Conversation extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function assignedBot(): BelongsTo
+    {
+        return $this->belongsTo(Bot::class, 'assigned_bot_id');
+    }
+
+    public function botSessions(): HasMany
+    {
+        return $this->hasMany(BotSession::class);
+    }
+
     public function pinnedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'conversation_pins')

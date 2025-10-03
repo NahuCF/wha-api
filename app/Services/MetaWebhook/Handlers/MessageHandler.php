@@ -116,7 +116,7 @@ class MessageHandler implements HandlerInterface
                     wabaId: $conversation->waba_id,
                     deletedBy: [
                         'type' => 'user',
-                        'phone' => $message->direction === MessageDirection::OUTBOUND ? $message->to_phone : null
+                        'phone' => $message->direction === MessageDirection::OUTBOUND ? $message->to_phone : null,
                     ]
                 ));
             } else {
@@ -204,7 +204,7 @@ class MessageHandler implements HandlerInterface
         ]);
 
         // Handle bot logic for incoming messages
-        $botService = new BotService();
+        $botService = new BotService;
         $botService->handleIncomingMessage($message, $conversation, $contact);
     }
 
@@ -249,11 +249,14 @@ class MessageHandler implements HandlerInterface
                 $interactive = $messageData['interactive'] ?? [];
                 $message->interactive_data = $interactive;
 
-                // Extract response text
+                // Extract response - bot needs ID, display needs title
                 if ($interactive['type'] === 'button_reply') {
-                    $message->content = $interactive['button_reply']['title'] ?? null;
+                    // For bot processing, use ID; for display, use title
+                    $message->content = $interactive['button_reply']['id'] ?? null;
+                    $message->display_content = $interactive['button_reply']['title'] ?? null;
                 } elseif ($interactive['type'] === 'list_reply') {
-                    $message->content = $interactive['list_reply']['title'] ?? null;
+                    $message->content = $interactive['list_reply']['id'] ?? null;
+                    $message->display_content = $interactive['list_reply']['title'] ?? null;
                 }
                 break;
 

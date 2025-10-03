@@ -18,6 +18,7 @@ class Tenant extends BaseTenant
         'is_profile_completed',
         'default_business_id',
         'default_waba_id',
+        'timezone_id',
     ];
 
     public static function getCustomColumns(): array
@@ -28,6 +29,7 @@ class Tenant extends BaseTenant
             'id',
             'default_business_id',
             'default_waba_id',
+            'timezone_id',
         ];
     }
 
@@ -70,5 +72,10 @@ class Tenant extends BaseTenant
     public function defaultWaba(): BelongsTo
     {
         return $this->belongsTo(Waba::class, 'default_waba_id');
+    }
+
+    public function timezone(): BelongsTo
+    {
+        return $this->belongsTo(Timezone::class);
     }
 }

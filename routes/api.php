@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BotController;
+use App\Http\Controllers\Api\BotVariableController;
 use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\BusinessesController;
 use App\Http\Controllers\Api\ContactController;
@@ -68,6 +70,7 @@ Route::group(['middleware' => [
         Route::get('/conversations/{conversation}/activities', [ConversationController::class, 'activities']);
         Route::apiResource('/conversations', ConversationController::class)->only(['index', 'store', 'show']);
         Route::post('/message-contact', [MessageController::class, 'storeTest']);
+        Route::post('/messages/{message}/test-deleted', [MessageController::class, 'testDeletedEvent']);
         Route::apiResource('/messages', MessageController::class)->only(['index', 'store']);
     });
 
@@ -126,4 +129,18 @@ Route::group(['middleware' => [
         Route::post('broadcasts/{broadcast}/update-status', [BroadcastController::class, 'updateStatus']);
         Route::apiResource('broadcasts', BroadcastController::class)->only(['index', 'store', 'show']);
     });
+
+    Route::prefix('bots')->group(function () {
+        Route::get('settings', [BotController::class, 'getSettings']);
+        Route::put('settings', [BotController::class, 'updateSettings']);
+        Route::put('{bot}/configuration', [BotController::class, 'updateConfiguration']);
+        Route::put('{bot}/flow', [BotController::class, 'saveFlow']);
+        Route::get('{bot}/flow-data', [BotController::class, 'getFlowData']);
+        Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
+        Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
+        Route::post('{bot}/clone', [BotController::class, 'clone']);
+    });
+    Route::apiResource('bots', BotController::class);
+    
+    Route::apiResource('bot-variables', BotVariableController::class)->only(['index', 'store', 'update', 'destroy']);
 });

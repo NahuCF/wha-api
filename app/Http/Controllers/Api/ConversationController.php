@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ConversationActivityType;
+use App\Events\ConversationNew;
+use App\Events\ConversationOwnerChanged;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ConversationActivityResource;
+use App\Http\Resources\ConversationResource;
 use App\Models\Bot;
 use App\Models\Conversation;
+use App\Models\ConversationActivity;
 use App\Services\BotService;
 use App\Services\ConversationService;
 use Illuminate\Http\Request;
-use App\Events\ConversationNew;
-use App\Http\Controllers\Controller;
-use App\Models\ConversationActivity;
-use Illuminate\Support\Facades\Auth;
-use App\Enums\ConversationActivityType;
-use App\Events\ConversationOwnerChanged;
-use App\Http\Resources\ConversationResource;
-use App\Http\Resources\ConversationActivityResource;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Auth;
 
 class ConversationController extends Controller
 {
@@ -35,7 +35,7 @@ class ConversationController extends Controller
         ]);
 
         $user = Auth::user();
-        $conversations = (new ConversationService())->searchConversations($input, $user);
+        $conversations = (new ConversationService)->searchConversations($input, $user);
 
         return ConversationResource::collection($conversations);
     }
@@ -114,7 +114,7 @@ class ConversationController extends Controller
         // Handle bot assignment
         if ($type === 'bot' && $botId) {
             $bot = Bot::find($botId);
-            if (!$bot || $bot->tenant_id !== tenant('id')) {
+            if (! $bot || $bot->tenant_id !== tenant('id')) {
                 return response()->json([
                     'message' => 'Bot not found',
                     'message_code' => 'bot_not_found',
@@ -127,7 +127,7 @@ class ConversationController extends Controller
             $conversation->update();
 
             // Start bot session
-            $botService = new BotService();
+            $botService = new BotService;
             $botService->startBotSession($bot, $conversation, $conversation->contact);
 
             $activityType = ConversationActivityType::ASSIGNED;
@@ -137,7 +137,7 @@ class ConversationController extends Controller
                 'new_bot_name' => $bot->name,
                 'assignment_type' => 'bot',
             ];
-        } 
+        }
         // Handle user assignment
         elseif ($type === 'user' && $userId) {
             $conversation->user_id = $userId;
@@ -187,7 +187,7 @@ class ConversationController extends Controller
 
         $conversationResource = new ConversationResource($conversation);
 
-        if (!$userId && !$botId) {
+        if (! $userId && ! $botId) {
             broadcast(
                 new ConversationNew(
                     conversation: $conversationResource->toArray(request()),
@@ -217,8 +217,8 @@ class ConversationController extends Controller
 
         $user = Auth::user();
         $updateView = data_get($input, 'view');
-        
-        $stats = (new ConversationService())->getConversationStats($user, $updateView);
+
+        $stats = (new ConversationService)->getConversationStats($user, $updateView);
 
         return response()->json([
             'data' => $stats,

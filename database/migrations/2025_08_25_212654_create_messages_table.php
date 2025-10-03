@@ -30,6 +30,7 @@ return new class extends Migration
             $table->enum('status', MessageStatus::values())->nullable();
             $table->enum('source', MessageSource::values())->default(MessageSource::WHATSAPP->value);
             $table->text('content')->nullable();
+            $table->text('display_content')->nullable();
             $table->json('media')->nullable();
             $table->json('interactive_data')->nullable();
             $table->json('location_data')->nullable();
@@ -43,9 +44,11 @@ return new class extends Migration
             $table->timestamp('delivered_at')->nullable();
             $table->timestamp('read_at')->nullable();
             $table->timestamp('failed_at')->nullable();
+            $table->timestamp('deleted_at')->nullable();
             $table->timestamps();
 
             $table->index(['conversation_id', 'created_at']);
+            $table->index('deleted_at');
             $table->index(['direction', 'status']);
             $table->index('type');
             $table->index('source');

@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Conversation;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class ConversationService
 {
@@ -76,7 +76,7 @@ class ConversationService
     public function attachMatchingMessageData(LengthAwarePaginator $conversations, string $search, int $messagesPerPage): void
     {
         $conversationIds = $conversations->pluck('id')->toArray();
-        
+
         if (empty($conversationIds)) {
             return;
         }
@@ -97,8 +97,8 @@ class ConversationService
     private function findMatchingMessages(array $conversationIds, string $search, int $messagesPerPage)
     {
         $tenantId = tenant('id');
-        $searchPattern = '%' . $search . '%';
-        
+        $searchPattern = '%'.$search.'%';
+
         $matchingMessages = DB::select("
             WITH latest_matches AS (
                 SELECT 
@@ -108,7 +108,7 @@ class ConversationService
                     created_at,
                     ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY created_at DESC) as rn
                 FROM messages
-                WHERE conversation_id IN ('" . implode("','", $conversationIds) . "')
+                WHERE conversation_id IN ('".implode("','", $conversationIds)."')
                   AND content ILIKE ?
                   AND tenant_id = ?
             ),
@@ -129,19 +129,19 @@ class ConversationService
             )
             SELECT * FROM message_positions
         ", [$searchPattern, $tenantId, $tenantId]);
-        
+
         // Convert to keyed collection
         return collect($matchingMessages)->mapWithKeys(function ($item) use ($messagesPerPage) {
             $positionFromEnd = $item->newer_messages_count + 1;
             $pageNumber = ceil($positionFromEnd / $messagesPerPage);
-            
+
             return [
                 $item->conversation_id => [
                     'message_content' => $item->message_content,
                     'message_id' => $item->message_id,
                     'page' => $pageNumber,
                     'position_from_end' => $positionFromEnd,
-                ]
+                ],
             ];
         });
     }
