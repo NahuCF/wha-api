@@ -43,7 +43,7 @@ class ConversationService
             });
         }
 
-        $query->when($onlyUnassigned, fn ($q) => $q->whereNull('user_id'))
+        $query->when($onlyUnassigned, fn ($q) => $q->whereNull('user_id')->where('is_solved', false))
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
             ->when($onlyPinned && $user, fn ($q) => $q->pinnedBy($user))
             ->when($onlySolved, fn ($q) => $q->where('is_solved', true))
