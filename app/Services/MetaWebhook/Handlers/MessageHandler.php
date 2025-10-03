@@ -210,16 +210,18 @@ class MessageHandler implements HandlerInterface
 
     private function processMessageContent(Message $message, array $messageData, string $type): void
     {
-        switch ($type) {
-            case 'text':
+        $messageType = MessageType::tryFrom($type);
+
+        switch ($messageType) {
+            case MessageType::TEXT:
                 $message->content = $messageData['text']['body'] ?? null;
                 break;
 
-            case 'image':
-            case 'video':
-            case 'audio':
-            case 'document':
-            case 'sticker':
+            case MessageType::IMAGE:
+            case MessageType::VIDEO:
+            case MessageType::AUDIO:
+            case MessageType::DOCUMENT:
+            case MessageType::STICKER:
                 $media = $messageData[$type] ?? [];
                 $message->media = [
                     'id' => $media['id'] ?? null,
@@ -231,7 +233,7 @@ class MessageHandler implements HandlerInterface
                 $message->content = $media['caption'] ?? null;
                 break;
 
-            case 'location':
+            case MessageType::LOCATION:
                 $location = $messageData['location'] ?? [];
                 $message->location_data = [
                     'latitude' => $location['latitude'] ?? null,
@@ -241,11 +243,11 @@ class MessageHandler implements HandlerInterface
                 ];
                 break;
 
-            case 'contacts':
+            case MessageType::CONTACTS:
                 $message->contacts_data = $messageData['contacts'] ?? [];
                 break;
 
-            case 'interactive':
+            case MessageType::INTERACTIVE:
                 $interactive = $messageData['interactive'] ?? [];
                 $message->interactive_data = $interactive;
 
@@ -260,13 +262,14 @@ class MessageHandler implements HandlerInterface
                 }
                 break;
 
-            case 'button':
+            case MessageType::BUTTON:
                 $button = $messageData['button'] ?? [];
                 $message->interactive_data = ['button' => $button];
                 $message->content = $button['text'] ?? null;
+                $message->display_content = $button['text'] ?? null;
                 break;
 
-            case 'reaction':
+            case MessageType::REACTION:
                 $reaction = $messageData['reaction'] ?? [];
                 $message->content = $reaction['emoji'] ?? null;
                 $message->context = [
@@ -274,7 +277,7 @@ class MessageHandler implements HandlerInterface
                 ];
                 break;
 
-            case 'order':
+            case MessageType::ORDER:
                 $message->context = [
                     'order' => $messageData['order'] ?? [],
                 ];

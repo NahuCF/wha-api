@@ -4,8 +4,8 @@ namespace App\Enums;
 
 enum BotNodeType: string
 {
-    case MESSAGE = 'message';  
-    case TEMPLATE = 'template';  
+    case MESSAGE = 'message';
+    case TEMPLATE = 'template';
     case IMAGE = 'image';
     case VIDEO = 'video';
     case AUDIO = 'audio';

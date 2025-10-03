@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('bot_variables', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('tenant_id')->constrained()->cascadeOnDelete();
-            $table->string('name'); 
+            $table->string('name');
             $table->timestamps();
 
             $table->unique(['tenant_id', 'name']);

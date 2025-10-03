@@ -8,6 +8,7 @@ use App\Models\Contact;
 class BotVariableInterpolator
 {
     private ?Contact $contact;
+
     private array $sessionVariables;
 
     public function __construct(?Contact $contact = null, array $sessionVariables = [])
@@ -22,6 +23,7 @@ class BotVariableInterpolator
     public function setContact(?Contact $contact): self
     {
         $this->contact = $contact;
+
         return $this;
     }
 
@@ -31,6 +33,7 @@ class BotVariableInterpolator
     public function setSessionVariables(array $sessionVariables): self
     {
         $this->sessionVariables = $sessionVariables;
+
         return $this;
     }
 
@@ -40,6 +43,7 @@ class BotVariableInterpolator
     public function addSessionVariable(string $name, $value): self
     {
         $this->sessionVariables[$name] = $value;
+
         return $this;
     }
 
@@ -71,6 +75,7 @@ class BotVariableInterpolator
             if (isset($option['title'])) {
                 $option['title'] = $this->interpolate($option['title']);
             }
+
             return $option;
         }, $options);
     }
@@ -82,27 +87,27 @@ class BotVariableInterpolator
     {
         // Load field values with their field definitions if not already loaded
         $this->contact->loadMissing('fieldValues.field');
-        
+
         // Match patterns like {{contact.Name}}, {{contact.email}}, etc.
         return preg_replace_callback('/\{\{contact\.(\w+)\}\}/i', function ($matches) {
             $fieldName = $matches[1];
-            
+
             // Search through field values
             foreach ($this->contact->fieldValues as $fieldValue) {
                 // Check if field name matches (case-insensitive)
                 if ($fieldValue->field && strcasecmp($fieldValue->field->name, $fieldName) === 0) {
                     // Handle different field types
                     $value = $fieldValue->value;
-                    
+
                     // If value is an array or object, convert to string
                     if (is_array($value) || is_object($value)) {
                         return json_encode($value);
                     }
-                    
+
                     return (string) $value;
                 }
             }
-            
+
             // Return empty string if field not found
             return '';
         }, $text);
@@ -116,6 +121,7 @@ class BotVariableInterpolator
         // Match patterns like {{variable_name}} (but not {{contact.something}})
         return preg_replace_callback('/\{\{(?!contact\.)(\w+)\}\}/', function ($matches) {
             $variableName = $matches[1];
+
             return $this->sessionVariables[$variableName] ?? '';
         }, $text);
     }
@@ -128,18 +134,18 @@ class BotVariableInterpolator
     {
         $variables = [
             'contact_fields' => [],
-            'bot_variables' => []
+            'bot_variables' => [],
         ];
 
         // Extract contact fields
         preg_match_all('/\{\{contact\.(\w+)\}\}/i', $text, $contactMatches);
-        if (!empty($contactMatches[1])) {
+        if (! empty($contactMatches[1])) {
             $variables['contact_fields'] = array_unique($contactMatches[1]);
         }
 
         // Extract bot variables (excluding contact.*)
         preg_match_all('/\{\{(?!contact\.)(\w+)\}\}/', $text, $botMatches);
-        if (!empty($botMatches[1])) {
+        if (! empty($botMatches[1])) {
             $variables['bot_variables'] = array_unique($botMatches[1]);
         }
 
@@ -165,7 +171,7 @@ class BotVariableInterpolator
         // Process header if present
         if ($node->header_type) {
             $processedData['header'] = [
-                'type' => $node->header_type
+                'type' => $node->header_type,
             ];
 
             if ($node->header_type === 'text' && $node->header_text) {
@@ -200,14 +206,14 @@ class BotVariableInterpolator
                 'latitude' => $node->latitude,
                 'longitude' => $node->longitude,
                 'name' => $node->location_name,
-                'address' => $node->location_address
+                'address' => $node->location_address,
             ];
         }
 
         // Include template data if present
         if ($node->template_id) {
             $processedData['template_id'] = $node->template_id;
-            
+
             // Process template parameters with interpolation
             if ($node->template_parameters) {
                 $processedData['template_parameters'] = $this->processTemplateParameters(
@@ -225,7 +231,7 @@ class BotVariableInterpolator
     private function processTemplateParameters(array $parameters): array
     {
         $processed = [];
-        
+
         foreach ($parameters as $key => $value) {
             if (is_string($value)) {
                 $processed[$key] = $this->interpolate($value);
@@ -235,7 +241,7 @@ class BotVariableInterpolator
                 $processed[$key] = $value;
             }
         }
-        
+
         return $processed;
     }
 

@@ -24,11 +24,11 @@ return new class extends Migration
 
             // Default timeout action (overridden by individual bot config)
             $table->integer('default_timeout_minutes')->default(10);
-            $table->enum('default_timeout_action', BotAction::values())->default(BotAction::UNASSIGN->value); 
+            $table->enum('default_timeout_action', BotAction::values())->default(BotAction::UNASSIGN->value);
             $table->foreignUlid('default_timeout_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignUlid('default_timeout_bot_id')->nullable()->constrained('bots')->nullOnDelete();
 
-            $table->integer('expire_warning_hours')->default(1); 
+            $table->integer('expire_warning_hours')->default(1);
             $table->enum('default_expire_action', BotAction::values())->default(BotAction::MESSAGE->value);
             $table->text('default_expire_message')->nullable();
             $table->foreignUlid('default_expire_user_id')->nullable()->constrained('users')->nullOnDelete();

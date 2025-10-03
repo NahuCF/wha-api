@@ -198,15 +198,15 @@ class BotService
                 $this->executeConditionNode($session, $node);
                 break;
 
-
             case BotNodeType::LOCATION:
                 $this->executeLocationNode($session, $node);
                 break;
 
             case BotNodeType::START_AGAIN:
                 $this->executeStartAgainNode($session, $node);
+
                 return; // Important: return to avoid continuing the flow
-                
+
             case BotNodeType::MARK_AS_SOLVED:
                 $this->executeMarkAsSolvedNode($session, $node);
                 break;
@@ -249,9 +249,10 @@ class BotService
     {
         // For template nodes, we need to send a WhatsApp template message
         // The node should have a template_id field that references the template to use
-        if (!$node->template_id) {
+        if (! $node->template_id) {
             // Fallback to sending as regular message if no template specified
             $this->executeMessageNode($session, $node);
+
             return;
         }
 
@@ -333,10 +334,10 @@ class BotService
         $conversation = $session->conversation;
         $phoneNumber = $conversation->phoneNumber;
         $waba = $conversation->waba;
-        
+
         // Prepare interactive button message
         $content = $this->replaceVariables($node->content, $session);
-        
+
         // WhatsApp allows maximum 3 buttons
         $buttons = [];
         if ($node->options && count($node->options) > 0) {
@@ -345,12 +346,12 @@ class BotService
                     'type' => 'reply',
                     'reply' => [
                         'id' => $option['id'] ?? uniqid('btn_'),
-                        'title' => substr($option['title'] ?? $option['label'] ?? '', 0, 20) // Max 20 chars
-                    ]
+                        'title' => substr($option['title'] ?? $option['label'] ?? '', 0, 20), // Max 20 chars
+                    ],
                 ];
             }
         }
-        
+
         // Create interactive message
         $message = Message::create([
             'tenant_id' => $conversation->tenant_id,
@@ -364,11 +365,11 @@ class BotService
             'interactive_data' => [
                 'type' => 'button',
                 'body' => [
-                    'text' => $content
+                    'text' => $content,
                 ],
                 'action' => [
-                    'buttons' => $buttons
-                ]
+                    'buttons' => $buttons,
+                ],
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
@@ -399,7 +400,6 @@ class BotService
         }
     }
 
-
     private function executeMarkAsSolvedNode(BotSession $session, BotNode $node): void
     {
         // Mark the conversation as solved
@@ -408,7 +408,7 @@ class BotService
             'is_solved' => true,
             'solved_at' => now(),
         ]);
-        
+
         // End the bot session
         $session->markAsCompleted();
     }
@@ -416,15 +416,15 @@ class BotService
     private function executeConditionNode(BotSession $session, BotNode $node): void
     {
         $conditionMet = $node->evaluateCondition($session->variables ?? [], $session->contact);
-        
+
         // Find the appropriate flow based on condition result
         $conditionPath = $conditionMet ? 'true' : 'false';
-        
+
         $flow = $session->bot->flows()
             ->where('source_node_id', $node->node_id)
             ->where('condition_value', $conditionPath)
             ->first();
-        
+
         if ($flow) {
             $nextNode = $session->bot->nodes()->where('node_id', $flow->target_node_id)->first();
             if ($nextNode) {
@@ -442,13 +442,13 @@ class BotService
     {
         // Simply jump back to the start node
         $startNode = $session->bot->getStartNode();
-        
+
         if ($startNode) {
             // Just execute the start node again - keep all variables and history
             $this->executeNode($session, $startNode);
         }
     }
-    
+
     private function executeLocationNode(BotSession $session, BotNode $node): void
     {
         if (! $node->latitude || ! $node->longitude) {
@@ -489,26 +489,26 @@ class BotService
     private function executeWorkingHoursNode(BotSession $session, BotNode $node): void
     {
         $settings = BotSettings::where('tenant_id', $session->tenant_id)->first();
-        
-        $isAvailable = true; 
-        
+
+        $isAvailable = true;
+
         if ($settings && $settings->enable_working_hours) {
             $isAvailable = $settings->isWithinWorkingHours();
         }
-        
+
         $conditionPath = $isAvailable ? 'Available' : 'Unavailable';
-        
+
         // Find the flow matching the availability path
         $flow = $session->bot->flows()
             ->where('source_node_id', $node->node_id)
             ->where('condition_value', $conditionPath)
             ->first();
-        
+
         $nextNode = null;
         if ($flow) {
             $nextNode = $session->bot->nodes()->where('node_id', $flow->target_node_id)->first();
         }
-        
+
         if ($nextNode) {
             $this->executeNode($session, $nextNode);
         } else {
@@ -627,10 +627,10 @@ class BotService
         // First, replace contact fields (contact.fieldName)
         if (preg_match_all('/\{\{contact\.([a-zA-Z_][a-zA-Z0-9_]*)\}\}/', $content, $matches)) {
             $contact = $session->contact;
-            
+
             foreach ($matches[1] as $index => $fieldName) {
                 $value = '';
-                
+
                 // Get contact field value from contact_field_values table
                 if ($contact && $contact->fieldValues) {
                     $fieldValue = $contact->fieldValues()
@@ -638,16 +638,16 @@ class BotService
                             $query->where('internal_name', $fieldName);
                         })
                         ->first();
-                    
+
                     if ($fieldValue && $fieldValue->value) {
                         $value = is_string($fieldValue->value) ? $fieldValue->value : json_encode($fieldValue->value);
                     }
                 }
-                
+
                 $content = str_replace($matches[0][$index], $value, $content);
             }
         }
-        
+
         // Then replace bot session variables
         $variables = $session->variables ?? [];
         foreach ($variables as $key => $value) {

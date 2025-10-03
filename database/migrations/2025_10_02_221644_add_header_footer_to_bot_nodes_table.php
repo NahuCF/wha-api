@@ -13,7 +13,7 @@ return new class extends Migration
             $table->enum('header_type', ['text', 'image', 'video', 'document'])->nullable()->after('content');
             $table->text('header_text')->nullable()->after('header_type');
             $table->string('header_media_url')->nullable()->after('header_text');
-            
+
             // Footer field for question_button nodes
             $table->string('footer_text', 60)->nullable()->after('options');
         });
@@ -26,7 +26,7 @@ return new class extends Migration
                 'header_type',
                 'header_text',
                 'header_media_url',
-                'footer_text'
+                'footer_text',
             ]);
         });
     }

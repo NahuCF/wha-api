@@ -15,7 +15,7 @@ return new class extends Migration
                 'condition_variable_id',
                 'condition_operator',
                 'condition_value',
-                'condition_value_variable_id'
+                'condition_value_variable_id',
             ]);
         });
     }

@@ -71,8 +71,15 @@ class ConversationController extends Controller
             ], 403);
         }
 
-        $conversation->is_solved = $isSolved;
-        $conversation->update();
+        if ($isSolved) {
+            $conversation->is_solved = true;
+            $conversation->user_id = null;
+        } else {
+            $conversation->is_solved = false;
+            $conversation->user_id = $user->id;
+        }
+
+        $conversation->save();
 
         ConversationActivity::create([
             'tenant_id' => tenant('id'),

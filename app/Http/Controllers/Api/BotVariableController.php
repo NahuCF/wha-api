@@ -38,7 +38,6 @@ class BotVariableController extends Controller
             ], 422);
         }
 
-
         $variable = BotVariable::create([
             'tenant_id' => $tenantId,
             'name' => $name,

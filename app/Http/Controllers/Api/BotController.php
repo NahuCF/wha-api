@@ -229,14 +229,14 @@ class BotController extends Controller
         foreach ($edges as $edge) {
             $sourceNode = collect($nodes)->firstWhere('id', data_get($edge, 'source'));
             $sourceNodeType = data_get($sourceNode, 'type');
-            
+
             $conditionType = FlowConditionType::ALWAYS;
             $conditionValue = null;
-            
+
             if ($sourceNodeType === BotNodeType::QUESTION_BUTTON->value) {
                 $conditionType = FlowConditionType::OPTION;
-                $conditionValue = data_get($edge, 'data.option_id'); 
-                
+                $conditionValue = data_get($edge, 'data.option_id');
+
                 if (data_get($edge, 'data.is_default')) {
                     $conditionType = FlowConditionType::DEFAULT;
                     $conditionValue = null;
@@ -254,7 +254,7 @@ class BotController extends Controller
                 $conditionType = FlowConditionType::ALWAYS;
                 $conditionValue = data_get($edge, 'data.working_hours_path', 'Available'); // 'Available' or 'Unavailable'
             }
-            
+
             BotFlow::create([
                 'bot_id' => $bot->id,
                 'edge_id' => data_get($edge, 'id'),
@@ -322,7 +322,6 @@ class BotController extends Controller
 
         return new BotSettingsResource($settings);
     }
-
 
     public function getFlowData(Bot $bot)
     {
@@ -394,28 +393,28 @@ class BotController extends Controller
         $mediaType = data_get($input, 'media_type');
         $nodeId = data_get($input, 'node_id');
 
-        $allowedMimes = match($mediaType) {
+        $allowedMimes = match ($mediaType) {
             'image' => ['image/jpeg', 'image/png'],
             'video' => ['video/mp4', 'video/3gpp'],
             'audio' => ['audio/aac', 'audio/mp4', 'audio/mpeg', 'audio/amr', 'audio/ogg'],
-            'document' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-                          'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                          'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 
-                          'text/plain'],
+            'document' => ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'text/plain'],
             default => []
         };
 
-        $maxSize = match($mediaType) {
+        $maxSize = match ($mediaType) {
             'image' => 5 * 1024, // 5MB
-            'video' => 16 * 1024, // 16MB 
+            'video' => 16 * 1024, // 16MB
             'audio' => 16 * 1024, // 16MB
-            'document' => 50 * 1024, // 100MB 
+            'document' => 50 * 1024, // 100MB
             default => 16 * 1024
         };
 
-        if (!in_array($file->getMimeType(), $allowedMimes)) {
+        if (! in_array($file->getMimeType(), $allowedMimes)) {
             return response()->json([
-                'message' => 'Invalid file type for ' . $mediaType,
+                'message' => 'Invalid file type for '.$mediaType,
                 'allowed_types' => $allowedMimes,
             ], 422);
         }
@@ -429,13 +428,13 @@ class BotController extends Controller
 
         try {
             $extension = $file->getClientOriginalExtension();
-            $filename = uniqid('bot_' . $bot->id . '_node_' . $nodeId . '_') . '.' . $extension;
-            
-            $path = 'bot-media/' . tenant('id') . '/' . $bot->id . '/' . $mediaType . '/' . $filename;
+            $filename = uniqid('bot_'.$bot->id.'_node_'.$nodeId.'_').'.'.$extension;
+
+            $path = 'bot-media/'.tenant('id').'/'.$bot->id.'/'.$mediaType.'/'.$filename;
 
             $s3Path = Storage::disk('s3')->putFileAs('', $file, $path);
-            
-            if (!$s3Path) {
+
+            if (! $s3Path) {
                 throw new \Exception('Failed to upload file to S3');
             }
 
@@ -467,7 +466,7 @@ class BotController extends Controller
         try {
             $deleted = Storage::disk('s3')->delete($path);
 
-            if (!$deleted) {
+            if (! $deleted) {
                 throw new \Exception('Failed to delete file from S3');
             }
 
@@ -519,7 +518,7 @@ class BotController extends Controller
             $newNode->created_at = now();
             $newNode->updated_at = now();
             $newNode->save();
-            
+
             // Store mapping of old to new node IDs
             $nodeMapping[$node->node_id] = $newNode->node_id;
         }
@@ -528,7 +527,7 @@ class BotController extends Controller
         foreach ($bot->flows as $flow) {
             $newFlow = $flow->replicate();
             $newFlow->bot_id = $newBot->id;
-            
+
             // Update source and target node IDs if they exist in mapping
             if (isset($nodeMapping[$flow->source_node_id])) {
                 $newFlow->source_node_id = $nodeMapping[$flow->source_node_id];
@@ -536,7 +535,7 @@ class BotController extends Controller
             if (isset($nodeMapping[$flow->target_node_id])) {
                 $newFlow->target_node_id = $nodeMapping[$flow->target_node_id];
             }
-            
+
             $newFlow->created_at = now();
             $newFlow->updated_at = now();
             $newFlow->save();

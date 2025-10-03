@@ -12,14 +12,14 @@ return new class extends Migration
         Schema::create('bot_flows', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('bot_id')->constrained()->cascadeOnDelete();
-            
+
             $table->string('edge_id')->nullable(); // VueFlow edge ID
-            $table->string('source_node_id'); 
-            $table->string('target_node_id'); 
-            
+            $table->string('source_node_id');
+            $table->string('target_node_id');
+
             $table->enum('condition_type', FlowConditionType::values())->default(FlowConditionType::ALWAYS->value);
             $table->string('condition_value')->nullable();
-            
+
             $table->timestamps();
 
             $table->index(['bot_id', 'source_node_id']);

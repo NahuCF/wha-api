@@ -141,6 +141,6 @@ Route::group(['middleware' => [
         Route::post('{bot}/clone', [BotController::class, 'clone']);
     });
     Route::apiResource('bots', BotController::class);
-    
+
     Route::apiResource('bot-variables', BotVariableController::class)->only(['index', 'store', 'update', 'destroy']);
 });

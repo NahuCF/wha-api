@@ -52,7 +52,7 @@ return new class extends Migration
             $table->foreign('timeout_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('no_match_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('end_conversation_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
-            
+
             $table->index('is_active');
             $table->index('trigger_type');
         });
