@@ -16,6 +16,7 @@ use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ConversationController extends Controller
 {
@@ -52,6 +53,8 @@ class ConversationController extends Controller
 
     public function show(Conversation $conversation)
     {
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
         return new ConversationResource($conversation);
     }
 
@@ -63,13 +66,6 @@ class ConversationController extends Controller
 
         $user = Auth::user();
         $isSolved = data_get($input, 'is_solved');
-
-        if ($conversation->user_id !== $user->id) {
-            return response()->json([
-                'message' => 'Unauthorized',
-                'message_code' => 'unauthorized',
-            ], 403);
-        }
 
         if ($isSolved) {
             $conversation->is_solved = true;
@@ -90,6 +86,8 @@ class ConversationController extends Controller
                 'user_name' => $user->name,
             ],
         ]);
+
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
 
         return new ConversationResource($conversation);
     }
@@ -230,6 +228,39 @@ class ConversationController extends Controller
         return response()->json([
             'data' => $stats,
         ]);
+    }
+
+    public function pin(Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        if ($conversation->isPinnedBy($user)) {
+            return response()->json([
+                'message' => 'Conversation already pinned',
+                'message_code' => 'already_pinned',
+            ], 422);
+        }
+
+        $maxPosition = DB::table('conversation_pins')
+            ->where('user_id', $user->id)
+            ->max('position') ?? -1;
+
+        $conversation->pinFor($user, $maxPosition + 1);
+
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+        return new ConversationResource($conversation);
+    }
+
+    public function unpin(Conversation $conversation)
+    {
+        $user = Auth::user();
+
+        $conversation->unpinFor($user);
+
+        $conversation->load(['contact', 'assignedUser', 'latestMessage', 'waba', 'phoneNumber']);
+
+        return new ConversationResource($conversation);
     }
 
     public function store(Request $request)

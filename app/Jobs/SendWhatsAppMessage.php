@@ -18,6 +18,8 @@ class SendWhatsAppMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $queue = 'messages';
+
     public $tries = 5;
 
     public $maxExceptions = 3;

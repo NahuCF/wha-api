@@ -28,6 +28,8 @@ class ProcessBroadcast implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $queue = 'broadcasts';
+
     protected Broadcast $broadcast;
 
     protected int $batchSize;

@@ -15,6 +15,8 @@ class ProcessGroupContacts implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $queue = 'heavy';
+
     /**
      * The number of times the job may be attempted.
      *
@@ -40,9 +42,6 @@ class ProcessGroupContacts implements ShouldQueue
     {
         $this->group = $group;
         $this->filters = $filters;
-
-        // Set the queue in constructor instead of as a property
-        $this->onQueue('heavy');
     }
 
     /**

@@ -81,7 +81,7 @@ class GroupController extends Controller
             ]);
 
         if ($contactsCount > 5000) {
-            ProcessGroupContacts::dispatch($group, $filters)->onQueue('heavy');
+            ProcessGroupContacts::dispatch($group, $filters);
 
             return response()->json('', 200);
         } else {
@@ -139,7 +139,7 @@ class GroupController extends Controller
         ]);
 
         if ($contactsCount > 5000) {
-            ProcessGroupContacts::dispatch($group, $filters)->onQueue('heavy');
+            ProcessGroupContacts::dispatch($group, $filters);
 
             return response()->json('', 200);
         } else {

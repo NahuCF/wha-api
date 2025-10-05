@@ -219,22 +219,22 @@ class BotService
             case BotNodeType::WORKING_HOURS:
                 $this->executeWorkingHoursNode($session, $node);
                 break;
+
+            case BotNodeType::SET_VARIABLE:
+                $this->executeSetVariableNode($session, $node);
+                break;
         }
 
         // If not a question or terminal node, check for next node
         if (! in_array($node->type, [BotNodeType::QUESTION_BUTTON, BotNodeType::MARK_AS_SOLVED, BotNodeType::ASSIGN_CHAT, BotNodeType::START_AGAIN])) {
             $nextNode = $node->getNextNode(null, $session->variables ?? []);
             if ($nextNode) {
-                // Small delay before next node
-                sleep(1);
                 $this->executeNode($session, $nextNode);
             } else {
-                // No more nodes
                 $session->markAsCompleted();
                 $this->handleEndConversation($session);
             }
         } elseif ($node->type === BotNodeType::QUESTION_BUTTON) {
-            // Wait for user response
             $session->markAsWaiting();
         }
     }
@@ -247,10 +247,7 @@ class BotService
 
     private function executeTemplateNode(BotSession $session, BotNode $node): void
     {
-        // For template nodes, we need to send a WhatsApp template message
-        // The node should have a template_id field that references the template to use
         if (! $node->template_id) {
-            // Fallback to sending as regular message if no template specified
             $this->executeMessageNode($session, $node);
 
             return;
@@ -287,7 +284,7 @@ class BotService
             phoneNumberId: $phoneNumber->meta_id,
             wabaId: $waba->id,
             conversationId: $conversation->id,
-        )->onQueue('messages');
+        );
     }
 
     private function executeMediaNode(BotSession $session, BotNode $node): void
@@ -326,7 +323,7 @@ class BotService
             phoneNumberId: $phoneNumber->meta_id,
             wabaId: $waba->id,
             conversationId: $conversation->id,
-        )->onQueue('messages');
+        );
     }
 
     private function executeQuestionButtonNode(BotSession $session, BotNode $node): void
@@ -380,7 +377,7 @@ class BotService
             phoneNumberId: $phoneNumber->meta_id,
             wabaId: $waba->id,
             conversationId: $conversation->id,
-        )->onQueue('messages');
+        );
     }
 
     private function executeAssignNode(BotSession $session, BotNode $node): void
@@ -483,7 +480,7 @@ class BotService
             phoneNumberId: $phoneNumber->meta_id,
             wabaId: $waba->id,
             conversationId: $conversation->id,
-        )->onQueue('messages');
+        );
     }
 
     private function executeWorkingHoursNode(BotSession $session, BotNode $node): void
@@ -513,6 +510,32 @@ class BotService
             $this->executeNode($session, $nextNode);
         } else {
             $session->markAsCompleted();
+        }
+    }
+
+    private function executeSetVariableNode(BotSession $session, BotNode $node): void
+    {
+        $variables = $node->data['variables'] ?? null;
+
+        if (! $variables || ! is_array($variables)) {
+            return;
+        }
+
+        $interpolator = new BotVariableInterpolator($session->contact, $session->variables ?? []);
+
+        foreach ($variables as $variable) {
+            $name = $variable['variable_name'] ?? null;
+            $value = $variable['value'] ?? '';
+
+            if (! $name) {
+                continue;
+            }
+
+            $processedValue = $interpolator->interpolate($value);
+
+            $session->setVariable($name, $processedValue);
+
+            $interpolator->addSessionVariable($name, $processedValue);
         }
     }
 
@@ -619,7 +642,7 @@ class BotService
             phoneNumberId: $phoneNumber->meta_id,
             wabaId: $waba->id,
             conversationId: $conversation->id,
-        )->onQueue('messages');
+        );
     }
 
     private function replaceVariables(string $content, BotSession $session): string

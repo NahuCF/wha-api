@@ -17,6 +17,7 @@ enum BotNodeType: string
     case ASSIGN_CHAT = 'assign_chat';
     case LOCATION = 'location';
     case WORKING_HOURS = 'working_hours';
+    case SET_VARIABLE = 'set_variable';
 
     public static function values(): array
     {

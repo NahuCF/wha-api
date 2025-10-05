@@ -84,13 +84,12 @@ return [
     */
 
     'waits' => [
-        'redis:emails' => 5,          // Alert if emails wait > 5 seconds
-        'redis:critical' => 10,        // Alert if critical jobs wait > 10 seconds
-        'redis:messages' => 30,        // Alert if messages wait > 30 seconds
-        'redis:imports' => 60,         // Alert if imports wait > 60 seconds
-        'redis:broadcasts' => 45,      // Alert if broadcasts wait > 45 seconds
-        'redis:groups' => 60,          // Alert if group operations wait > 60 seconds
-        'redis:default' => 60,         // Alert if default jobs wait > 60 seconds
+        'redis:emails' => 2,
+        'redis:messages' => 5,
+        'redis:broadcasts' => 10,
+        'redis:imports' => 30,
+        'redis:heavy' => 60,
+        'redis:default' => 15,
     ],
 
     /*
@@ -183,9 +182,6 @@ return [
     | in all environments. These supervisors and settings handle all your
     | queued jobs and will be provisioned by Horizon during deployment.
     |
-    | OPTIMIZED FOR: 8 cores / 16 threads @ 3.65 GHz
-    | Total workers: ~12-14 to leave headroom for API and Soketi
-    |
     */
 
     'defaults' => [
@@ -210,98 +206,69 @@ return [
                 'connection' => 'redis',
                 'queue' => ['emails'],
                 'balance' => 'simple',
-                'minProcesses' => 3,
-                'maxProcesses' => 8,
-                'balanceMaxShift' => 2,
-                'balanceCooldown' => 3,
-                'autoScalingStrategy' => 'time',
-                'memory' => 256,
+                'processes' => 3,
+                'memory' => 128,
                 'tries' => 3,
                 'timeout' => 30,
-                'nice' => -5,
+                'nice' => -10,
             ],
 
-            // HIGH PRIORITY: Critical operations (real-time messages, urgent tasks)
-            'supervisor-critical' => [
-                'connection' => 'redis',
-                'queue' => ['fast'],
-                'balance' => 'simple',
-                'minProcesses' => 2,
-                'maxProcesses' => 6,
-                'balanceMaxShift' => 2,
-                'balanceCooldown' => 3,
-                'autoScalingStrategy' => 'time',
-                'memory' => 512,
-                'tries' => 3,
-                'timeout' => 60,
-                'nice' => -2,
-            ],
-
-            // MEDIUM-HIGH PRIORITY: WhatsApp messages (individual messages, not broadcasts)
             'supervisor-messages' => [
                 'connection' => 'redis',
                 'queue' => ['messages'],
                 'balance' => 'auto',
-                'minProcesses' => 3,
-                'maxProcesses' => 8,
+                'minProcesses' => 5,
+                'maxProcesses' => 10,
                 'balanceMaxShift' => 2,
                 'balanceCooldown' => 3,
                 'autoScalingStrategy' => 'time',
-                'memory' => 512,
+                'memory' => 384,
                 'tries' => 5,
-                'timeout' => 120,
-                'nice' => 0,
+                'timeout' => 60,
+                'nice' => -5,
             ],
 
-            // MEDIUM PRIORITY: Broadcast messages (bulk WhatsApp sends)
             'supervisor-broadcasts' => [
                 'connection' => 'redis',
                 'queue' => ['broadcasts'],
-                'balance' => 'auto',
-                'minProcesses' => 2,
-                'maxProcesses' => 6,
-                'balanceMaxShift' => 2,
-                'balanceCooldown' => 5,
-                'autoScalingStrategy' => 'size',  // Scale based on queue size
-                'memory' => 1024,
-                'tries' => 5,
-                'timeout' => 1200,
-                'nice' => 5,
-                'sleep' => 1,
-            ],
-
-            // LOW PRIORITY: Contact imports (Excel processing)
-            'supervisor-imports' => [
-                'connection' => 'redis',
-                'queue' => ['imports'],
-                'balance' => 'auto',
-                'minProcesses' => 2,
-                'maxProcesses' => 5,
-                'balanceMaxShift' => 2,
-                'balanceCooldown' => 5,
-                'autoScalingStrategy' => 'size',
-                'memory' => 2048,
-                'tries' => 2,
-                'timeout' => 900,
-                'nice' => 10,
-                'sleep' => 5,
-            ],
-
-            // LOW PRIORITY: Group operations
-            'supervisor-groups' => [
-                'connection' => 'redis',
-                'queue' => ['heavy'],
                 'balance' => 'auto',
                 'minProcesses' => 2,
                 'maxProcesses' => 4,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 5,
                 'autoScalingStrategy' => 'size',
-                'memory' => 1024,
-                'tries' => 3,
+                'memory' => 512,
+                'tries' => 5,
                 'timeout' => 300,
+                'nice' => 0,
+                'sleep' => 1,
+            ],
+
+            'supervisor-heavy' => [
+                'connection' => 'redis',
+                'queue' => ['imports', 'heavy'],
+                'balance' => 'auto',
+                'minProcesses' => 1,
+                'maxProcesses' => 3,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 10,
+                'autoScalingStrategy' => 'size',
+                'memory' => 1024,
+                'tries' => 2,
+                'timeout' => 600,
                 'nice' => 10,
                 'sleep' => 3,
+            ],
+
+            'supervisor-default' => [
+                'connection' => 'redis',
+                'queue' => ['default'],
+                'balance' => 'simple',
+                'processes' => 2,
+                'memory' => 256,
+                'tries' => 3,
+                'timeout' => 90,
+                'nice' => 5,
             ],
 
         ],

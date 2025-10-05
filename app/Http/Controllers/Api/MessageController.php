@@ -225,7 +225,7 @@ class MessageController extends Controller
                 phoneNumberId: $phoneNumber->meta_id,
                 wabaId: $waba->id,
                 conversationId: $conversation->id,
-            )->onQueue('messages');
+            );
         }
 
         if ($notStarted) {

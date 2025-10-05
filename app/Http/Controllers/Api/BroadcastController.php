@@ -155,7 +155,7 @@ class BroadcastController extends Controller
         $broadcast->load(['user']);
 
         if ($sendNow) {
-            ProcessBroadcast::dispatch($broadcast)->onQueue('broadcasts');
+            ProcessBroadcast::dispatch($broadcast);
         }
 
         return BroadcastResource::make($broadcast);
