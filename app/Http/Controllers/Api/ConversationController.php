@@ -289,6 +289,7 @@ class ConversationController extends Controller
         $activeConversation = $conversationQuery
             ->clone()
             ->where('expires_at', '>', now())
+            ->where('is_solved', false)
             ->first();
 
         if ($activeConversation) {
