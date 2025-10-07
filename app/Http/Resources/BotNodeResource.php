@@ -26,8 +26,6 @@ class BotNodeResource extends JsonResource
             'assign_type' => $this->assign_type,
             'assign_to_user_id' => $this->assign_to_user_id,
             'assign_to_bot_id' => $this->assign_to_bot_id,
-            'delay_seconds' => $this->delay_seconds,
-            'voice_url' => $this->voice_url,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'location_name' => $this->location_name,

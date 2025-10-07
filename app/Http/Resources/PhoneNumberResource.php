@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class PhoneNumberResource extends JsonResource
 {
@@ -24,6 +25,15 @@ class PhoneNumberResource extends JsonResource
             'is_registered' => $this->is_registered,
             'status' => $this->status,
             'can_send_messages' => $this->status?->canSendMessages() ?? false,
+            'about' => $this->about,
+            'address' => $this->address,
+            'description' => $this->description,
+            'email' => $this->email,
+            'vertical' => $this->vertical,
+            'websites' => $this->websites,
+            'picture_url' => $this->profile_picture_path
+                ? Storage::disk('s3')->url($this->profile_picture_path)
+                : null,
         ];
     }
 }

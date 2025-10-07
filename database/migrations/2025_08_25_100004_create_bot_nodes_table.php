@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\AssignType;
+use App\Enums\BotNodeHeaderType;
 use App\Enums\BotNodeType;
 use App\Enums\ComparisonOperator;
 use App\Enums\MediaType;
@@ -30,9 +31,16 @@ return new class extends Migration
             $table->string('media_url')->nullable(); // S3 URL for media
             $table->enum('media_type', MediaType::values())->nullable();
 
+            $table->enum('header_type', BotNodeHeaderType::values())->nullable();
+            $table->text('header_text')->nullable()->after('header_type');
+            $table->string('header_media_url')->nullable()->after('header_text');
+
+            // Footer field for question_button nodes
+            $table->string('footer_text', 60)->nullable()->after('options');
+
             // Template node fields
             $table->foreignUlid('template_id')->nullable()->constrained()->nullOnDelete();
-            $table->json('template_parameters')->nullable(); // Parameters for template placeholders
+            $table->json('template_parameters')->nullable();
 
             $table->json('options')->nullable();
             $table->string('variable_name')->nullable();
@@ -50,10 +58,10 @@ return new class extends Migration
             $table->string('location_address')->nullable();
 
             // Condition node fields
-            $table->foreignUlid('condition_variable_id')->nullable()->constrained('bot_variables')->nullOnDelete();
             $table->enum('condition_operator', ComparisonOperator::values())->nullable();
             $table->string('condition_value')->nullable(); // literal value or variable name
             $table->foreignUlid('condition_value_variable_id')->nullable()->constrained('bot_variables')->nullOnDelete();
+            $table->json('conditions')->nullable();
 
             $table->timestamps();
 

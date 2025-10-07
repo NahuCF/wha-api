@@ -44,6 +44,21 @@ return new class extends Migration
 
             $table->json('viewport')->nullable();
 
+            $table->enum('default_no_match_action', BotAction::values())->nullable();
+            $table->foreignUlid('default_no_match_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->ulid('default_no_match_bot_id')->nullable();
+
+            $table->integer('default_timeout_minutes')->nullable();
+            $table->enum('default_timeout_action', BotAction::values())->nullable();
+            $table->foreignUlid('default_timeout_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->ulid('default_timeout_bot_id')->nullable();
+
+            $table->integer('expire_warning_minutes')->nullable();
+            $table->enum('default_expire_action', BotAction::values())->nullable();
+            $table->text('default_expire_message')->nullable();
+            $table->foreignUlid('default_expire_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->ulid('default_expire_bot_id')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });
@@ -52,6 +67,9 @@ return new class extends Migration
             $table->foreign('timeout_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('no_match_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('end_conversation_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
+            $table->foreign('default_no_match_bot_id')->references('id')->on('bots')->nullOnDelete();
+            $table->foreign('default_timeout_bot_id')->references('id')->on('bots')->nullOnDelete();
+            $table->foreign('default_expire_bot_id')->references('id')->on('bots')->nullOnDelete();
 
             $table->index('is_active');
             $table->index('trigger_type');

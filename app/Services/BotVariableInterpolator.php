@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BotNodeHeaderType;
 use App\Models\BotNode;
 use App\Models\Contact;
 
@@ -174,9 +175,9 @@ class BotVariableInterpolator
                 'type' => $node->header_type,
             ];
 
-            if ($node->header_type === 'text' && $node->header_text) {
+            if ($node->header_type === BotNodeHeaderType::TEXT && $node->header_text) {
                 $processedData['header']['text'] = $this->interpolate($node->header_text);
-            } elseif (in_array($node->header_type, ['image', 'video', 'document']) && $node->header_media_url) {
+            } elseif (in_array($node->header_type, [BotNodeHeaderType::IMAGE, BotNodeHeaderType::VIDEO, BotNodeHeaderType::DOCUMENT]) && $node->header_media_url) {
                 $processedData['header']['media_url'] = $node->header_media_url;
             }
         }
@@ -287,9 +288,9 @@ class BotVariableInterpolator
 
             // Validate header
             if ($node->header_type) {
-                if ($node->header_type === 'text' && empty($node->header_text)) {
+                if ($node->header_type === BotNodeHeaderType::TEXT && empty($node->header_text)) {
                     $errors[] = 'Header text is required when header type is text';
-                } elseif (in_array($node->header_type, ['image', 'video', 'document']) && empty($node->header_media_url)) {
+                } elseif (in_array($node->header_type, [BotNodeHeaderType::IMAGE, BotNodeHeaderType::VIDEO, BotNodeHeaderType::DOCUMENT]) && empty($node->header_media_url)) {
                     $errors[] = 'Header media URL is required for media headers';
                 }
             }

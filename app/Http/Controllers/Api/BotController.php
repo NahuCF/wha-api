@@ -9,11 +9,9 @@ use App\Enums\BotTriggerType;
 use App\Enums\FlowConditionType;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BotResource;
-use App\Http\Resources\BotSettingsResource;
 use App\Models\Bot;
 use App\Models\BotFlow;
 use App\Models\BotNode;
-use App\Models\BotSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -271,56 +269,6 @@ class BotController extends Controller
         }
 
         return new BotResource($bot->load(['nodes', 'flows']));
-    }
-
-    public function getSettings()
-    {
-        $settings = BotSettings::firstOrCreate(
-            ['tenant_id' => tenant('id')],
-            [
-                'enable_working_hours' => false,
-                'working_hours' => [
-                    'monday' => ['enabled' => true, 'start' => '09:00', 'end' => '18:00'],
-                    'tuesday' => ['enabled' => true, 'start' => '09:00', 'end' => '18:00'],
-                    'wednesday' => ['enabled' => true, 'start' => '09:00', 'end' => '18:00'],
-                    'thursday' => ['enabled' => true, 'start' => '09:00', 'end' => '18:00'],
-                    'friday' => ['enabled' => true, 'start' => '09:00', 'end' => '18:00'],
-                    'saturday' => ['enabled' => false, 'start' => '09:00', 'end' => '13:00'],
-                    'sunday' => ['enabled' => false, 'start' => '09:00', 'end' => '13:00'],
-                ],
-            ]
-        );
-
-        return new BotSettingsResource($settings);
-    }
-
-    public function updateSettings(Request $request)
-    {
-        $input = $request->validate([
-            'enable_working_hours' => ['boolean'],
-            'working_hours' => ['nullable', 'array'],
-            'default_no_match_action' => ['nullable', Rule::in(BotAction::values())],
-            'default_no_match_user_id' => ['nullable', 'exists:users,id'],
-            'default_no_match_bot_id' => ['nullable', 'exists:bots,id'],
-            'default_timeout_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
-            'default_timeout_action' => ['nullable', Rule::in(BotAction::values())],
-            'default_timeout_user_id' => ['nullable', 'exists:users,id'],
-            'default_timeout_bot_id' => ['nullable', 'exists:bots,id'],
-            'expire_warning_hours' => ['nullable', 'integer', 'min:1', 'max:23'],
-            'default_expire_action' => ['nullable', Rule::in(BotAction::values())],
-            'default_expire_message' => ['nullable', 'string'],
-            'default_expire_user_id' => ['nullable', 'exists:users,id'],
-            'default_expire_bot_id' => ['nullable', 'exists:bots,id'],
-        ]);
-
-        // These variables are actually used in the $input array that's passed to updateOrCreate
-        // They're not directly used but are part of the validated input
-        $settings = BotSettings::updateOrCreate(
-            ['tenant_id' => tenant('id')],
-            $input
-        );
-
-        return new BotSettingsResource($settings);
     }
 
     public function getFlowData(Bot $bot)

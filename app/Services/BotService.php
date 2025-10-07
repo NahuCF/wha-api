@@ -14,7 +14,6 @@ use App\Jobs\SendWhatsAppMessage;
 use App\Models\Bot;
 use App\Models\BotNode;
 use App\Models\BotSession;
-use App\Models\BotSettings;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -62,13 +61,8 @@ class BotService
 
         if ($bot) {
             $this->startBotSession($bot, $conversation, $contact);
-        } else {
-            // No bot matched, check for default no-match action
-            $settings = BotSettings::where('tenant_id', $tenantId)->first();
-            if ($settings) {
-                $this->handleNoMatch($conversation, $settings);
-            }
         }
+        // If no bot matched, do nothing (no global settings)
     }
 
     public function startBotSession(Bot $bot, Conversation $conversation, Contact $contact): ?BotSession
@@ -485,12 +479,13 @@ class BotService
 
     private function executeWorkingHoursNode(BotSession $session, BotNode $node): void
     {
-        $settings = BotSettings::where('tenant_id', $session->tenant_id)->first();
+        // Check tenant-level working hours using session's tenant_id
+        $tenantSettings = \App\Models\TenantSettings::where('tenant_id', $session->tenant_id)->first();
 
+        // Default to available if no settings configured
         $isAvailable = true;
-
-        if ($settings && $settings->enable_working_hours) {
-            $isAvailable = $settings->isWithinWorkingHours();
+        if ($tenantSettings) {
+            $isAvailable = $tenantSettings->isWithinWorkingHours();
         }
 
         $conditionPath = $isAvailable ? 'Available' : 'Unavailable';
@@ -578,16 +573,6 @@ class BotService
                 $bot->end_conversation_assign_bot_id
             );
         }
-    }
-
-    private function handleNoMatch(Conversation $conversation, BotSettings $settings): void
-    {
-        $this->executeAction(
-            $conversation,
-            $settings->default_no_match_action,
-            $settings->default_no_match_user_id,
-            $settings->default_no_match_bot_id
-        );
     }
 
     private function executeAction(Conversation $conversation, ?BotAction $action, ?string $userId, ?string $botId): void
@@ -678,35 +663,5 @@ class BotService
         }
 
         return $content;
-    }
-
-    public function checkExpiringConversations(): void
-    {
-        $settings = BotSettings::all();
-
-        foreach ($settings as $setting) {
-            $expiryTime = now()->addHours($setting->expire_warning_hours);
-
-            $conversations = Conversation::where('tenant_id', $setting->tenant_id)
-                ->where('expires_at', '<=', $expiryTime)
-                ->where('expires_at', '>', now())
-                ->whereDoesntHave('botSessions', function ($query) {
-                    $query->where('status', BotSessionStatus::ACTIVE);
-                })
-                ->get();
-
-            foreach ($conversations as $conversation) {
-                if ($setting->default_expire_message) {
-                    $this->sendMessage($conversation, $setting->default_expire_message);
-                }
-
-                $this->executeAction(
-                    $conversation,
-                    $setting->default_expire_action,
-                    $setting->default_expire_user_id,
-                    $setting->default_expire_bot_id
-                );
-            }
-        }
     }
 }

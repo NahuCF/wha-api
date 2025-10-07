@@ -492,4 +492,149 @@ class MetaService
             return ['error' => 'Failed to send interactive message', 'exception' => $e->getMessage()];
         }
     }
+
+    /**
+     * Upload phone number profile picture to Meta
+     */
+    public function uploadPhoneNumberProfilePicture(\App\Models\PhoneNumber $phoneNumber, $image): string
+    {
+        // First, upload the image to get a handle
+        $uploadResponse = Http::withToken($this->getToken())
+            ->attach('file', file_get_contents($image), 'profile.jpg')
+            ->post($this->buildUrl($phoneNumber->meta_id.'/media'), [
+                'messaging_product' => 'whatsapp',
+                'type' => 'image/jpeg',
+            ]);
+
+        if (! $uploadResponse->successful()) {
+            throw new \Exception($uploadResponse->json()['error']['message'] ?? 'Failed to upload image to Meta');
+        }
+
+        $handle = $uploadResponse->json()['h'];
+
+        // Now update the profile with the image handle
+        $profileResponse = Http::withToken($this->getToken())
+            ->post($this->buildUrl($phoneNumber->meta_id.'/whatsapp_business_profile'), [
+                'messaging_product' => 'whatsapp',
+                'profile_picture_handle' => $handle,
+            ]);
+
+        if (! $profileResponse->successful()) {
+            throw new \Exception($profileResponse->json()['error']['message'] ?? 'Failed to set profile picture on Meta');
+        }
+
+        return $handle;
+    }
+
+    /**
+     * Update phone number profile on Meta
+     */
+    public function updatePhoneNumberProfile(\App\Models\PhoneNumber $phoneNumber): array
+    {
+        $profileData = [
+            'messaging_product' => 'whatsapp',
+        ];
+
+        if ($phoneNumber->about) {
+            $profileData['about'] = $phoneNumber->about;
+        }
+        if ($phoneNumber->address) {
+            $profileData['address'] = $phoneNumber->address;
+        }
+        if ($phoneNumber->description) {
+            $profileData['description'] = $phoneNumber->description;
+        }
+        if ($phoneNumber->email) {
+            $profileData['email'] = $phoneNumber->email;
+        }
+        if ($phoneNumber->vertical) {
+            $profileData['vertical'] = $phoneNumber->vertical;
+        }
+        if ($phoneNumber->websites) {
+            $profileData['websites'] = $phoneNumber->websites;
+        }
+
+        $response = Http::withToken($this->getToken())
+            ->post($this->buildUrl($phoneNumber->meta_id), $profileData);
+
+        if (! $response->successful()) {
+            throw new \Exception($response->json()['error']['message'] ?? 'Failed to update profile on Meta');
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Fetch phone number profile from Meta
+     */
+    public function fetchPhoneNumberProfile(\App\Models\PhoneNumber $phoneNumber): array
+    {
+        $response = Http::withToken($this->getToken())
+            ->get($this->buildUrl($phoneNumber->meta_id), [
+                'fields' => 'about,address,description,email,profile_picture_url,vertical,websites',
+            ]);
+
+        if (! $response->successful()) {
+            throw new \Exception($response->json()['error']['message'] ?? 'Failed to fetch profile from Meta');
+        }
+
+        $data = $response->json();
+
+        // Update local phone number with fetched data
+        $phoneNumber->update([
+            'about' => $data['about'] ?? null,
+            'address' => $data['address'] ?? null,
+            'description' => $data['description'] ?? null,
+            'email' => $data['email'] ?? null,
+            'vertical' => $data['vertical'] ?? null,
+            'websites' => $data['websites'] ?? [],
+            'profile_updated_at' => now(),
+        ]);
+
+        return $data;
+    }
+
+    /**
+     * Upload profile picture for phone number
+     */
+    public function uploadProfilePicture(\App\Models\PhoneNumber $phoneNumber, $imageFile): string
+    {
+        $response = Http::withToken($this->getToken())
+            ->attach('file', $imageFile->get(), $imageFile->getClientOriginalName())
+            ->post($this->buildUrl("{$phoneNumber->meta_id}/media"), [
+                'messaging_product' => 'whatsapp',
+                'type' => 'image',
+            ]);
+
+        if (! $response->successful()) {
+            throw new \Exception($response->json()['error']['message'] ?? 'Failed to upload profile picture');
+        }
+
+        $handle = $response->json()['h'] ?? null;
+
+        if (! $handle) {
+            throw new \Exception('No handle returned from Meta API');
+        }
+
+        // Update profile with picture handle
+        $this->updateProfilePicture($phoneNumber, $handle);
+
+        return $handle;
+    }
+
+    /**
+     * Update profile picture on Meta
+     */
+    private function updateProfilePicture(\App\Models\PhoneNumber $phoneNumber, string $handle): void
+    {
+        $response = Http::withToken($this->getToken())
+            ->post($this->buildUrl($phoneNumber->meta_id), [
+                'messaging_product' => 'whatsapp',
+                'profile_picture_handle' => $handle,
+            ]);
+
+        if (! $response->successful()) {
+            throw new \Exception($response->json()['error']['message'] ?? 'Failed to update profile picture on Meta');
+        }
+    }
 }

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\TemplateHeaderTypeController;
 use App\Http\Controllers\Api\TemplateLanguageController;
 use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\TenantSettingsController;
 use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WabaController;
@@ -86,6 +87,9 @@ Route::group(['middleware' => [
     Route::post('tenant/verify-number-code', [TenantController::class, 'verifyNumberCode']);
     Route::delete('tenant/disconnect-phone', [TenantController::class, 'disconnectPhoneNumber']);
 
+    Route::get('tenant/settings', [TenantSettingsController::class, 'show']);
+    Route::put('tenant/settings', [TenantSettingsController::class, 'update']);
+
     Route::prefix('businesses')->group(function () {
         Route::get('/', [BusinessesController::class, 'index']);
     });
@@ -111,6 +115,13 @@ Route::group(['middleware' => [
     Route::apiResource('users', UserController::class);
 
     Route::get('phone-numbers', [PhoneNumberController::class, 'index']);
+    Route::get('phone-numbers/verticals', [PhoneNumberController::class, 'verticals']);
+
+    Route::prefix('phone-numbers/{phoneNumber}')->group(function () {
+        Route::get('profile', [PhoneNumberController::class, 'showProfile']);
+        Route::put('profile', [PhoneNumberController::class, 'updateProfile']);
+        Route::post('profile/picture', [PhoneNumberController::class, 'uploadProfilePicture']);
+    });
 
     Route::get('contacts/fields/types', [ContactFieldController::class, 'types']);
     Route::put('contacts/fields/{contactField}/change-status', [ContactFieldController::class, 'changeStatus']);

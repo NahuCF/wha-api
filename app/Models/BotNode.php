@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BotNodeHeaderType;
 use App\Enums\BotNodeType;
 use App\Enums\ComparisonOperator;
 use App\Enums\FlowConditionType;
@@ -22,6 +23,7 @@ class BotNode extends Model
         'options' => 'array',
         'use_fallback' => 'boolean',
         'type' => BotNodeType::class,
+        'header_type' => BotNodeHeaderType::class,
         'latitude' => 'float',
         'longitude' => 'float',
         'template_parameters' => 'array',

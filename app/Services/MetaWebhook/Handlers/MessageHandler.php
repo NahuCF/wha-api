@@ -4,12 +4,14 @@ namespace App\Services\MetaWebhook\Handlers;
 
 use App\Enums\ConversationActivityType;
 use App\Enums\MessageDirection;
+use App\Enums\MessageSource;
 use App\Enums\MessageStatus;
 use App\Enums\MessageType;
 use App\Events\ConversationNew;
 use App\Events\MessageDeleted;
 use App\Events\MessageDelivered;
 use App\Events\MessageNew;
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\ConversationActivity;
@@ -48,7 +50,6 @@ class MessageHandler implements HandlerInterface
         $timestamp = $statusData['timestamp'] ?? null;
         $errors = $statusData['errors'] ?? null;
         $conversationData = $statusData['conversation'] ?? null;
-        $pricing = $statusData['pricing'] ?? null;
 
         $message = Message::where('meta_id', $metaMessageId)->first();
 
@@ -180,7 +181,7 @@ class MessageHandler implements HandlerInterface
         broadcast(new MessageNew(
             message: $message->toArray(),
             conversation: $conversation->toArray(),
-            tenantId: tenant('id'),
+            tenantId: $waba->tenant_id,
             wabaId: $waba->id
         ));
 
@@ -202,6 +203,41 @@ class MessageHandler implements HandlerInterface
             'unread_count' => $conversation->unread_count + 1,
             'expires_at' => $message->delivered_at->addHours(24),
         ]);
+
+        // Check tenant working hours using WABA's tenant_id
+        $tenantSettings = \App\Models\TenantSettings::where('tenant_id', $waba->tenant_id)->first();
+
+        if ($tenantSettings && ! $tenantSettings->isWithinWorkingHours()) {
+            // Send away message if configured
+            $awayMessage = $tenantSettings->getAwayMessage();
+            if ($awayMessage) {
+                // Send automated away message
+                $awayReply = Message::create([
+                    'tenant_id' => $waba->tenant_id,
+                    'conversation_id' => $conversation->id,
+                    'contact_id' => $contact->id,
+                    'direction' => MessageDirection::OUTBOUND,
+                    'type' => MessageType::TEXT,
+                    'status' => MessageStatus::PENDING,
+                    'source' => MessageSource::BOT,
+                    'content' => $awayMessage,
+                    'to_phone' => $contact->phone,
+                ]);
+
+                // Send the message via WhatsApp
+                $phoneNumber = $conversation->phoneNumber;
+                SendWhatsAppMessage::dispatch(
+                    messageData: $awayReply->toArray(),
+                    tenantId: $conversation->tenant_id,
+                    phoneNumberId: $phoneNumber->meta_id,
+                    wabaId: $waba->id,
+                    conversationId: $conversation->id,
+                );
+            }
+
+            // Don't process bot logic if outside working hours
+            return;
+        }
 
         // Handle bot logic for incoming messages
         $botService = new BotService;
