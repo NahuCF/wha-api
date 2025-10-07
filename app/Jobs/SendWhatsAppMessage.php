@@ -18,8 +18,6 @@ class SendWhatsAppMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $queue = 'messages';
-
     public $tries = 5;
 
     public $maxExceptions = 3;
@@ -35,7 +33,9 @@ class SendWhatsAppMessage implements ShouldQueue
         private readonly string $phoneNumberId,
         private readonly string $wabaId,
         private readonly string $conversationId,
-    ) {}
+    ) {
+        $this->onQueue('messages');
+    }
 
     /**
      * Execute the job.

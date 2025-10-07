@@ -20,6 +20,7 @@ class ConversationResource extends JsonResource
             'is_solved' => $this->is_solved,
             'unread_count' => $this->unread_count,
             'is_expired' => $this->isExpired(),
+            'is_pinned' => $this->isPinnedByUser(auth()->id()),
             'contact' => $this->whenLoaded('contact', fn () => new ContactResource($this->contact)),
             'assigned_user' => $this->whenLoaded('assignedUser', fn () => new UserResource($this->assignedUser)),
             'waba' => $this->whenLoaded('waba', fn () => new WabaResource($this->waba)),

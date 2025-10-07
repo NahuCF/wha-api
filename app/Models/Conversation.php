@@ -123,6 +123,15 @@ class Conversation extends Model
         return $this->pinnedByUsers()->where('user_id', $user->id)->exists();
     }
 
+    public function isPinnedByUser(?string $userId): bool
+    {
+        if (! $userId) {
+            return false;
+        }
+
+        return $this->pinnedByUsers()->where('user_id', $userId)->exists();
+    }
+
     public function pinFor(User $user, int $position = 0): void
     {
         $this->pinnedByUsers()->syncWithoutDetaching([

@@ -15,20 +15,8 @@ class ProcessGroupContacts implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $queue = 'heavy';
-
-    /**
-     * The number of times the job may be attempted.
-     *
-     * @var int
-     */
     public $tries = 3;
 
-    /**
-     * The maximum number of unhandled exceptions to allow before failing.
-     *
-     * @var int
-     */
     public $maxExceptions = 3;
 
     protected Group $group;
@@ -42,6 +30,8 @@ class ProcessGroupContacts implements ShouldQueue
     {
         $this->group = $group;
         $this->filters = $filters;
+
+        $this->onQueue('heavy');
     }
 
     /**

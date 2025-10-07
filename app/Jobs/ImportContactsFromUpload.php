@@ -21,11 +21,9 @@ use Throwable;
 
 class ImportContactsFromUpload implements ShouldQueue
 {
-    public $queue = 'imports';  // Low priority import queue
-
-    public $timeout = 900;  // 15 minutes for large imports
-
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $timeout = 900;
 
     private const CHUNK_SIZE = 500;
 
@@ -34,7 +32,9 @@ class ImportContactsFromUpload implements ShouldQueue
         private readonly string $filePath,
         private readonly array $mappings,
         private readonly string $historyId
-    ) {}
+    ) {
+        $this->onQueue('imports');
+    }
 
     public function handle(): void
     {

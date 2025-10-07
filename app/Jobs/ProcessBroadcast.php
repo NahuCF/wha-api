@@ -28,28 +28,17 @@ class ProcessBroadcast implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $queue = 'broadcasts';
-
     protected Broadcast $broadcast;
 
     protected int $batchSize;
 
     protected int $offset;
 
-    /**
-     * The number of times the job may be attempted.
-     */
     public $tries = 5;
 
-    /**
-     * The maximum number of unhandled exceptions to allow before failing.
-     */
     public $maxExceptions = 3;
 
-    /**
-     * The number of seconds the job can run before timing out.
-     */
-    public $timeout = 600; // 10 minutes per batch
+    public $timeout = 600;
 
     /**
      * Create a new job instance.
@@ -59,6 +48,8 @@ class ProcessBroadcast implements ShouldQueue
         $this->broadcast = $broadcast;
         $this->batchSize = $batchSize;
         $this->offset = $offset;
+
+        $this->onQueue('broadcasts');
     }
 
     /**
