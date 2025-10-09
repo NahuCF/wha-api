@@ -18,14 +18,13 @@ use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class BotService
 {
     public function findBotForMessage(string $message, string $tenantId): ?Bot
     {
         $bots = Bot::where('tenant_id', $tenantId)
-            ->where('is_active', true)
+            ->where('status', \App\Enums\BotStatus::ACTIVE)
             ->where('trigger_type', BotTriggerType::KEYWORD)
             ->get();
 
@@ -37,7 +36,7 @@ class BotService
 
         // Then check for any-message bots
         return Bot::where('tenant_id', $tenantId)
-            ->where('is_active', true)
+            ->where('status', \App\Enums\BotStatus::ACTIVE)
             ->where('trigger_type', BotTriggerType::ANY_MESSAGE)
             ->first();
     }
@@ -388,7 +387,7 @@ class BotService
             $session->markAsCompleted();
         } elseif ($node->assign_type === 'bot' && $node->assign_to_bot_id) {
             $newBot = Bot::find($node->assign_to_bot_id);
-            if ($newBot) {
+            if ($newBot && $newBot->status === \App\Enums\BotStatus::ACTIVE) {
                 $this->startBotSession($newBot, $conversation, $session->contact);
             }
         } else {

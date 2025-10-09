@@ -67,7 +67,7 @@ class BotController extends Controller
 
         $bot = Bot::create([
             'name' => $name,
-            'is_active' => false,
+            'status' => \App\Enums\BotStatus::DRAFT,
             'user_id' => $user->id,
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,
@@ -97,7 +97,7 @@ class BotController extends Controller
 
         $user = Auth::user();
         $input['updated_user_id'] = $user->id;
-        
+
         $bot->update($input);
 
         return new BotResource($bot->load(['createdBy', 'updatedBy', 'nodes', 'flows']));
@@ -251,7 +251,7 @@ class BotController extends Controller
                 }
             } elseif ($sourceNodeType === BotNodeType::WORKING_HOURS->value) {
                 $conditionType = FlowConditionType::ALWAYS;
-                $conditionValue = data_get($edge, 'data.working_hours_path', 'Available'); 
+                $conditionValue = data_get($edge, 'data.working_hours_path', 'Available');
             }
 
             BotFlow::create([
@@ -454,7 +454,7 @@ class BotController extends Controller
         $newBot->name = $newName;
         $newBot->user_id = $user->id;
         $newBot->updated_user_id = $user->id;
-        $newBot->is_active = false; // Start with inactive state
+        $newBot->status = \App\Enums\BotStatus::DRAFT; // Start with draft status
         $newBot->created_at = now();
         $newBot->updated_at = now();
         $newBot->save();
@@ -497,5 +497,50 @@ class BotController extends Controller
             'message' => 'Bot cloned successfully',
             'data' => new BotResource($newBot),
         ], 201);
+    }
+
+    public function activate(Bot $bot)
+    {
+        if ($bot->tenant_id !== tenant('id')) {
+            return response()->json([
+                'message' => 'Bot not found',
+                'message_code' => 'bot_not_found',
+            ], 404);
+        }
+
+        if ($bot->nodes()->count() === 0) {
+            return response()->json([
+                'message' => 'Bot must have at least one node to be activated',
+                'message_code' => 'bot_has_no_nodes',
+            ], 422);
+        }
+
+        $bot->status = \App\Enums\BotStatus::ACTIVE;
+        $bot->save();
+
+        $bot->load(['createdBy', 'updatedBy']);
+
+        return BotResource::make($bot);
+    }
+
+    public function deactivate(Bot $bot)
+    {
+        if ($bot->tenant_id !== tenant('id')) {
+            return response()->json([
+                'message' => 'Bot not found',
+                'message_code' => 'bot_not_found',
+            ], 404);
+        }
+
+        $bot->status = \App\Enums\BotStatus::DRAFT;
+        $bot->save();
+
+        \App\Models\BotSession::where('bot_id', $bot->id)
+            ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+            ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+
+        $bot->load(['createdBy', 'updatedBy']);
+
+        return BotResource::make($bot);
     }
 }

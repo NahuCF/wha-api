@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\BotAction;
+use App\Enums\BotStatus;
 use App\Enums\BotTriggerType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -18,10 +19,10 @@ return new class extends Migration
             $table->foreignUlid('updated_user_id')->constrained('users');
 
             $table->string('name');
-            $table->boolean('is_active')->default(true);
+            $table->enum('status', BotStatus::values())->default(BotStatus::DRAFT->value);
 
             $table->enum('trigger_type', BotTriggerType::values())->nullable();
-            
+
             $table->json('keywords')->nullable();
 
             // Analytics columns
@@ -74,7 +75,7 @@ return new class extends Migration
             $table->foreign('default_timeout_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('default_expire_bot_id')->references('id')->on('bots')->nullOnDelete();
 
-            $table->index('is_active');
+            $table->index('status');
             $table->index('trigger_type');
         });
     }

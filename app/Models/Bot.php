@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BotAction;
 use App\Enums\BotKeywordMatchType;
+use App\Enums\BotStatus;
 use App\Enums\BotTriggerType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ class Bot extends Model
     use BelongsToTenant, HasUlids, SoftDeletes;
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => BotStatus::class,
         'keywords' => 'array',
         'viewport' => 'array',
         'trigger_type' => BotTriggerType::class,
@@ -134,7 +135,7 @@ class Bot extends Model
             $keyword = $keywordData['keyword'] ?? '';
             $matchType = $keywordData['match_type'] ?? 'exact';
             $caseSensitive = $keywordData['case_sensitive'] ?? false;
-            
+
             if (empty($keyword)) {
                 continue;
             }
@@ -160,7 +161,7 @@ class Bot extends Model
 
                 case 'regex':
                 case BotKeywordMatchType::REGEX->value:
-                    if (@preg_match('/' . $keyword . '/', $originalMessage)) {
+                    if (@preg_match('/'.$keyword.'/', $originalMessage)) {
                         return true;
                     }
                     break;

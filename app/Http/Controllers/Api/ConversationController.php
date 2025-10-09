@@ -135,6 +135,14 @@ class ConversationController extends Controller
                 ], 404);
             }
 
+            // Check if bot is active
+            if ($bot->status !== \App\Enums\BotStatus::ACTIVE) {
+                return response()->json([
+                    'message' => 'Bot must be active to be assigned',
+                    'message_code' => 'bot_not_active',
+                ], 422);
+            }
+
             // Clear user assignment and set bot
             $conversation->user_id = null;
             $conversation->assigned_bot_id = $botId;

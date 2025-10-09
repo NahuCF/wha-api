@@ -151,6 +151,8 @@ Route::group(['middleware' => [
         Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
         Route::post('{bot}/clone', [BotController::class, 'clone']);
+        Route::post('{bot}/activate', [BotController::class, 'activate']);
+        Route::post('{bot}/deactivate', [BotController::class, 'deactivate']);
     });
     Route::apiResource('bots', BotController::class);
 
