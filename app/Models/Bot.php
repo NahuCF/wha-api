@@ -18,10 +18,9 @@ class Bot extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'keywords' => 'array',
+        'keyboards' => 'array',
         'viewport' => 'array',
         'trigger_type' => BotTriggerType::class,
-        'keyword_match_type' => BotKeywordMatchType::class,
         'timeout_action' => BotAction::class,
         'no_match_action' => BotAction::class,
         'end_conversation_action' => BotAction::class,
@@ -44,6 +43,16 @@ class Bot extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(BotSession::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_user_id');
     }
 
     public function timeoutAssignBot(): BelongsTo
@@ -113,30 +122,47 @@ class Bot extends Model
             return false;
         }
 
-        if (empty($this->keywords)) {
+        if (empty($this->keyboards)) {
             return false;
         }
 
-        $message = strtolower(trim($message));
+        $originalMessage = trim($message);
+        $lowerMessage = strtolower($originalMessage);
 
-        foreach ($this->keywords as $keyword) {
-            $keyword = strtolower(trim($keyword));
+        // Check each keyboard entry
+        foreach ($this->keyboards as $keyboard) {
+            $keyword = $keyboard['keyword'] ?? '';
+            $matchType = $keyboard['match_type'] ?? 'exact';
+            $caseSensitive = $keyboard['case_sensitive'] ?? false;
+            
+            if (empty($keyword)) {
+                continue;
+            }
 
-            switch ($this->keyword_match_type) {
-                case BotKeywordMatchType::EXACT:
-                    if ($message === $keyword) {
+            // Prepare message and keyword based on case sensitivity
+            $testMessage = $caseSensitive ? $originalMessage : $lowerMessage;
+            $testKeyword = $caseSensitive ? trim($keyword) : strtolower(trim($keyword));
+
+            switch ($matchType) {
+                case 'exact':
+                case BotKeywordMatchType::EXACT->value:
+                    if ($testMessage === $testKeyword) {
                         return true;
                     }
                     break;
 
-                case BotKeywordMatchType::CONTAINS:
-                    if (str_contains($message, $keyword)) {
+                case 'contains':
+                case BotKeywordMatchType::CONTAINS->value:
+                    if (str_contains($testMessage, $testKeyword)) {
                         return true;
                     }
                     break;
 
-                case BotKeywordMatchType::REGEX:
-                    if (preg_match($keyword, $message)) {
+                case 'regex':
+                case BotKeywordMatchType::REGEX->value:
+                    // For regex, case sensitivity should be handled in the pattern itself
+                    // e.g., (?i) for case-insensitive or [Aa] for specific characters
+                    if (@preg_match('/' . $keyword . '/', $originalMessage)) {
                         return true;
                     }
                     break;

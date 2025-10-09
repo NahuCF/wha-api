@@ -30,7 +30,7 @@ class BotController extends Controller
         $search = data_get($input, 'search');
 
         $bots = Bot::query()
-            ->with(['nodes', 'flows'])
+            ->with(['createdBy', 'updatedBy', 'nodes', 'flows'])
             ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'))
             ->paginate($rowsPerPage);
 
@@ -42,14 +42,15 @@ class BotController extends Controller
         $input = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'trigger_type' => ['required', Rule::in(BotTriggerType::values())],
-            'keywords' => ['required_if:trigger_type,keyword', 'array'],
-            'keyword_match_type' => ['required_if:trigger_type,keyword', Rule::in(BotKeywordMatchType::values())],
+            'keyboards' => ['required_if:trigger_type,keyword', 'array'],
+            'keyboards.*.keyword' => ['required', 'string'],
+            'keyboards.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
+            'keyboards.*.case_sensitive' => ['nullable', 'boolean'],
         ]);
 
         $name = data_get($input, 'name');
         $triggerType = data_get($input, 'trigger_type');
-        $keywords = data_get($input, 'keywords');
-        $keywordMatchType = data_get($input, 'keyword_match_type');
+        $keyboards = data_get($input, 'keyboards');
 
         $user = Auth::user();
 
@@ -70,16 +71,17 @@ class BotController extends Controller
             'user_id' => $user->id,
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,
-            'keywords' => $keywords,
-            'keyword_match_type' => $keywordMatchType,
+            'keyboards' => $keyboards,
         ]);
+
+        $bot->load(['createdBy', 'updatedBy']);
 
         return new BotResource($bot);
     }
 
     public function show(Bot $bot)
     {
-        return new BotResource($bot->load(['nodes', 'flows']));
+        return new BotResource($bot->load(['createdBy', 'updatedBy', 'nodes', 'flows']));
     }
 
     public function update(Request $request, Bot $bot)
@@ -87,18 +89,18 @@ class BotController extends Controller
         $input = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'trigger_type' => ['sometimes', Rule::in(BotTriggerType::values())],
-            'keywords' => ['nullable', 'array'],
-            'keyword_match_type' => ['sometimes', Rule::in(BotKeywordMatchType::values())],
+            'keyboards' => ['nullable', 'array'],
+            'keyboards.*.keyword' => ['required', 'string'],
+            'keyboards.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
+            'keyboards.*.case_sensitive' => ['nullable', 'boolean'],
         ]);
 
-        $name = data_get($input, 'name');
-        $triggerType = data_get($input, 'trigger_type');
-        $keywords = data_get($input, 'keywords');
-        $keywordMatchType = data_get($input, 'keyword_match_type');
-
+        $user = Auth::user();
+        $input['updated_user_id'] = $user->id;
+        
         $bot->update($input);
 
-        return new BotResource($bot->load(['nodes', 'flows']));
+        return new BotResource($bot->load(['createdBy', 'updatedBy', 'nodes', 'flows']));
     }
 
     public function destroy(Bot $bot)
@@ -248,9 +250,8 @@ class BotController extends Controller
                     $conditionValue = 'false';
                 }
             } elseif ($sourceNodeType === BotNodeType::WORKING_HOURS->value) {
-                // Working hours node has two outputs: Available and Unavailable
                 $conditionType = FlowConditionType::ALWAYS;
-                $conditionValue = data_get($edge, 'data.working_hours_path', 'Available'); // 'Available' or 'Unavailable'
+                $conditionValue = data_get($edge, 'data.working_hours_path', 'Available'); 
             }
 
             BotFlow::create([

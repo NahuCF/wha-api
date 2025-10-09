@@ -13,8 +13,7 @@ class BotResource extends JsonResource
             'name' => $this->name,
             'is_active' => $this->is_active,
             'trigger_type' => $this->trigger_type,
-            'keywords' => $this->keywords,
-            'keyword_match_type' => $this->keyword_match_type,
+            'keyboards' => $this->keyboards,
             'wait_time_minutes' => $this->wait_time_minutes,
             'timeout_action' => $this->timeout_action,
             'timeout_assign_bot_id' => $this->timeout_assign_bot_id,
@@ -28,6 +27,8 @@ class BotResource extends JsonResource
             'end_conversation_message' => $this->end_conversation_message,
             'end_conversation_assign_bot_id' => $this->end_conversation_assign_bot_id,
             'end_conversation_assign_user_id' => $this->end_conversation_assign_user_id,
+            'created_by' => new UserResource($this->whenLoaded('createdBy')),
+            'updated_by' => new UserResource($this->whenLoaded('updatedBy')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

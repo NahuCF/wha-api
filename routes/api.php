@@ -61,7 +61,6 @@ Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
     'auth:api',
 ]], function () {
-    // Broadcasting authorization routes for private channels
     Broadcast::routes();
 
     Route::group(['middleware' => [EnsureWabaId::class]], function () {

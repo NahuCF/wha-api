@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\BotAction;
-use App\Enums\BotKeywordMatchType;
 use App\Enums\BotTriggerType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -21,10 +20,9 @@ return new class extends Migration
             $table->string('name');
             $table->boolean('is_active')->default(true);
 
-            $table->json('keywords')->nullable();
             $table->enum('trigger_type', BotTriggerType::values())->nullable();
-
-            $table->enum('keyword_match_type', BotKeywordMatchType::values())->default(BotKeywordMatchType::EXACT->value);
+            
+            $table->json('keyboards')->nullable();
 
             $table->integer('wait_time_minutes')->default(5);
             $table->enum('timeout_action', BotAction::values())->nullable();
