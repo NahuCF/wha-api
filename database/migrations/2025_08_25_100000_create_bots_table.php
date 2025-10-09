@@ -61,7 +61,6 @@ return new class extends Migration
             $table->ulid('default_expire_bot_id')->nullable();
 
             $table->timestamps();
-            $table->softDeletes();
         });
 
         Schema::table('bots', function (Blueprint $table) {

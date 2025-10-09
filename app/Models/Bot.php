@@ -14,7 +14,7 @@ use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
 
 class Bot extends Model
 {
-    use BelongsToTenant, HasUlids, SoftDeletes;
+    use BelongsToTenant, HasUlids;
 
     protected $casts = [
         'keywords' => 'array',
