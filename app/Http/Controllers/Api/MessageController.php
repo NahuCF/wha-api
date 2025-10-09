@@ -56,7 +56,7 @@ class MessageController extends Controller
             if ($matchingMessages->isNotEmpty()) {
                 $messageIds = $matchingMessages->pluck('id')->toArray();
                 $placeholders = implode(',', array_fill(0, count($messageIds), '?'));
-                
+
                 $messageCounts = collect(DB::select("
                     SELECT 
                         m1.id,
@@ -68,7 +68,7 @@ class MessageController extends Controller
                     WHERE m1.id IN ($placeholders)
                     GROUP BY m1.id
                 ", $messageIds))
-                ->keyBy('id');
+                    ->keyBy('id');
 
                 foreach ($matchingMessages as $message) {
                     $newerMessagesCount = $messageCounts->get($message->id)?->newer_count ?? 0;

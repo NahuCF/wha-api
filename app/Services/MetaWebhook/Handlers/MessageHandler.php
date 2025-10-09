@@ -203,11 +203,11 @@ class MessageHandler implements HandlerInterface
             'unread_count' => $conversation->unread_count + 1,
             'expires_at' => $message->delivered_at->addHours(24),
         ];
-        
-        if (!$conversation->started_at) {
+
+        if (! $conversation->started_at) {
             $updateData['started_at'] = $message->delivered_at;
         }
-        
+
         $conversation->update($updateData);
 
         // Check tenant working hours using WABA's tenant_id

@@ -2,28 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\User;
-use App\Models\Tenant;
 use App\Enums\SystemRole;
 use App\Enums\UserStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\TenantResource;
+use App\Http\Resources\UserResource;
 use App\Jobs\SendOTPCode;
+use App\Jobs\SendVerifyAccountEmail;
+use App\Models\Tenant;
 use App\Models\TenantOtp;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
 use App\Models\TenantSettings;
+use App\Models\TenantVerificationEmail;
+use App\Models\User;
+use App\Services\JobDispatcherService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\UserResource;
-use App\Jobs\SendVerifyAccountEmail;
 use Illuminate\Support\Facades\Hash;
-use App\Http\Resources\TenantResource;
-use App\Services\JobDispatcherService;
-use Laravel\Passport\ClientRepository;
-use App\Models\TenantVerificationEmail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Passport\ClientRepository;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
