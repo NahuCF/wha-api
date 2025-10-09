@@ -198,11 +198,17 @@ class MessageHandler implements HandlerInterface
 
         $message->save();
 
-        $conversation->update([
+        $updateData = [
             'last_message_at' => $message->delivered_at,
             'unread_count' => $conversation->unread_count + 1,
             'expires_at' => $message->delivered_at->addHours(24),
-        ]);
+        ];
+        
+        if (!$conversation->started_at) {
+            $updateData['started_at'] = $message->delivered_at;
+        }
+        
+        $conversation->update($updateData);
 
         // Check tenant working hours using WABA's tenant_id
         $tenantSettings = \App\Models\TenantSettings::where('tenant_id', $waba->tenant_id)->first();
@@ -372,6 +378,7 @@ class MessageHandler implements HandlerInterface
                 'waba_phone_id' => $phoneNumberId,
                 'last_message_at' => now(),
                 'expires_at' => now()->addDays(1),
+                'started_at' => now(),
             ]);
 
             // Create activity for new conversation created by incoming message

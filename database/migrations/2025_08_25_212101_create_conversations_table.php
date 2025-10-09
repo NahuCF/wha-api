@@ -25,6 +25,7 @@ return new class extends Migration
             $table->timestamp('last_message_at')->nullable();
             $table->integer('unread_count')->default(0);
             $table->timestamp('expires_at')->nullable();
+            $table->timestamp('started_at')->nullable();
             $table->timestamps();
 
             $table->index(['waba_id', 'is_solved']);

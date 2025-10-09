@@ -479,10 +479,8 @@ class BotService
 
     private function executeWorkingHoursNode(BotSession $session, BotNode $node): void
     {
-        // Check tenant-level working hours using session's tenant_id
         $tenantSettings = \App\Models\TenantSettings::where('tenant_id', $session->tenant_id)->first();
 
-        // Default to available if no settings configured
         $isAvailable = true;
         if ($tenantSettings) {
             $isAvailable = $tenantSettings->isWithinWorkingHours();
@@ -490,7 +488,6 @@ class BotService
 
         $conditionPath = $isAvailable ? 'Available' : 'Unavailable';
 
-        // Find the flow matching the availability path
         $flow = $session->bot->flows()
             ->where('source_node_id', $node->node_id)
             ->where('condition_value', $conditionPath)

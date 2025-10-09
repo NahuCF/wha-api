@@ -30,6 +30,7 @@ class ConversationResource extends JsonResource
             'last_message_at' => $this->last_message_at,
             'is_initiated' => $this->expires_at !== null,
             'expires_at' => $this->expires_at,
+            'started_at' => $this->started_at,
             'matching_message' => $this->when($this->hasAttribute('matching_message_data'), fn () => $this->getAttribute('matching_message_data')),
         ];
     }

@@ -21,6 +21,7 @@ use App\Models\Template;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class MessageController extends Controller
@@ -48,13 +49,29 @@ class MessageController extends Controller
             ->paginate($rowsPerPage);
 
         if ($search && $conversationId) {
-            foreach ($messages as $message) {
-                if (stripos($message->content, $search) !== false) {
-                    $newerMessagesCount = Message::query()
-                        ->where('conversation_id', $conversationId)
-                        ->where('created_at', '>', $message->created_at)
-                        ->count();
+            $matchingMessages = $messages->filter(function ($message) use ($search) {
+                return stripos($message->content, $search) !== false;
+            });
 
+            if ($matchingMessages->isNotEmpty()) {
+                $messageIds = $matchingMessages->pluck('id')->toArray();
+                $placeholders = implode(',', array_fill(0, count($messageIds), '?'));
+                
+                $messageCounts = collect(DB::select("
+                    SELECT 
+                        m1.id,
+                        COUNT(m2.id) as newer_count
+                    FROM messages m1
+                    LEFT JOIN messages m2 ON 
+                        m2.conversation_id = m1.conversation_id 
+                        AND m2.created_at > m1.created_at
+                    WHERE m1.id IN ($placeholders)
+                    GROUP BY m1.id
+                ", $messageIds))
+                ->keyBy('id');
+
+                foreach ($matchingMessages as $message) {
+                    $newerMessagesCount = $messageCounts->get($message->id)?->newer_count ?? 0;
                     $positionFromEnd = $newerMessagesCount + 1;
                     $pageNumber = ceil($positionFromEnd / $rowsPerPage);
 
@@ -191,6 +208,7 @@ class MessageController extends Controller
             $conversation->update([
                 'last_message_at' => $now,
                 'expires_at' => $nextDay,
+                'started_at' => $now,
             ]);
         }
 
