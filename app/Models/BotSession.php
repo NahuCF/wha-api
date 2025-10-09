@@ -14,6 +14,7 @@ class BotSession extends Model
     protected $fillable = [
         'tenant_id',
         'bot_id',
+        'bot_flow_id',
         'conversation_id',
         'contact_id',
         'current_node_id',
@@ -37,6 +38,11 @@ class BotSession extends Model
         return $this->belongsTo(Bot::class);
     }
 
+    public function flow(): BelongsTo
+    {
+        return $this->belongsTo(BotFlow::class, 'bot_flow_id');
+    }
+
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);
@@ -49,11 +55,11 @@ class BotSession extends Model
 
     public function currentNode(): ?BotNode
     {
-        if (! $this->current_node_id || ! $this->bot) {
+        if (! $this->current_node_id || ! $this->flow) {
             return null;
         }
 
-        return $this->bot->nodes()
+        return $this->flow->nodes()
             ->where('node_id', $this->current_node_id)
             ->first();
     }
@@ -102,7 +108,11 @@ class BotSession extends Model
     public function markAsCompleted(): void
     {
         if ($this->status === BotSessionStatus::ACTIVE || $this->status === BotSessionStatus::WAITING) {
+            // Update both bot and flow analytics
             $this->bot->increment('completed_sessions');
+            if ($this->flow) {
+                $this->flow->increment('completed_sessions');
+            }
         }
 
         $this->update([
@@ -114,7 +124,11 @@ class BotSession extends Model
     public function markAsTimeout(): void
     {
         if ($this->status === BotSessionStatus::ACTIVE || $this->status === BotSessionStatus::WAITING) {
+            // Update both bot and flow analytics
             $this->bot->increment('abandoned_sessions');
+            if ($this->flow) {
+                $this->flow->increment('abandoned_sessions');
+            }
         }
 
         $this->update([

@@ -14,6 +14,7 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('tenant_id')->index();
             $table->foreignUlid('bot_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('bot_flow_id')->nullable()->constrained('bot_flows')->nullOnDelete();
             $table->foreignUlid('conversation_id')->constrained()->cascadeOnDelete();
             $table->foreignUlid('contact_id')->constrained()->cascadeOnDelete();
 

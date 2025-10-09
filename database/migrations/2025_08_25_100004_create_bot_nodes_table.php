@@ -13,10 +13,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Individual flow nodes with position and configuration
         Schema::create('bot_nodes', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('bot_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('bot_flow_id')->nullable()->constrained('bot_flows')->cascadeOnDelete();
             $table->string('node_id');
             $table->enum('type', BotNodeType::values());
             $table->string('label')->nullable();
@@ -66,6 +66,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['bot_id', 'node_id']);
+            $table->index('bot_flow_id');
         });
     }
 

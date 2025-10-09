@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\BotAction;
 use App\Enums\BotKeywordMatchType;
-use App\Enums\BotStatus;
 use App\Enums\BotTriggerType;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +17,6 @@ class Bot extends Model
     use BelongsToTenant, HasUlids, SoftDeletes;
 
     protected $casts = [
-        'status' => BotStatus::class,
         'keywords' => 'array',
         'viewport' => 'array',
         'trigger_type' => BotTriggerType::class,
@@ -31,14 +29,14 @@ class Bot extends Model
         'default_expire_action' => BotAction::class,
     ];
 
-    public function nodes(): HasMany
-    {
-        return $this->hasMany(BotNode::class);
-    }
-
     public function flows(): HasMany
     {
         return $this->hasMany(BotFlow::class);
+    }
+
+    public function activeFlow()
+    {
+        return $this->hasOne(BotFlow::class)->where('status', \App\Enums\FlowStatus::ACTIVE);
     }
 
     public function sessions(): HasMany
@@ -171,23 +169,17 @@ class Bot extends Model
         return false;
     }
 
-    public function getStartNode(): ?BotNode
+    public function hasActiveSessions(): bool
     {
-        // Find the first node - one that has no incoming edges
-        $nodeWithNoIncomingEdges = $this->nodes()
-            ->whereNotIn('node_id', function ($query) {
-                $query->select('target_node_id')
-                    ->from('bot_flows')
-                    ->where('bot_id', $this->id);
-            })
-            ->first();
+        return $this->sessions()
+            ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+            ->exists();
+    }
 
-        // If found a node with no incoming edges, use it as start
-        if ($nodeWithNoIncomingEdges) {
-            return $nodeWithNoIncomingEdges;
-        }
-
-        // Fallback: just get the first node created
-        return $this->nodes()->orderBy('created_at')->first();
+    public function getActiveSessionsCount(): int
+    {
+        return $this->sessions()
+            ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+            ->count();
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\FlowConditionType;
+use App\Enums\FlowStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,19 +12,23 @@ return new class extends Migration
         Schema::create('bot_flows', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('bot_id')->constrained()->cascadeOnDelete();
+            $table->string('name');
+            $table->enum('status', FlowStatus::values())->default(FlowStatus::DRAFT->value);
 
-            $table->string('edge_id')->nullable(); // VueFlow edge ID
-            $table->string('source_node_id');
-            $table->string('target_node_id');
+            // Analytics columns
+            $table->integer('total_sessions')->default(0);
+            $table->integer('completed_sessions')->default(0);
+            $table->integer('abandoned_sessions')->default(0);
 
-            $table->enum('condition_type', FlowConditionType::values())->default(FlowConditionType::ALWAYS->value);
-            $table->string('condition_value')->nullable();
+            // Track who created and modified
+            $table->foreignUlid('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUlid('updated_user_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->timestamps();
 
-            $table->index(['bot_id', 'source_node_id']);
-            $table->index(['bot_id', 'target_node_id']);
-            $table->unique(['bot_id', 'edge_id']);
+            // Indexes
+            $table->index(['bot_id', 'status']);
+            $table->index('status');
         });
     }
 

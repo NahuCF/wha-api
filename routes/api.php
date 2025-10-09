@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BotController;
+use App\Http\Controllers\Api\BotFlowController;
 use App\Http\Controllers\Api\BotVariableController;
 use App\Http\Controllers\Api\BroadcastController;
 use App\Http\Controllers\Api\BusinessesController;
@@ -30,6 +31,7 @@ use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WabaController;
 use App\Http\Middleware\EnsureWabaId;
+use App\Models\Bot;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
@@ -146,13 +148,15 @@ Route::group(['middleware' => [
         Route::get('settings', [BotController::class, 'getSettings']);
         Route::put('settings', [BotController::class, 'updateSettings']);
         Route::put('{bot}/configuration', [BotController::class, 'updateConfiguration']);
-        Route::put('{bot}/flow', [BotController::class, 'saveFlow']);
-        Route::get('{bot}/flow-data', [BotController::class, 'getFlowData']);
         Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
         Route::post('{bot}/clone', [BotController::class, 'clone']);
-        Route::post('{bot}/activate', [BotController::class, 'activate']);
-        Route::post('{bot}/deactivate', [BotController::class, 'deactivate']);
+        Route::get('{bot}/active-sessions', [BotController::class, 'checkActiveSessions']);
+
+        Route::get('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'index']);
+        Route::post('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'store']);
+        Route::delete('{bot}/flows/{flow}', [BotFlowController::class, 'destroyFlow']);
+        Route::post('{bot}/flows/{flow}/activate', [BotFlowController::class, 'activate']);
     });
     Route::apiResource('bots', BotController::class);
 

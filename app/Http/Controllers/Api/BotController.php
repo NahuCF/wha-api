@@ -67,7 +67,6 @@ class BotController extends Controller
 
         $bot = Bot::create([
             'name' => $name,
-            'status' => \App\Enums\BotStatus::DRAFT,
             'user_id' => $user->id,
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,

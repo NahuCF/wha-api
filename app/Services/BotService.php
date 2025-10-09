@@ -23,8 +23,9 @@ class BotService
 {
     public function findBotForMessage(string $message, string $tenantId): ?Bot
     {
+        // Find bots that have an active flow 
         $bots = Bot::where('tenant_id', $tenantId)
-            ->where('status', \App\Enums\BotStatus::ACTIVE)
+            ->whereHas('activeFlow')
             ->where('trigger_type', BotTriggerType::KEYWORD)
             ->get();
 
@@ -34,9 +35,9 @@ class BotService
             }
         }
 
-        // Then check for any-message bots
+        // Then check for any-message bots with active flows
         return Bot::where('tenant_id', $tenantId)
-            ->where('status', \App\Enums\BotStatus::ACTIVE)
+            ->whereHas('activeFlow')
             ->where('trigger_type', BotTriggerType::ANY_MESSAGE)
             ->first();
     }
@@ -74,14 +75,28 @@ class BotService
 
             if ($existingSession) {
                 $existingSession->bot->increment('completed_sessions');
+                if ($existingSession->flow) {
+                    $existingSession->flow->increment('completed_sessions');
+                }
                 $existingSession->update(['status' => BotSessionStatus::COMPLETED]);
             }
 
-            $startNode = $bot->getStartNode();
+            $activeFlow = $bot->activeFlow;
+
+            if (! $activeFlow) {
+                return null;
+            }
+
+            $startNode = $activeFlow->getStartNode();
+
+            if (! $startNode) {
+                return null;
+            }
 
             $session = BotSession::create([
                 'tenant_id' => $conversation->tenant_id,
                 'bot_id' => $bot->id,
+                'bot_flow_id' => $activeFlow->id,
                 'conversation_id' => $conversation->id,
                 'contact_id' => $contact->id,
                 'current_node_id' => $startNode->node_id,
@@ -93,6 +108,7 @@ class BotService
             ]);
 
             $bot->increment('total_sessions');
+            $activeFlow->increment('total_sessions');
 
             $this->executeNode($session, $startNode);
 
@@ -121,17 +137,21 @@ class BotService
             return;
         }
 
+        $nodeType = $currentNode->type;
+        $variableName = $currentNode->variable_name;
+        $useFallback = $currentNode->use_fallback;
+
         // Handle user response based on current node type
-        if ($currentNode->type === BotNodeType::QUESTION_BUTTON) {
+        if ($nodeType === BotNodeType::QUESTION_BUTTON) {
             // Store response in variable if configured
-            if ($currentNode->variable_name) {
-                $session->setVariable($currentNode->variable_name, $message->content);
+            if ($variableName) {
+                $session->setVariable($variableName, $message->content);
             }
 
             // Find next node based on response
             $nextNode = $currentNode->getNextNode($message->content, $session->variables ?? []);
 
-            if (! $nextNode && ! $currentNode->use_fallback) {
+            if (! $nextNode && ! $useFallback) {
                 // No match and no fallback - send no match message
                 if ($session->bot->no_match_message) {
                     $this->sendMessage($session->conversation, $session->bot->no_match_message);
@@ -148,6 +168,7 @@ class BotService
         } else {
             // For non-question nodes, just move to next node
             $nextNode = $currentNode->getNextNode(null, $session->variables ?? []);
+
             if ($nextNode) {
                 $this->executeNode($session, $nextNode);
             } else {
@@ -226,6 +247,7 @@ class BotService
         // If not a question or terminal node, check for next node
         if (! in_array($node->type, [BotNodeType::QUESTION_BUTTON, BotNodeType::MARK_AS_SOLVED, BotNodeType::ASSIGN_CHAT, BotNodeType::START_AGAIN])) {
             $nextNode = $node->getNextNode(null, $session->variables ?? []);
+
             if ($nextNode) {
                 $this->executeNode($session, $nextNode);
             } else {
@@ -237,15 +259,18 @@ class BotService
         }
     }
 
-    private function executeMessageNode(BotSession $session, BotNode $node): void
+    private function executeMessageNode(BotSession $session, $node): void
     {
-        $content = $this->replaceVariables($node->content, $session);
+        $content = is_array($node) ? ($node['data']['content'] ?? '') : $node->content;
+        $content = $this->replaceVariables($content, $session);
         $this->sendMessage($session->conversation, $content);
     }
 
-    private function executeTemplateNode(BotSession $session, BotNode $node): void
+    private function executeTemplateNode(BotSession $session, $node): void
     {
-        if (! $node->template_id) {
+        $templateId = is_array($node) ? ($node['data']['template_id'] ?? null) : $node->template_id;
+
+        if (! $templateId) {
             $this->executeMessageNode($session, $node);
 
             return;
@@ -256,7 +281,7 @@ class BotService
         $waba = $conversation->waba;
 
         // Get template and prepare parameters with variable replacement
-        $parameters = $node->template_parameters ?? [];
+        $parameters = is_array($node) ? ($node['data']['template_parameters'] ?? []) : ($node->template_parameters ?? []);
         foreach ($parameters as &$param) {
             if (is_string($param)) {
                 $param = $this->replaceVariables($param, $session);
@@ -271,7 +296,7 @@ class BotService
             'type' => MessageType::TEMPLATE,
             'status' => MessageStatus::PENDING,
             'source' => MessageSource::BOT,
-            'template_id' => $node->template_id,
+            'template_id' => $templateId,
             'template_parameters' => $parameters,
             'to_phone' => $conversation->contact_phone,
         ]);
@@ -285,13 +310,14 @@ class BotService
         );
     }
 
-    private function executeMediaNode(BotSession $session, BotNode $node): void
+    private function executeMediaNode(BotSession $session, $node): void
     {
         $conversation = $session->conversation;
         $phoneNumber = $conversation->phoneNumber;
         $waba = $conversation->waba;
 
-        $messageType = match ($node->type) {
+        $nodeType = is_array($node) ? BotNodeType::tryFrom($node['type'] ?? '') : $node->type;
+        $messageType = match ($nodeType) {
             BotNodeType::IMAGE => MessageType::IMAGE,
             BotNodeType::VIDEO => MessageType::VIDEO,
             BotNodeType::AUDIO => MessageType::AUDIO,
@@ -307,10 +333,10 @@ class BotService
             'type' => $messageType,
             'status' => MessageStatus::PENDING,
             'source' => MessageSource::BOT,
-            'content' => $node->content ? $this->replaceVariables($node->content, $session) : null,
+            'content' => (is_array($node) ? ($node['data']['content'] ?? null) : $node->content) ? $this->replaceVariables(is_array($node) ? ($node['data']['content'] ?? '') : $node->content, $session) : null,
             'media' => [
-                'url' => $node->media_url,
-                'type' => $node->media_type,
+                'url' => is_array($node) ? ($node['data']['media_url'] ?? null) : $node->media_url,
+                'type' => is_array($node) ? ($node['data']['media_type'] ?? null) : $node->media_type,
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
@@ -324,19 +350,21 @@ class BotService
         );
     }
 
-    private function executeQuestionButtonNode(BotSession $session, BotNode $node): void
+    private function executeQuestionButtonNode(BotSession $session, $node): void
     {
         $conversation = $session->conversation;
         $phoneNumber = $conversation->phoneNumber;
         $waba = $conversation->waba;
 
         // Prepare interactive button message
-        $content = $this->replaceVariables($node->content, $session);
+        $nodeContent = is_array($node) ? ($node['data']['content'] ?? '') : $node->content;
+        $content = $this->replaceVariables($nodeContent, $session);
 
         // WhatsApp allows maximum 3 buttons
         $buttons = [];
-        if ($node->options && count($node->options) > 0) {
-            foreach (array_slice($node->options, 0, 3) as $option) {
+        $options = is_array($node) ? ($node['data']['options'] ?? []) : ($node->options ?? []);
+        if ($options && count($options) > 0) {
+            foreach (array_slice($options, 0, 3) as $option) {
                 $buttons[] = [
                     'type' => 'reply',
                     'reply' => [
@@ -378,16 +406,20 @@ class BotService
         );
     }
 
-    private function executeAssignNode(BotSession $session, BotNode $node): void
+    private function executeAssignNode(BotSession $session, $node): void
     {
         $conversation = $session->conversation;
 
-        if ($node->assign_type === 'user' && $node->assign_to_user_id) {
-            $conversation->update(['assigned_user_id' => $node->assign_to_user_id]);
+        $assignType = is_array($node) ? ($node['data']['assign_type'] ?? null) : $node->assign_type;
+        $assignToUserId = is_array($node) ? ($node['data']['assign_to_user_id'] ?? null) : $node->assign_to_user_id;
+        $assignToBotId = is_array($node) ? ($node['data']['assign_to_bot_id'] ?? null) : $node->assign_to_bot_id;
+
+        if ($assignType === 'user' && $assignToUserId) {
+            $conversation->update(['assigned_user_id' => $assignToUserId]);
             $session->markAsCompleted();
-        } elseif ($node->assign_type === 'bot' && $node->assign_to_bot_id) {
-            $newBot = Bot::find($node->assign_to_bot_id);
-            if ($newBot && $newBot->status === \App\Enums\BotStatus::ACTIVE) {
+        } elseif ($assignType === 'bot' && $assignToBotId) {
+            $newBot = Bot::find($assignToBotId);
+            if ($newBot && $newBot->activeFlow) {
                 $this->startBotSession($newBot, $conversation, $session->contact);
             }
         } else {
@@ -396,7 +428,7 @@ class BotService
         }
     }
 
-    private function executeMarkAsSolvedNode(BotSession $session, BotNode $node): void
+    private function executeMarkAsSolvedNode(BotSession $session, $node): void
     {
         // Mark the conversation as solved
         $conversation = $session->conversation;
@@ -409,35 +441,55 @@ class BotService
         $session->markAsCompleted();
     }
 
-    private function executeConditionNode(BotSession $session, BotNode $node): void
+    private function executeConditionNode(BotSession $session, $node): void
     {
-        $conditionMet = $node->evaluateCondition($session->variables ?? [], $session->contact);
+        $conditionMet = false;
+        if (is_array($node)) {
+            $conditions = $node['data']['conditions'] ?? [];
+            $conditionMet = $this->evaluateConditions($conditions, $session->variables ?? [], $session->contact);
+        } else {
+            $conditionMet = $node->evaluateCondition($session->variables ?? [], $session->contact);
+        }
 
-        // Find the appropriate flow based on condition result
         $conditionPath = $conditionMet ? 'true' : 'false';
 
-        $flow = $session->bot->flows()
-            ->where('source_node_id', $node->node_id)
-            ->where('condition_value', $conditionPath)
-            ->first();
-
-        if ($flow) {
-            $nextNode = $session->bot->nodes()->where('node_id', $flow->target_node_id)->first();
-            if ($nextNode) {
-                $this->executeNode($session, $nextNode);
-            } else {
-                $session->markAsCompleted();
+        $nextNode = null;
+        if (is_array($node) && $session->botVersion) {
+            // Find flow in version
+            $nodeId = $node['node_id'] ?? $node['id'] ?? null;
+            $flows = $session->botVersion->getFlowsFromNode($nodeId);
+            foreach ($flows as $flow) {
+                if (($flow['condition_value'] ?? null) === $conditionPath) {
+                    $targetNodeId = $flow['target_node_id'] ?? null;
+                    $nextNode = $targetNodeId ? $session->botVersion->getNodeById($targetNodeId) : null;
+                    break;
+                }
             }
         } else {
-            // No flow defined for this condition result
+            $edge = $session->flow->edges()
+                ->where('source_node_id', $node->node_id)
+                ->where('condition_value', $conditionPath)
+                ->first();
+
+            if ($edge) {
+                $nextNode = $session->flow->nodes()->where('node_id', $edge->target_node_id)->first();
+            }
+        }
+
+        if ($nextNode) {
+            $this->executeNode($session, $nextNode);
+        } else {
             $session->markAsCompleted();
         }
     }
 
-    private function executeStartAgainNode(BotSession $session, BotNode $node): void
+    private function executeStartAgainNode(BotSession $session, $node): void
     {
         // Simply jump back to the start node
-        $startNode = $session->bot->getStartNode();
+        $startNode = null;
+        if ($session->flow) {
+            $startNode = $session->flow->getStartNode();
+        }
 
         if ($startNode) {
             // Just execute the start node again - keep all variables and history
@@ -445,9 +497,12 @@ class BotService
         }
     }
 
-    private function executeLocationNode(BotSession $session, BotNode $node): void
+    private function executeLocationNode(BotSession $session, $node): void
     {
-        if (! $node->latitude || ! $node->longitude) {
+        $latitude = is_array($node) ? ($node['data']['latitude'] ?? null) : $node->latitude;
+        $longitude = is_array($node) ? ($node['data']['longitude'] ?? null) : $node->longitude;
+
+        if (! $latitude || ! $longitude) {
             return;
         }
 
@@ -463,12 +518,12 @@ class BotService
             'type' => MessageType::LOCATION,
             'status' => MessageStatus::PENDING,
             'source' => MessageSource::BOT,
-            'content' => $node->location_name ?? null,
+            'content' => is_array($node) ? ($node['data']['location_name'] ?? null) : ($node->location_name ?? null),
             'location_data' => [
-                'latitude' => $node->latitude,
-                'longitude' => $node->longitude,
-                'name' => $node->location_name,
-                'address' => $node->location_address,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'name' => is_array($node) ? ($node['data']['location_name'] ?? null) : $node->location_name,
+                'address' => is_array($node) ? ($node['data']['location_address'] ?? null) : $node->location_address,
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
@@ -482,7 +537,7 @@ class BotService
         );
     }
 
-    private function executeWorkingHoursNode(BotSession $session, BotNode $node): void
+    private function executeWorkingHoursNode(BotSession $session, $node): void
     {
         $tenantSettings = \App\Models\TenantSettings::where('tenant_id', $session->tenant_id)->first();
 
@@ -493,14 +548,28 @@ class BotService
 
         $conditionPath = $isAvailable ? 'Available' : 'Unavailable';
 
-        $flow = $session->bot->flows()
-            ->where('source_node_id', $node->node_id)
-            ->where('condition_value', $conditionPath)
-            ->first();
-
         $nextNode = null;
-        if ($flow) {
-            $nextNode = $session->bot->nodes()->where('node_id', $flow->target_node_id)->first();
+        if (is_array($node) && $session->botVersion) {
+            // Find flow in version
+            $nodeId = $node['node_id'] ?? $node['id'] ?? null;
+            $flows = $session->botVersion->getFlowsFromNode($nodeId);
+            foreach ($flows as $flow) {
+                if (($flow['condition_value'] ?? null) === $conditionPath) {
+                    $targetNodeId = $flow['target_node_id'] ?? null;
+                    $nextNode = $targetNodeId ? $session->botVersion->getNodeById($targetNodeId) : null;
+                    break;
+                }
+            }
+        } else {
+            // Find the edge from current node with the condition path
+            $edge = $session->flow->edges()
+                ->where('source_node_id', $node->node_id)
+                ->where('condition_value', $conditionPath)
+                ->first();
+
+            if ($edge) {
+                $nextNode = $session->flow->nodes()->where('node_id', $edge->target_node_id)->first();
+            }
         }
 
         if ($nextNode) {
@@ -510,9 +579,9 @@ class BotService
         }
     }
 
-    private function executeSetVariableNode(BotSession $session, BotNode $node): void
+    private function executeSetVariableNode(BotSession $session, $node): void
     {
-        $variables = $node->data['variables'] ?? null;
+        $variables = is_array($node) ? ($node['data']['variables'] ?? null) : ($node->data['variables'] ?? null);
 
         if (! $variables || ! is_array($variables)) {
             return;
@@ -665,5 +734,43 @@ class BotService
         }
 
         return $content;
+    }
+
+    private function evaluateConditions(array $conditions, array $variables, ?Contact $contact): bool
+    {
+        if (empty($conditions)) {
+            return true;
+        }
+
+        foreach ($conditions as $condition) {
+            $variableId = $condition['variable_id'] ?? null;
+            $operatorValue = $condition['operator'] ?? null;
+            $value = $condition['value'] ?? null;
+
+            if (! $variableId || ! $operatorValue) {
+                continue;
+            }
+
+            $botVariable = \App\Models\BotVariable::find($variableId);
+            if (! $botVariable) {
+                continue;
+            }
+
+            $fieldValue = $variables[$botVariable->name] ?? null;
+
+            $operator = \App\Enums\ComparisonOperator::tryFrom($operatorValue);
+            
+            if (! $operator) {
+                continue;
+            }
+
+            $result = $operator->evaluate($fieldValue, $value);
+
+            if (! $result) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -35,6 +35,11 @@ class BotNode extends Model
         return $this->belongsTo(Bot::class);
     }
 
+    public function flow(): BelongsTo
+    {
+        return $this->belongsTo(BotFlow::class, 'bot_flow_id');
+    }
+
     public function assignToUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assign_to_user_id');
@@ -50,16 +55,16 @@ class BotNode extends Model
         return $this->belongsTo(BotNode::class, 'fallback_node_id');
     }
 
-    public function outgoingFlows(): HasMany
+    public function outgoingEdges(): HasMany
     {
-        return $this->hasMany(BotFlow::class, 'source_node_id', 'node_id')
-            ->where('bot_id', $this->bot_id);
+        return $this->hasMany(BotEdge::class, 'source_node_id', 'node_id')
+            ->where('bot_flow_id', $this->bot_flow_id);
     }
 
-    public function incomingFlows(): HasMany
+    public function incomingEdges(): HasMany
     {
-        return $this->hasMany(BotFlow::class, 'target_node_id', 'node_id')
-            ->where('bot_id', $this->bot_id);
+        return $this->hasMany(BotEdge::class, 'target_node_id', 'node_id')
+            ->where('bot_flow_id', $this->bot_flow_id);
     }
 
     public function getNextNode($userInput = null, $sessionVariables = []): ?BotNode
@@ -68,13 +73,13 @@ class BotNode extends Model
             return $this->getNextNodeForCondition($sessionVariables);
         }
 
-        $flows = $this->outgoingFlows()->get();
+        $edges = $this->outgoingEdges()->get();
 
-        foreach ($flows as $flow) {
-            // Check flow condition
-            if ($this->evaluateFlowCondition($flow, $userInput)) {
-                return $this->bot->nodes()
-                    ->where('node_id', $flow->target_node_id)
+        foreach ($edges as $edge) {
+            // Check edge condition
+            if ($this->evaluateFlowCondition($edge, $userInput)) {
+                return $this->flow->nodes()
+                    ->where('node_id', $edge->target_node_id)
                     ->first();
             }
         }
@@ -90,17 +95,17 @@ class BotNode extends Model
     {
         $conditionMet = $this->evaluateCondition($sessionVariables);
 
-        $flows = $this->outgoingFlows()->get();
+        $edges = $this->outgoingEdges()->get();
 
-        foreach ($flows as $flow) {
+        foreach ($edges as $edge) {
             // Check condition_value to determine which path (true/false)
-            if ($flow->condition_value === 'true' && $conditionMet) {
-                return $this->bot->nodes()
-                    ->where('node_id', $flow->target_node_id)
+            if ($edge->condition_value === 'true' && $conditionMet) {
+                return $this->flow->nodes()
+                    ->where('node_id', $edge->target_node_id)
                     ->first();
-            } elseif ($flow->condition_value === 'false' && ! $conditionMet) {
-                return $this->bot->nodes()
-                    ->where('node_id', $flow->target_node_id)
+            } elseif ($edge->condition_value === 'false' && ! $conditionMet) {
+                return $this->flow->nodes()
+                    ->where('node_id', $edge->target_node_id)
                     ->first();
             }
         }
