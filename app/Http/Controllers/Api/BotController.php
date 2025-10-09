@@ -30,7 +30,7 @@ class BotController extends Controller
         $search = data_get($input, 'search');
 
         $bots = Bot::query()
-            ->with(['createdBy', 'updatedBy', 'nodes', 'flows'])
+            ->with(['createdBy', 'updatedBy', 'flows'])
             ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'))
             ->paginate($rowsPerPage);
 
