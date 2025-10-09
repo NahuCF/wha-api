@@ -80,7 +80,7 @@ class BotController extends Controller
 
     public function show(Bot $bot)
     {
-        return new BotResource($bot->load(['createdBy', 'updatedBy', 'nodes', 'flows']));
+        return new BotResource($bot->load(['createdBy', 'updatedBy', 'flows']));
     }
 
     public function update(Request $request, Bot $bot)
@@ -99,7 +99,7 @@ class BotController extends Controller
 
         $bot->update($input);
 
-        return new BotResource($bot->load(['createdBy', 'updatedBy', 'nodes', 'flows']));
+        return new BotResource($bot->load(['createdBy', 'updatedBy', 'flows']));
     }
 
     public function destroy(Bot $bot)
@@ -160,7 +160,7 @@ class BotController extends Controller
             'end_conversation_assign_user_id' => $endConversationAssignUserId,
         ]);
 
-        return new BotResource($bot->load(['nodes', 'flows']));
+        return new BotResource($bot->load(['flows']));
     }
 
     public function saveFlow(Request $request, Bot $bot)
@@ -268,7 +268,7 @@ class BotController extends Controller
             ]);
         }
 
-        return new BotResource($bot->load(['nodes', 'flows']));
+        return new BotResource($bot->load(['flows']));
     }
 
     public function getFlowData(Bot $bot)
@@ -490,7 +490,7 @@ class BotController extends Controller
         }
 
         // Load relationships for the response
-        $newBot->load(['nodes', 'flows']);
+        $newBot->load(['flows']);
 
         return response()->json([
             'message' => 'Bot cloned successfully',
@@ -541,5 +541,38 @@ class BotController extends Controller
         $bot->load(['createdBy', 'updatedBy']);
 
         return BotResource::make($bot);
+    }
+
+    public function checkActiveSessions(Bot $bot)
+    {
+        if ($bot->tenant_id !== tenant('id')) {
+            return response()->json([
+                'message' => 'Bot not found',
+                'message_code' => 'bot_not_found',
+            ], 404);
+        }
+
+        $activeFlowSessions = [];
+        
+        // Get active session counts for each flow
+        foreach ($bot->flows as $flow) {
+            $activeCount = $flow->getActiveSessionsCount();
+            if ($activeCount > 0) {
+                $activeFlowSessions[] = [
+                    'flow_id' => $flow->id,
+                    'flow_name' => $flow->name,
+                    'active_sessions_count' => $activeCount,
+                ];
+            }
+        }
+
+        $totalActiveSessions = \App\Models\BotSession::where('bot_id', $bot->id)
+            ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+            ->count();
+
+        return response()->json([
+            'total_active_sessions' => $totalActiveSessions,
+            'has_active_sessions' => $totalActiveSessions > 0,
+        ]);
     }
 }

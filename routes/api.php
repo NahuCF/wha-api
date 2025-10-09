@@ -155,7 +155,9 @@ Route::group(['middleware' => [
 
         Route::get('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'index']);
         Route::post('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'store']);
-        Route::delete('{bot}/flows/{flow}', [BotFlowController::class, 'destroyFlow']);
+        Route::put('{bot}/flows/{flow}', [\App\Http\Controllers\Api\BotFlowController::class, 'update']);
+        Route::get('{bot}/flows/{flow}/data', [BotFlowController::class, 'flowData']);
+        Route::delete('{bot}/flows/{flow}', [BotFlowController::class, 'destroy']);
         Route::post('{bot}/flows/{flow}/activate', [BotFlowController::class, 'activate']);
     });
     Route::apiResource('bots', BotController::class);

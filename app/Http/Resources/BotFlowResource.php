@@ -22,11 +22,9 @@ class BotFlowResource extends JsonResource
             'total_sessions' => $this->total_sessions,
             'completed_sessions' => $this->completed_sessions,
             'abandoned_sessions' => $this->abandoned_sessions,
+            'active_sessions_count' => $this->getActiveSessionsCount(),
             'nodes_count' => $this->whenCounted('nodes'),
             'edges_count' => $this->whenCounted('edges'),
-            'active_sessions_count' => $this->when($request->has('include_active_sessions'), function () {
-                return $this->getActiveSessionsCount();
-            }),
             'created_by' => new UserResource($this->whenLoaded('createdBy')),
             'updated_by' => new UserResource($this->whenLoaded('updatedBy')),
             'nodes' => BotNodeResource::collection($this->whenLoaded('nodes')),

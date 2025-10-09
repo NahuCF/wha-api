@@ -17,10 +17,18 @@ use Illuminate\Validation\Rule;
 
 class BotFlowController extends Controller
 {
-    public function index(Bot $bot)
+    public function index(Request $request, Bot $bot)
     {
+        $input = $request->validate([
+            'rows_per_page' => ['sometimes', 'integer'],
+            'search' => ['sometimes', 'string'],
+        ]);
+
+        $search = data_get($input, 'search');
+
         $flows = $bot->flows()
             ->with(['createdBy', 'updatedBy'])
+            ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'))
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -42,8 +50,7 @@ class BotFlowController extends Controller
             'edges.*.id' => ['required', 'string', 'distinct'], 
             'edges.*.source' => ['required', 'string'],
             'edges.*.target' => ['required', 'string'],
-            'edges.*.sourceHandle' => ['nullable', 'string'],
-            'edges.*.targetHandle' => ['nullable', 'string'],
+            'edges.*.data' => ['nullable', 'array'],
             'viewport' => ['nullable', 'array'],
         ]);
 
@@ -147,10 +154,6 @@ class BotFlowController extends Controller
             $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
             $conditionValue = data_get($edge, 'data.condition_value');
 
-            if ($sourceHandle = data_get($edge, 'sourceHandle')) {
-                $conditionValue = $conditionValue ?: $sourceHandle;
-            }
-
             BotEdge::create([
                 'bot_id' => $bot->id,
                 'bot_flow_id' => $flow->id,
@@ -202,7 +205,7 @@ class BotFlowController extends Controller
         return new BotFlowResource($flow->load(['createdBy', 'updatedBy']));
     }
 
-    public function updateFlowData(Request $request, Bot $bot, BotFlow $flow)
+    public function update(Request $request, Bot $bot, BotFlow $flow)
     {
         if ($flow->bot_id !== $bot->id) {
             return response()->json(['message' => 'Flow not found'], 404);
@@ -211,18 +214,17 @@ class BotFlowController extends Controller
         $input = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'nodes' => ['sometimes', 'array'],
-            'nodes.*.id' => ['required', 'string', 'distinct'],  // Added distinct rule
+            'nodes.*.id' => ['required', 'string', 'distinct'], 
             'nodes.*.type' => ['required', Rule::in(BotNodeType::values())],
             'nodes.*.position' => ['required', 'array'],
             'nodes.*.position.x' => ['required', 'numeric'],
             'nodes.*.position.y' => ['required', 'numeric'],
             'nodes.*.data' => ['nullable', 'array'],
             'edges' => ['sometimes', 'array'],
-            'edges.*.id' => ['required', 'string', 'distinct'],  // Added distinct rule
+            'edges.*.id' => ['required', 'string', 'distinct'],  
             'edges.*.source' => ['required', 'string'],
             'edges.*.target' => ['required', 'string'],
-            'edges.*.sourceHandle' => ['nullable', 'string'],
-            'edges.*.targetHandle' => ['nullable', 'string'],
+            'edges.*.data' => ['nullable', 'array'],
             'viewport' => ['nullable', 'array'],
         ]);
 
@@ -231,7 +233,6 @@ class BotFlowController extends Controller
         $edges = data_get($input, 'edges');
         $viewport = data_get($input, 'viewport');
 
-        // Validate that edge sources and targets reference existing nodes if provided
         if ($nodes && $edges) {
             $nodeIds = collect($nodes)->pluck('id')->toArray();
             $invalidEdges = [];
@@ -256,7 +257,6 @@ class BotFlowController extends Controller
             }
         }
 
-        // Handle name update only
         if ($name && ! $nodes && ! $edges) {
             $flow->update([
                 'name' => $name,
@@ -271,13 +271,10 @@ class BotFlowController extends Controller
             ]);
         }
 
-        // Handle flow content update
-
         if (! $nodes || ! $edges) {
             return response()->json(['message' => 'Nodes and edges are required for flow update'], 422);
         }
 
-        // Check if flow has active sessions
         if ($flow->status === FlowStatus::ACTIVE && $flow->hasActiveSessions()) {
             return response()->json([
                 'message' => 'Cannot update flow with active sessions',
@@ -285,35 +282,40 @@ class BotFlowController extends Controller
             ], 422);
         }
 
+        $flowWithName = BotFlow::query()
+            ->where('name', $name)
+            ->where('id', '!=', $flow->id)
+            ->exists();
+
+        if($flowWithName) {
+            return response()->json([
+                'message' => 'Flow name already exists',
+                'message_code' => 'flow_already_exists',
+            ], 422);
+        }
+
         $user = Auth::user();
 
-        // Update the flow name if provided
         if ($name) {
             $flow->update([
                 'name' => $name,
                 'updated_user_id' => $user->id,
             ]);
         } else {
-            // Just update the updated_user_id
             $flow->update(['updated_user_id' => $user->id]);
         }
 
-        // Clear existing nodes and edges for this flow
         $flow->nodes()->delete();
         $flow->edges()->delete();
 
-        // Create nodes
         foreach ($nodes as $node) {
-            // Validate user and bot IDs exist if provided
             $assignToUserId = data_get($node, 'data.assign_to_user_id');
             $assignToBotId = data_get($node, 'data.assign_to_bot_id');
             
-            // Check if user exists in the tenant context
             if ($assignToUserId && !\App\Models\User::where('id', $assignToUserId)->exists()) {
                 $assignToUserId = null;
             }
             
-            // Check if bot exists in the tenant context
             if ($assignToBotId && !\App\Models\Bot::where('id', $assignToBotId)->exists()) {
                 $assignToBotId = null;
             }
@@ -357,12 +359,6 @@ class BotFlowController extends Controller
             $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
             $conditionValue = data_get($edge, 'data.condition_value');
 
-            // If sourceHandle is set, it might indicate a specific output from a conditional node
-            if ($sourceHandle = data_get($edge, 'sourceHandle')) {
-                // Map sourceHandle to condition value (e.g., 'true', 'false', 'available', etc.)
-                $conditionValue = $conditionValue ?: $sourceHandle;
-            }
-
             BotEdge::create([
                 'bot_id' => $bot->id,
                 'bot_flow_id' => $flow->id,
@@ -374,17 +370,13 @@ class BotFlowController extends Controller
             ]);
         }
 
-        // Update bot viewport if provided
         if ($viewport) {
             $bot->update(['viewport' => $viewport]);
         }
 
-        return response()->json([
-            'id' => $flow->id,
-            'name' => $flow->name,
-            'status' => $flow->status?->value,
-            'message' => 'Flow updated successfully',
-        ]);
+        $flow->load(['createdBy', 'updatedBy']);
+
+        return new BotFlowResource($flow);
     }
 
     public function destroy(Bot $bot, BotFlow $flow)
@@ -393,18 +385,13 @@ class BotFlowController extends Controller
             return response()->json(['message' => 'Flow not found'], 404);
         }
 
-        if ($bot->flows()->count() <= 1) {
-            return response()->json(['message' => 'Bot must have at least one flow'], 422);
-        }
-
         if ($flow->status === FlowStatus::ACTIVE && $flow->hasActiveSessions()) {
             return response()->json([
                 'message' => 'Cannot delete flow with active sessions',
-                'active_sessions_count' => $flow->getActiveSessionsCount(),
+                'message_code' => 'flow_has_active_sessions',
             ], 422);
         }
 
-        // If deleting active flow, activate another one
         if ($flow->status === FlowStatus::ACTIVE) {
             $anotherFlow = $bot->flows()
                 ->where('id', '!=', $flow->id)
@@ -417,7 +404,86 @@ class BotFlowController extends Controller
 
         $flow->delete();
 
-        return response()->json(['message' => 'Flow deleted successfully']);
+        return response()->noContent();
+    }
+
+    public function flowData(Bot $bot, BotFlow $flow)
+    {
+        if ($flow->bot_id !== $bot->id) {
+            return response()->json(['message' => 'Flow not found'], 404);
+        }
+
+        $flow->load(['nodes', 'edges', 'createdBy', 'updatedBy']);
+
+        $nodes = $flow->nodes->map(function ($node) {
+            return [
+                'id' => $node->node_id,
+                'type' => $node->type->value,
+                'position' => [
+                    'x' => $node->position_x,
+                    'y' => $node->position_y,
+                ],
+                'data' => array_merge(
+                    [
+                        'label' => $node->label,
+                        'content' => $node->content,
+                        'media_url' => $node->media_url,
+                        'media_type' => $node->media_type,
+                        'options' => $node->options,
+                        'variable_name' => $node->variable_name,
+                        'use_fallback' => $node->use_fallback,
+                        'fallback_node_id' => $node->fallback_node_id,
+                        'header_type' => $node->header_type,
+                        'header_text' => $node->header_text,
+                        'header_media_url' => $node->header_media_url,
+                        'footer_text' => $node->footer_text,
+                        'assign_type' => $node->assign_type,
+                        'assign_to_user_id' => $node->assign_to_user_id,
+                        'assign_to_bot_id' => $node->assign_to_bot_id,
+                        'latitude' => $node->latitude,
+                        'longitude' => $node->longitude,
+                        'location_name' => $node->location_name,
+                        'location_address' => $node->location_address,
+                        'template_id' => $node->template_id,
+                        'template_parameters' => $node->template_parameters,
+                        'conditions' => $node->conditions,
+                    ],
+                    $node->data ?? []
+                ),
+            ];
+        });
+
+        $edges = $flow->edges->map(function ($edge) {
+            $data = [];
+            
+            if ($edge->condition_type !== FlowConditionType::ALWAYS) {
+                $data['condition_type'] = $edge->condition_type->value;
+            }
+            
+            if ($edge->condition_value) {
+                $data['condition_value'] = $edge->condition_value;
+            }
+            
+            return [
+                'id' => $edge->edge_id,
+                'source' => $edge->source_node_id,
+                'target' => $edge->target_node_id,
+                'data' => !empty($data) ? $data : null,
+            ];
+        });
+
+        return response()->json([
+            'id' => $flow->id,
+            'name' => $flow->name,
+            'status' => $flow->status->value,
+            'nodes' => $nodes,
+            'edges' => $edges,
+            'viewport' => $bot->viewport ?? ['x' => 0, 'y' => 0, 'zoom' => 1],
+            'created_at' => $flow->created_at,
+            'updated_at' => $flow->updated_at,
+            'created_by' => $flow->createdBy,
+            'updated_by' => $flow->updatedBy 
+        ]);
     }
 
     public function destroyFlow(Bot $bot, BotFlow $flow)
