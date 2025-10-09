@@ -24,6 +24,11 @@ return new class extends Migration
             
             $table->json('keywords')->nullable();
 
+            // Analytics columns
+            $table->integer('total_sessions')->default(0);
+            $table->integer('completed_sessions')->default(0);
+            $table->integer('abandoned_sessions')->default(0);
+
             $table->integer('wait_time_minutes')->default(5);
             $table->enum('timeout_action', BotAction::values())->nullable();
             $table->ulid('timeout_assign_bot_id')->nullable();

@@ -17,6 +17,7 @@ use App\Models\BotSession;
 use App\Models\Contact;
 use App\Models\Conversation;
 use App\Models\Message;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BotService
@@ -56,50 +57,48 @@ class BotService
             return;
         }
 
-        // Find matching bot
         $bot = $this->findBotForMessage($message->content ?? '', $tenantId);
 
         if ($bot) {
             $this->startBotSession($bot, $conversation, $contact);
         }
-        // If no bot matched, do nothing (no global settings)
     }
 
     public function startBotSession(Bot $bot, Conversation $conversation, Contact $contact): ?BotSession
     {
-        // End any existing sessions
-        BotSession::where('conversation_id', $conversation->id)
-            ->whereIn('status', [BotSessionStatus::ACTIVE, BotSessionStatus::WAITING])
-            ->update(['status' => BotSessionStatus::COMPLETED]);
+        return DB::transaction(function () use ($bot, $conversation, $contact) {
+            $conversation = Conversation::where('id', $conversation->id)->lockForUpdate()->first();
 
-        // Find the first node to execute
-        $startNode = $bot->getStartNode();
+            $existingSession = BotSession::where('conversation_id', $conversation->id)
+                ->whereIn('status', [BotSessionStatus::ACTIVE, BotSessionStatus::WAITING])
+                ->first();
 
-        if (! $startNode) {
-            // No nodes defined for this bot
-            Log::warning('Bot has no nodes defined', ['bot_id' => $bot->id]);
+            if ($existingSession) {
+                $existingSession->bot->increment('completed_sessions');
+                $existingSession->update(['status' => BotSessionStatus::COMPLETED]);
+            }
 
-            return null;
-        }
+            $startNode = $bot->getStartNode();
 
-        // Create new session with the first node as current
-        $session = BotSession::create([
-            'tenant_id' => $conversation->tenant_id,
-            'bot_id' => $bot->id,
-            'conversation_id' => $conversation->id,
-            'contact_id' => $contact->id,
-            'current_node_id' => $startNode->node_id,
-            'status' => BotSessionStatus::ACTIVE,
-            'variables' => [], // Contact fields are accessed via contact.fieldName syntax
-            'history' => [],
-            'last_interaction_at' => now(),
-            'timeout_at' => now()->addMinutes($bot->wait_time_minutes),
-        ]);
+            $session = BotSession::create([
+                'tenant_id' => $conversation->tenant_id,
+                'bot_id' => $bot->id,
+                'conversation_id' => $conversation->id,
+                'contact_id' => $contact->id,
+                'current_node_id' => $startNode->node_id,
+                'status' => BotSessionStatus::ACTIVE,
+                'variables' => [],
+                'history' => [],
+                'last_interaction_at' => now(),
+                'timeout_at' => now()->addMinutes($bot->wait_time_minutes),
+            ]);
 
-        // Execute the first node
-        $this->executeNode($session, $startNode);
+            $bot->increment('total_sessions');
 
-        return $session;
+            $this->executeNode($session, $startNode);
+
+            return $session;
+        });
     }
 
     public function continueSession(BotSession $session, Message $message): void
@@ -162,6 +161,13 @@ class BotService
 
     public function executeNode(BotSession $session, BotNode $node): void
     {
+        // Check if session has expired before executing
+        if ($session->isExpired()) {
+            $this->handleTimeout($session);
+
+            return;
+        }
+
         // Add to history
         $session->addToHistory($node->node_id);
 
@@ -207,7 +213,6 @@ class BotService
 
             case BotNodeType::ASSIGN_CHAT:
                 $this->executeAssignNode($session, $node);
-                $session->markAsCompleted();
                 break;
 
             case BotNodeType::WORKING_HOURS:
@@ -380,14 +385,15 @@ class BotService
 
         if ($node->assign_type === 'user' && $node->assign_to_user_id) {
             $conversation->update(['assigned_user_id' => $node->assign_to_user_id]);
+            $session->markAsCompleted();
         } elseif ($node->assign_type === 'bot' && $node->assign_to_bot_id) {
             $newBot = Bot::find($node->assign_to_bot_id);
             if ($newBot) {
                 $this->startBotSession($newBot, $conversation, $session->contact);
             }
         } else {
-            // Unassign
             $conversation->update(['assigned_user_id' => null]);
+            $session->markAsCompleted();
         }
     }
 

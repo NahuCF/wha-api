@@ -49,7 +49,7 @@ class BotSession extends Model
 
     public function currentNode(): ?BotNode
     {
-        if (! $this->current_node_id) {
+        if (! $this->current_node_id || ! $this->bot) {
             return null;
         }
 
@@ -90,7 +90,7 @@ class BotSession extends Model
 
     public function markAsWaiting(?int $minutes = null): void
     {
-        $minutes = $minutes ?? $this->bot->wait_time_minutes ?? 5;
+        $minutes = $minutes ?? ($this->bot ? $this->bot->wait_time_minutes : null) ?? 5;
 
         $this->update([
             'status' => BotSessionStatus::WAITING,
@@ -101,6 +101,10 @@ class BotSession extends Model
 
     public function markAsCompleted(): void
     {
+        if ($this->status === BotSessionStatus::ACTIVE || $this->status === BotSessionStatus::WAITING) {
+            $this->bot->increment('completed_sessions');
+        }
+
         $this->update([
             'status' => BotSessionStatus::COMPLETED,
             'last_interaction_at' => now(),
@@ -109,6 +113,10 @@ class BotSession extends Model
 
     public function markAsTimeout(): void
     {
+        if ($this->status === BotSessionStatus::ACTIVE || $this->status === BotSessionStatus::WAITING) {
+            $this->bot->increment('abandoned_sessions');
+        }
+
         $this->update([
             'status' => BotSessionStatus::TIMEOUT,
         ]);

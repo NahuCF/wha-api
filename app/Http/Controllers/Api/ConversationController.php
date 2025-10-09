@@ -70,6 +70,15 @@ class ConversationController extends Controller
         if ($isSolved) {
             $conversation->is_solved = true;
             $conversation->user_id = null;
+
+            $activeSession = \App\Models\BotSession::where('conversation_id', $conversation->id)
+                ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
+                ->first();
+
+            if ($activeSession) {
+                $activeSession->bot->increment('abandoned_sessions');
+                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+            }
         } else {
             $conversation->is_solved = false;
             $conversation->user_id = $user->id;
@@ -149,10 +158,14 @@ class ConversationController extends Controller
             $conversation->assigned_bot_id = null;
             $conversation->update();
 
-            // End any active bot sessions
-            \App\Models\BotSession::where('conversation_id', $conversation->id)
+            $activeSession = \App\Models\BotSession::where('conversation_id', $conversation->id)
                 ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
-                ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+                ->first();
+
+            if ($activeSession) {
+                $activeSession->bot->increment('abandoned_sessions');
+                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+            }
 
             $activityType = ConversationActivityType::ASSIGNED;
             $activityData = [
@@ -168,10 +181,14 @@ class ConversationController extends Controller
             $conversation->assigned_bot_id = null;
             $conversation->update();
 
-            // End any active bot sessions
-            \App\Models\BotSession::where('conversation_id', $conversation->id)
+            $activeSession = \App\Models\BotSession::where('conversation_id', $conversation->id)
                 ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
-                ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+                ->first();
+
+            if ($activeSession) {
+                $activeSession->bot->increment('abandoned_sessions');
+                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+            }
 
             $activityType = ConversationActivityType::UNASSIGNED;
             $activityData = [
