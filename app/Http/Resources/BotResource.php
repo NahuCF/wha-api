@@ -13,7 +13,7 @@ class BotResource extends JsonResource
             'name' => $this->name,
             'is_active' => $this->is_active,
             'trigger_type' => $this->trigger_type,
-            'keyboards' => $this->keyboards,
+            'keywords' => $this->keywords,
             'wait_time_minutes' => $this->wait_time_minutes,
             'timeout_action' => $this->timeout_action,
             'timeout_assign_bot_id' => $this->timeout_assign_bot_id,

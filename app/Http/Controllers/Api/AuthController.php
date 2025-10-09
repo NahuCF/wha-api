@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\User;
+use App\Models\Tenant;
 use App\Enums\SystemRole;
 use App\Enums\UserStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\TenantResource;
-use App\Http\Resources\UserResource;
 use App\Jobs\SendOTPCode;
-use App\Jobs\SendVerifyAccountEmail;
-use App\Models\Tenant;
 use App\Models\TenantOtp;
-use App\Models\TenantVerificationEmail;
-use App\Models\User;
-use App\Services\JobDispatcherService;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use App\Models\TenantSettings;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use Laravel\Passport\ClientRepository;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
+use App\Jobs\SendVerifyAccountEmail;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Resources\TenantResource;
+use App\Services\JobDispatcherService;
+use Laravel\Passport\ClientRepository;
+use App\Models\TenantVerificationEmail;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -51,6 +52,7 @@ class AuthController extends Controller
 
         if (! $tenantId && $tenantUsers->count() > 1) {
             $tenants = Tenant::query()
+                ->with('settings')
                 ->whereIn('id', $tenantUsers->pluck('tenant_id')->unique())
                 ->get();
 
@@ -59,7 +61,7 @@ class AuthController extends Controller
 
         $tenantUser = $tenantUsers->first();
 
-        $tenant = Tenant::find($tenantUser->tenant_id);
+        $tenant = Tenant::with('settings')->find($tenantUser->tenant_id);
 
         $user = User::query()
             ->with('roles', 'defaultWaba')
@@ -111,6 +113,10 @@ class AuthController extends Controller
             'company_name' => $companyName,
         ]);
 
+        TenantSettings::create([
+            'tenant_id' => $tenant->id,
+        ]);
+
         $user = User::create([
             'id' => Str::ulid(),
             'tenant_id' => $tenant->id,
@@ -128,6 +134,8 @@ class AuthController extends Controller
 
         $client->createPasswordGrantClient(null, 'Default password grant client', '');
         $client->createPersonalAccessClient(null, 'Default personal access client', '');
+
+        $tenant->load('settings');
 
         return TenantResource::make($tenant);
     }

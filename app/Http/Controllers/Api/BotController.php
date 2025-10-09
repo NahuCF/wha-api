@@ -42,15 +42,15 @@ class BotController extends Controller
         $input = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'trigger_type' => ['required', Rule::in(BotTriggerType::values())],
-            'keyboards' => ['required_if:trigger_type,keyword', 'array'],
-            'keyboards.*.keyword' => ['required', 'string'],
-            'keyboards.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
-            'keyboards.*.case_sensitive' => ['nullable', 'boolean'],
+            'keywords' => ['required_if:trigger_type,keyword', 'array'],
+            'keywords.*.keyword' => ['required', 'string'],
+            'keywords.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
+            'keywords.*.case_sensitive' => ['nullable', 'boolean'],
         ]);
 
         $name = data_get($input, 'name');
         $triggerType = data_get($input, 'trigger_type');
-        $keyboards = data_get($input, 'keyboards');
+        $keywords = data_get($input, 'keywords');
 
         $user = Auth::user();
 
@@ -71,7 +71,7 @@ class BotController extends Controller
             'user_id' => $user->id,
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,
-            'keyboards' => $keyboards,
+            'keywords' => $keywords,
         ]);
 
         $bot->load(['createdBy', 'updatedBy']);
@@ -89,10 +89,10 @@ class BotController extends Controller
         $input = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'trigger_type' => ['sometimes', Rule::in(BotTriggerType::values())],
-            'keyboards' => ['nullable', 'array'],
-            'keyboards.*.keyword' => ['required', 'string'],
-            'keyboards.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
-            'keyboards.*.case_sensitive' => ['nullable', 'boolean'],
+            'keywords' => ['nullable', 'array'],
+            'keywords.*.keyword' => ['required', 'string'],
+            'keywords.*.match_type' => ['required', Rule::in(BotKeywordMatchType::values())],
+            'keywords.*.case_sensitive' => ['nullable', 'boolean'],
         ]);
 
         $user = Auth::user();

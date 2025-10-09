@@ -18,7 +18,7 @@ class Bot extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'keyboards' => 'array',
+        'keywords' => 'array',
         'viewport' => 'array',
         'trigger_type' => BotTriggerType::class,
         'timeout_action' => BotAction::class,
@@ -122,18 +122,18 @@ class Bot extends Model
             return false;
         }
 
-        if (empty($this->keyboards)) {
+        if (empty($this->keywords)) {
             return false;
         }
 
         $originalMessage = trim($message);
         $lowerMessage = strtolower($originalMessage);
 
-        // Check each keyboard entry
-        foreach ($this->keyboards as $keyboard) {
-            $keyword = $keyboard['keyword'] ?? '';
-            $matchType = $keyboard['match_type'] ?? 'exact';
-            $caseSensitive = $keyboard['case_sensitive'] ?? false;
+        // Check each keyword entry
+        foreach ($this->keywords as $keywordData) {
+            $keyword = $keywordData['keyword'] ?? '';
+            $matchType = $keywordData['match_type'] ?? 'exact';
+            $caseSensitive = $keywordData['case_sensitive'] ?? false;
             
             if (empty($keyword)) {
                 continue;
@@ -160,8 +160,6 @@ class Bot extends Model
 
                 case 'regex':
                 case BotKeywordMatchType::REGEX->value:
-                    // For regex, case sensitivity should be handled in the pattern itself
-                    // e.g., (?i) for case-insensitive or [Aa] for specific characters
                     if (@preg_match('/' . $keyword . '/', $originalMessage)) {
                         return true;
                     }

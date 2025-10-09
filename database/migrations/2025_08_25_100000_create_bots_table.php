@@ -22,7 +22,7 @@ return new class extends Migration
 
             $table->enum('trigger_type', BotTriggerType::values())->nullable();
             
-            $table->json('keyboards')->nullable();
+            $table->json('keywords')->nullable();
 
             $table->integer('wait_time_minutes')->default(5);
             $table->enum('timeout_action', BotAction::values())->nullable();

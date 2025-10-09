@@ -78,4 +78,9 @@ class Tenant extends BaseTenant
     {
         return $this->belongsTo(Timezone::class);
     }
+
+    public function settings()
+    {
+        return $this->hasOne(TenantSettings::class);
+    }
 }
