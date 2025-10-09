@@ -31,7 +31,6 @@ use App\Http\Controllers\Api\TimezoneController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WabaController;
 use App\Http\Middleware\EnsureWabaId;
-use App\Models\Bot;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
@@ -152,6 +151,7 @@ Route::group(['middleware' => [
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
         Route::post('{bot}/clone', [BotController::class, 'clone']);
         Route::get('{bot}/active-sessions', [BotController::class, 'checkActiveSessions']);
+        Route::delete('{bot}', [BotController::class, 'destroy']);
 
         Route::get('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'index']);
         Route::post('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'store']);

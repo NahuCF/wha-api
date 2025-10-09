@@ -106,7 +106,7 @@ class BotController extends Controller
     {
         $bot->delete();
 
-        return response()->json(['message' => 'Bot deleted successfully']);
+        return response()->noContent();
     }
 
     public function updateConfiguration(Request $request, Bot $bot)
@@ -553,7 +553,7 @@ class BotController extends Controller
         }
 
         $activeFlowSessions = [];
-        
+
         // Get active session counts for each flow
         foreach ($bot->flows as $flow) {
             $activeCount = $flow->getActiveSessionsCount();
