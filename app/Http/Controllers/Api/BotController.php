@@ -71,6 +71,7 @@ class BotController extends Controller
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,
             'keywords' => $keywords,
+            'status' => \App\Enums\BotStatus::DRAFT,
         ]);
 
         $bot->load(['createdBy', 'updatedBy']);
@@ -467,7 +468,7 @@ class BotController extends Controller
 
         // Clone all nodes
         $nodeMapping = []; // Map old node IDs to new node IDs
-        foreach ($bot->nodes as $node) {
+        foreach (collect($bot->nodes) as $node) {
             $newNode = $node->replicate();
             $newNode->bot_id = $newBot->id;
             $newNode->created_at = now();
@@ -514,7 +515,7 @@ class BotController extends Controller
             ], 404);
         }
 
-        if ($bot->nodes()->count() === 0) {
+        if (collect($bot->nodes)->isEmpty()) {
             return response()->json([
                 'message' => 'Bot must have at least one node to be activated',
                 'message_code' => 'bot_has_no_nodes',

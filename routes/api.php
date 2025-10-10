@@ -149,6 +149,7 @@ Route::group(['middleware' => [
         Route::put('{bot}/configuration', [BotController::class, 'updateConfiguration']);
         Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
+        Route::put('{bot}/activate', [BotController::class, 'activate']);
         Route::post('{bot}/clone', [BotController::class, 'clone']);
         Route::get('{bot}/active-sessions', [BotController::class, 'checkActiveSessions']);
         Route::delete('{bot}', [BotController::class, 'destroy']);

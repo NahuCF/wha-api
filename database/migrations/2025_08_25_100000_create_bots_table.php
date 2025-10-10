@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\BotAction;
+use App\Enums\BotStatus;
 use App\Enums\BotTriggerType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -21,6 +22,7 @@ return new class extends Migration
             $table->enum('trigger_type', BotTriggerType::values())->nullable();
 
             $table->json('keywords')->nullable();
+            $table->enum('status', BotStatus::values());
 
             // Analytics columns
             $table->integer('total_sessions')->default(0);
