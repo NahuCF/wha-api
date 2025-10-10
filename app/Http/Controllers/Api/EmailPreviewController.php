@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SendOTPCode;
+use App\Mail\SendPasswordReset;
 use App\Mail\SendUserCredentials;
 use App\Mail\SendVerifyAccount;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ class EmailPreviewController extends Controller
             'company_name' => ['sometimes', 'string'],
             'email' => ['sometimes', 'string', 'email'],
             'password' => ['sometimes', 'string'],
+            'reset_link' => ['sometimes', 'string', 'url'],
             'locale' => ['sometimes', 'string', 'in:en,es'],
         ]);
 
@@ -71,6 +73,11 @@ class EmailPreviewController extends Controller
                 $input['email'] ?? 'john.doe@example.com',
                 $input['password'] ?? 'TempPass123!',
                 $input['link'] ?? 'https://example.com/login',
+                $locale
+            ),
+            'password-reset' => new SendPasswordReset(
+                $name,
+                $input['reset_link'] ?? 'https://example.com/reset-password?token=sampleResetToken123456',
                 $locale
             ),
             'otp' => new SendOTPCode($input['code'] ?? '123456'),

@@ -22,6 +22,23 @@
         .content {
             margin: 20px 0;
         }
+        .button-primary {
+            display: inline-block;
+            padding: 12px 35px;
+            background-color: #007BFF;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px auto;
+            display: block;
+            width: fit-content;
+        }
+        .button-primary:hover {
+            background-color: #0056b3;
+        }
         .credential-item {
             font-size: 15px;
             display: flex;
@@ -44,12 +61,16 @@
                 {{ __('emails.user_credentials.invited_to', [], $locale) }} <strong>{{ $companyName }}</strong>
             </p>
             
-            <div>
+            <a href="{{ config('app.client_url') }}/accept-invite?email={{ urlencode($email) }}" class="button-primary">
+                {{ __('emails.user_credentials.accept_invite', [], $locale) }}
+            </a>
+            
+            <div style="margin-top: 30px;">
                 <div class="credential-item">
                     <div class="credential-label">{{ __('emails.user_credentials.email_label', [], $locale) }}</div>
                     <div class="credential-value">{{ $email }}</div>
                 </div>
-                |
+                
                 <div class="credential-item">
                     <div class="credential-label">{{ __('emails.user_credentials.password_label', [], $locale) }}</div>
                     <div class="credential-value">{{ $password }}</div>

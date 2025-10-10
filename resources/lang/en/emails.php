@@ -11,9 +11,18 @@ return [
     'user_credentials' => [
         'subject' => 'Your :app_name Account Has Been Created',
         'invited_to' => 'You have been invited to',
+        'accept_invite' => 'ACCEPT INVITE',
         'email_label' => 'Email:',
         'password_label' => 'Password:',
         'login_text' => 'You can Log In by clicking',
         'login_link' => 'here',
+    ],
+    'password_reset' => [
+        'subject' => 'Reset Your Password',
+        'greeting' => 'Hi :name',
+        'line1' => 'You requested to reset your password. Click the button below to set a new password.',
+        'action' => 'RESET PASSWORD',
+        'warning' => 'If you didn\'t request a password reset, please ignore this email.',
+        'expire' => 'This password reset link will expire in 24 hours.',
     ],
 ];

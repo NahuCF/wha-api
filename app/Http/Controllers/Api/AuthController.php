@@ -323,4 +323,25 @@ class AuthController extends Controller
             ],
         ]);
     }
+
+    public function userTenants(Request $request)
+    {
+        $input = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $email = data_get($input, 'email');
+
+        $tenantIds = User::query()
+            ->where('email', $email)
+            ->with('tenant')
+            ->pluck('tenant_id')
+            ->toArray();
+
+        $tenants = Tenant::query()
+            ->whereIn('id', $tenantIds)
+            ->get();
+
+        return TenantResource::collection($tenants);
+    }
 }

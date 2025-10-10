@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MetaController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PhoneNumberController;
 use App\Http\Controllers\Api\RoleController;
@@ -41,6 +42,10 @@ Route::get('/up', fn () => response('', 200));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login-with-token', [AuthController::class, 'loginWithToken']);
+Route::get('/user-tenants', [AuthController::class, 'userTenants']);
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+Route::post('/validate-reset-token', [PasswordResetController::class, 'validateResetToken']);
 
 Route::post('/send-verify-account', [AuthController::class, 'sendVerifyAccount']);
 
@@ -52,10 +57,7 @@ Route::get('/timezones', [TimezoneController::class, 'index']);
 Route::get('/known-places', [KnownPlaceController::class, 'index']);
 Route::get('/industries', [IndustryController::class, 'index']);
 
-// Email preview routes (for testing - consider adding authentication in production)
 Route::prefix('email-preview')->group(function () {
-    Route::post('verify-account', [EmailPreviewController::class, 'previewVerifyAccount']);
-    Route::post('otp', [EmailPreviewController::class, 'previewOTP']);
     Route::get('browser/{type}', [EmailPreviewController::class, 'previewInBrowser']);
 });
 

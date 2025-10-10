@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SendUserCredentials extends Mailable
+class SendPasswordReset extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -16,10 +16,8 @@ class SendUserCredentials extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-        public string $companyName,
-        public string $email,
-        public string $password,
-        public string $link,
+        public string $name,
+        public string $resetLink,
         public string $language = 'en'
     ) {
         $this->locale($language);
@@ -31,7 +29,7 @@ class SendUserCredentials extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: __('emails.user_credentials.subject', ['app_name' => config('app.name', 'WHA-API')], $this->language),
+            subject: __('emails.password_reset.subject', [], $this->language),
         );
     }
 
@@ -41,12 +39,10 @@ class SendUserCredentials extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.user-credentials',
+            view: 'mail.password-reset',
             with: [
-                'companyName' => $this->companyName,
-                'email' => $this->email,
-                'password' => $this->password,
-                'link' => $this->link,
+                'name' => $this->name,
+                'resetLink' => $this->resetLink,
                 'locale' => $this->language,
             ]
         );

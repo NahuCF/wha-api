@@ -88,7 +88,7 @@ class UserController extends Controller
 
         // Generate random password
         $generatedPassword = Str::random(12);
-        
+
         $userData = [
             'name' => $name,
             'email' => $email,
@@ -99,7 +99,6 @@ class UserController extends Controller
         if (AppEnvironment::isLocal()) {
             $generatedPassword = 'password';
             $userData['password'] = bcrypt('password');
-            $userData['status'] = UserStatus::INVITATION_ACCEPTED->value;
         }
 
         $user = User::query()
@@ -121,10 +120,10 @@ class UserController extends Controller
         // Get tenant settings for locale
         $tenantSettings = TenantSettings::where('tenant_id', $tenant->id)->first();
         $locale = $tenantSettings->language ?? 'en';
-        
+
         // Send credentials email
-        $loginUrl = config('app.client_url') . '/login';
-        
+        $loginUrl = config('app.client_url').'/login';
+
         dispatch(new SendUserCredentialsEmail(
             toEmail: $email,
             companyName: $tenant->company_name,
