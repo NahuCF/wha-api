@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\ContactImportController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\CurrencyController;
+use App\Http\Controllers\Api\EmailPreviewController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
@@ -39,19 +40,24 @@ Route::get('/up', fn () => response('', 200));
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login-with-token', [AuthController::class, 'loginWithToken']);
 
 Route::post('/send-verify-account', [AuthController::class, 'sendVerifyAccount']);
-Route::post('/verify-account', [AuthController::class, 'verifyAccount']);
+
 Route::put('/store-basic-information/{tenant}', [AuthController::class, 'storeBasicInformation']);
-Route::post('/resend-otp', [AuthController::class, 'sendOtp']);
-Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
-Route::get('/tenant-user', [AuthController::class, 'tenantUser']);
 
 Route::get('/countries', [CountryController::class, 'index']);
 Route::get('/currencies', [CurrencyController::class, 'index']);
 Route::get('/timezones', [TimezoneController::class, 'index']);
 Route::get('/known-places', [KnownPlaceController::class, 'index']);
 Route::get('/industries', [IndustryController::class, 'index']);
+
+// Email preview routes (for testing - consider adding authentication in production)
+Route::prefix('email-preview')->group(function () {
+    Route::post('verify-account', [EmailPreviewController::class, 'previewVerifyAccount']);
+    Route::post('otp', [EmailPreviewController::class, 'previewOTP']);
+    Route::get('browser/{type}', [EmailPreviewController::class, 'previewInBrowser']);
+});
 
 Route::prefix('meta/callback')->group(function () {
     Route::get('/', [MetaController::class, 'handshake']);

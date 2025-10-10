@@ -15,9 +15,13 @@ class SendVerifyAccount extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct(public string $link)
-    {
-        //
+    public function __construct(
+        public string $link,
+        public string $name,
+        public string $language = 'en'
+    ) {
+        // Set the mailable's locale
+        $this->locale($language);
     }
 
     /**
@@ -26,7 +30,7 @@ class SendVerifyAccount extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Verify account',
+            subject: __('emails.verify_account.subject', [], $this->language),
         );
     }
 
@@ -37,7 +41,11 @@ class SendVerifyAccount extends Mailable
     {
         return new Content(
             view: 'mail.verify-account',
-            with: ['link' => $this->link]
+            with: [
+                'link' => $this->link,
+                'name' => $this->name,
+                'locale' => $this->language,
+            ]
         );
     }
 

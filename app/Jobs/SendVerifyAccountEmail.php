@@ -11,12 +11,21 @@ class SendVerifyAccountEmail implements ShouldQueue
 {
     use Queueable;
 
-    public $queue = 'emails';
-
-    public function __construct(public string $email, public string $link) {}
+    public function __construct(
+        public string $email,
+        public string $link,
+        public string $name,
+        public string $locale = 'en'
+    ) {
+        $this->onQueue('emails');
+    }
 
     public function handle(): void
     {
-        Mail::to($this->email)->send(new SendVerifyAccount($this->link));
+        Mail::to($this->email)->send(new SendVerifyAccount(
+            $this->link,
+            $this->name,
+            $this->locale
+        ));
     }
 }

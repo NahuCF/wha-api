@@ -7,19 +7,14 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
-use App\Jobs\SendOTPCode;
 use App\Jobs\SendVerifyAccountEmail;
 use App\Models\Tenant;
-use App\Models\TenantOtp;
 use App\Models\TenantSettings;
 use App\Models\TenantVerificationEmail;
 use App\Models\User;
-use App\Services\JobDispatcherService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Passport\ClientRepository;
@@ -74,6 +69,13 @@ class AuthController extends Controller
             ]);
         }
 
+        if (! $tenant->is_verified_email) {
+            return response()->json([
+                'message' => 'Tenant is not verified yet, please wait for the email to be verified.',
+                'message_code' => 'tenant_email_not_verified',
+            ]);
+        }
+
         $user->loadPermissionNames();
 
         $user->tokens()->delete();
@@ -100,6 +102,7 @@ class AuthController extends Controller
             'work_email' => ['required', 'email'],
             'company_name' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'language' => ['sometimes', 'string', 'in:en,es'],
         ]);
 
         $name = data_get($input, 'name');
@@ -108,6 +111,18 @@ class AuthController extends Controller
         $workEmail = data_get($input, 'work_email');
         $password = data_get($input, 'password');
         $companyName = data_get($input, 'company_name');
+        $language = data_get($input, 'language', 'en');
+
+        $isEmailInUse = User::query()
+            ->where('email', $workEmail)
+            ->exists();
+
+        if ($isEmailInUse) {
+            return response()->json([
+                'message' => 'Email already in use',
+                'message_code' => 'email_in_use',
+            ]);
+        }
 
         $tenant = Tenant::create([
             'company_name' => $companyName,
@@ -115,6 +130,7 @@ class AuthController extends Controller
 
         TenantSettings::create([
             'tenant_id' => $tenant->id,
+            'language' => $language,
         ]);
 
         $user = User::create([
@@ -148,13 +164,27 @@ class AuthController extends Controller
 
         $email = data_get($input, 'email');
 
-        $tenant = Tenant::query()
+        $user = User::query()
             ->where('email', $email)
-            ->where('verified_email', false)
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'User not found.',
+                'message_code' => 'user_not_found',
+            ], 422);
+        }
+
+        $tenant = Tenant::query()
+            ->where('id', $user->tenant_id)
+            ->where('is_verified_email', false)
             ->first();
 
         if (! $tenant) {
-            return response()->json([], 200);
+            return response()->json([
+                'message' => 'Tenant not found.',
+                'message_code' => 'tenant_not_found',
+            ], 422);
         }
 
         $latestEmail = TenantVerificationEmail::query()
@@ -162,11 +192,14 @@ class AuthController extends Controller
             ->latest('id')
             ->first();
 
+        // Prevent send too many emails
         if ($latestEmail && Carbon::parse($latestEmail->sent_at)->diffInSeconds(now()) < 60) {
             return response()->json([], 200);
         }
 
         $token = (string) Str::uuid();
+
+        $now = now();
 
         TenantVerificationEmail::query()
             ->create([
@@ -178,36 +211,15 @@ class AuthController extends Controller
 
         $link = config('app.client_url').'/verify-account?token='.$token;
 
-        JobDispatcherService::displayToFastQueue(
-            new SendVerifyAccountEmail(
-                email: $tenant->email,
-                link: $link
-            )
+        $tenantSettings = TenantSettings::where('tenant_id', $tenant->id)->first();
+        $locale = $tenantSettings->language ?? 'en';
+
+        new SendVerifyAccountEmail(
+            email: $user->email,
+            link: $link,
+            name: $user->name,
+            locale: $locale
         );
-
-        return response()->json([], 200);
-    }
-
-    public function verifyAccount(Request $request)
-    {
-        $input = $request->validate([
-            'token' => ['required'],
-        ]);
-
-        $token = data_get($input, 'token');
-
-        $tenant = TenantVerificationEmail::query()
-            ->where('token', $token)
-            ->first();
-
-        if ($tenant) {
-            Tenant::query()
-                ->where('id', $tenant->tenant_id)
-                ->update([
-
-                    'verified_email' => true,
-                ]);
-        }
 
         return response()->json([], 200);
     }
@@ -246,102 +258,71 @@ class AuthController extends Controller
         return TenantResource::make($tenant);
     }
 
-    public function sendOtp(Request $request)
-    {
-        $input = $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $email = data_get($input, 'email');
-
-        $tenant = Tenant::query()
-            ->where('email', $email)
-            ->first();
-
-        if (! $tenant) {
-            throw new \Exception('Tenant not found');
-        }
-
-        if ($tenant->verified_email) {
-            throw ValidationException::withMessages([
-                'is_verified' => 'Email already verified',
-            ]);
-        }
-
-        $otp = TenantOtp::query()
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if ($otp && $otp->sent_at->diffInSeconds(now()) < 60) {
-            throw ValidationException::withMessages([
-                'cannot_send' => 'Can not send OTP code again',
-            ]);
-        }
-
-        JobDispatcherService::dispatch(new SendOTPCode($tenant));
-
-        return response()->noContent();
-    }
-
-    public function verifyOtp(Request $request)
-    {
-        $input = $request->validate([
-            'email' => ['required', 'email'],
-            'code' => ['required', 'string'],
-        ]);
-
-        $email = data_get($input, 'email');
-        $code = data_get($input, 'code');
-
-        $tenant = Tenant::query()
-            ->where('email', $email)
-            ->first();
-
-        if (! $tenant) {
-            throw new \Exception('Tenant not found');
-        }
-
-        $otp = TenantOtp::query()
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if (! $otp) {
-            throw new \Exception('OTP code not found');
-        }
-
-        if ($otp->code !== $code) {
-            throw ValidationException::withMessages([
-                'code' => 'Invalid code',
-            ]);
-        }
-
-        if ($otp->expire_at->lessThan(now())) {
-            throw ValidationException::withMessages([
-                'code' => 'OTP code has expired',
-            ]);
-        }
-
-        $tenant->update([
-            'verified_email' => true,
-        ]);
-
-        return TenantResource::make($tenant);
-    }
-
-    public function tenantUser(Request $request)
-    {
-        Log::info([DB::connection()->getDatabaseName(), DB::getDefaultConnection()]);
-        $user = User::query()
-            ->where('email', Tenant::current()->email)
-            ->first();
-
-        return UserResource::make($user);
-    }
-
     public function logout(Request $request)
     {
         $request->user()->token()->revoke();
 
         return response()->noContent();
+    }
+
+    public function loginWithToken(Request $request)
+    {
+        $input = $request->validate([
+            'token' => ['required', 'string'],
+        ]);
+
+        $token = data_get($input, 'token');
+
+        $verificationRecord = TenantVerificationEmail::query()
+            ->where('token', $token)
+            ->first();
+
+        if (! $verificationRecord) {
+            return response()->json([
+                'message' => 'Invalid or expired token.',
+                'message_code' => 'invalid_token',
+            ], 422);
+        }
+
+        if (Carbon::parse($verificationRecord->sent_at)->diffInHours(now()) > 24) {
+            return response()->json([
+                'message' => 'Invalid or expired token.',
+                'message_code' => 'expired_token',
+            ], 422);
+        }
+
+        $tenant = Tenant::with('settings')->find($verificationRecord->tenant_id);
+
+        $user = User::query()
+            ->with('roles', 'defaultWaba')
+            ->where('tenant_id', $tenant->id)
+            ->whereHas('roles', function ($query) {
+                $query->where('name', SystemRole::OWNER->value);
+            })
+            ->first();
+
+        if (! $tenant->verified_email) {
+            $tenant->update([
+                'verified_email' => true,
+            ]);
+        }
+
+        $user->loadPermissionNames();
+
+        $user->tokens()->delete();
+        $accessToken = $user->createToken('tenant-token')->accessToken;
+
+        $user->update(['status' => UserStatus::ACTIVE->value]);
+
+        $user->load('business', 'wabas');
+
+        $verificationRecord->delete();
+
+        return TenantResource::make($tenant)->additional([
+            'meta' => [
+                'user' => UserResource::make($user),
+                'token' => $accessToken,
+            ],
+        ]);
     }
 }

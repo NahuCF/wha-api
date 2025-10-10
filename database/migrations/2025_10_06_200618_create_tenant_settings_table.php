@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignUlid('tenant_id')->unique();
 
             $table->string('timezone')->default('UTC');
+            $table->string('language', 5)->default('en');
             $table->json('working_days')->nullable();
             $table->json('special_days')->nullable();
             $table->json('closed_days')->nullable();

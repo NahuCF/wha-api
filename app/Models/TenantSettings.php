@@ -11,15 +11,6 @@ class TenantSettings extends Model
 {
     use HasUlids;
 
-    protected $fillable = [
-        'tenant_id',
-        'timezone',
-        'working_days',
-        'special_days',
-        'closed_days',
-        'away_message',
-    ];
-
     protected $casts = [
         'working_days' => 'array',
         'special_days' => 'array',

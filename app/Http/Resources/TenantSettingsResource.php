@@ -16,6 +16,7 @@ class TenantSettingsResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'language' => $this->language ?? 'en',
             'timezone' => $this->timezone,
             'working_days' => $this->working_days,
             'special_days' => $this->special_days,

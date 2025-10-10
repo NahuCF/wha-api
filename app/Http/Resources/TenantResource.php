@@ -18,6 +18,7 @@ class TenantResource extends JsonResource
             'id' => $this->id,
             'company_name' => $this->company_name,
             'is_profile_completed' => $this->is_profile_completed,
+            'is_verified_email' => $this->is_verified_email,
             'timezone' => $this->whenLoaded('settings', function () {
                 return $this->settings->timezone ?? 'UTC';
             }),

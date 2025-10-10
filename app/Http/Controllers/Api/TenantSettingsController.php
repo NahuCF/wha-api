@@ -25,6 +25,7 @@ class TenantSettingsController extends Controller
     public function update(Request $request)
     {
         $input = $request->validate([
+            'language' => ['sometimes', 'string', 'in:en,es'],
             'timezone' => ['sometimes', 'string'],
 
             'working_days' => ['nullable', 'array'],
