@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\SendOTPCode;
+use App\Mail\SendUserCredentials;
 use App\Mail\SendVerifyAccount;
 use Illuminate\Http\Request;
 
@@ -50,6 +51,9 @@ class EmailPreviewController extends Controller
             'link' => ['sometimes', 'string', 'url'],
             'code' => ['sometimes', 'string'],
             'name' => ['sometimes', 'string'],
+            'company_name' => ['sometimes', 'string'],
+            'email' => ['sometimes', 'string', 'email'],
+            'password' => ['sometimes', 'string'],
             'locale' => ['sometimes', 'string', 'in:en,es'],
         ]);
 
@@ -60,6 +64,13 @@ class EmailPreviewController extends Controller
             'verify-account' => new SendVerifyAccount(
                 $input['link'] ?? 'https://example.com/verify?token=sample-token',
                 $name,
+                $locale
+            ),
+            'user-credentials' => new SendUserCredentials(
+                $input['company_name'] ?? 'Example Company',
+                $input['email'] ?? 'john.doe@example.com',
+                $input['password'] ?? 'TempPass123!',
+                $input['link'] ?? 'https://example.com/login',
                 $locale
             ),
             'otp' => new SendOTPCode($input['code'] ?? '123456'),

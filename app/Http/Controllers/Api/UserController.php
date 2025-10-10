@@ -7,9 +7,12 @@ use App\Enums\UserStatus;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Jobs\SendUserCredentialsEmail;
+use App\Models\TenantSettings;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
@@ -83,13 +86,18 @@ class UserController extends Controller
             ]);
         }
 
+        // Generate random password
+        $generatedPassword = Str::random(12);
+        
         $userData = [
             'name' => $name,
             'email' => $email,
+            'password' => bcrypt($generatedPassword),
             'status' => UserStatus::INVITED->value,
         ];
 
         if (AppEnvironment::isLocal()) {
+            $generatedPassword = 'password';
             $userData['password'] = bcrypt('password');
             $userData['status'] = UserStatus::INVITATION_ACCEPTED->value;
         }
@@ -109,6 +117,22 @@ class UserController extends Controller
         $user->givePermissionTo(Role::findByName($role)->permissions);
 
         $user->load('roles', 'permissions', 'teams', 'wabas', 'defaultWaba');
+
+        // Get tenant settings for locale
+        $tenantSettings = TenantSettings::where('tenant_id', $tenant->id)->first();
+        $locale = $tenantSettings->language ?? 'en';
+        
+        // Send credentials email
+        $loginUrl = config('app.client_url') . '/login';
+        
+        dispatch(new SendUserCredentialsEmail(
+            toEmail: $email,
+            companyName: $tenant->company_name,
+            email: $email,
+            password: $generatedPassword,
+            link: $loginUrl,
+            locale: $locale
+        ));
 
         return UserResource::make($user->fresh());
     }
@@ -152,13 +176,7 @@ class UserController extends Controller
         $userData = [
             'name' => $name,
             'email' => $email,
-            'status' => UserStatus::INVITED->value,
         ];
-
-        if (AppEnvironment::isLocal()) {
-            $userData['password'] = bcrypt('password');
-            $userData['status'] = UserStatus::INVITATION_ACCEPTED->value;
-        }
 
         $user->update($userData);
 

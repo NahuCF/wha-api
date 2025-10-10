@@ -8,4 +8,12 @@ return [
         'action' => 'ACEPTAR INVITACIÓN',
         'unsubscribe' => 'Cancelar suscripción',
     ],
+    'user_credentials' => [
+        'subject' => 'Tu cuenta de :app_name ha sido creada',
+        'invited_to' => 'Has sido invitado a',
+        'email_label' => 'Correo:',
+        'password_label' => 'Contraseña:',
+        'login_text' => 'Puedes iniciar sesión haciendo clic',
+        'login_link' => 'aquí',
+    ],
 ];
