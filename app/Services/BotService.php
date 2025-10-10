@@ -23,7 +23,7 @@ class BotService
 {
     public function findBotForMessage(string $message, string $tenantId): ?Bot
     {
-        // Find bots that have an active flow 
+        // Find bots that have an active flow
         $bots = Bot::where('tenant_id', $tenantId)
             ->whereHas('activeFlow')
             ->where('trigger_type', BotTriggerType::KEYWORD)
@@ -759,7 +759,7 @@ class BotService
             $fieldValue = $variables[$botVariable->name] ?? null;
 
             $operator = \App\Enums\ComparisonOperator::tryFrom($operatorValue);
-            
+
             if (! $operator) {
                 continue;
             }

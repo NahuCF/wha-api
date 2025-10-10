@@ -104,6 +104,13 @@ class BotController extends Controller
 
     public function destroy(Bot $bot)
     {
+        if ($bot->hasActiveSessions()) {
+            return response()->json([
+                'message' => 'Cannot delete bot with active sessions',
+                'message_code' => 'bot_has_active_sessions',
+            ], 422);
+        }
+
         $bot->delete();
 
         return response()->noContent();
@@ -552,27 +559,23 @@ class BotController extends Controller
             ], 404);
         }
 
-        $activeFlowSessions = [];
-
-        // Get active session counts for each flow
-        foreach ($bot->flows as $flow) {
-            $activeCount = $flow->getActiveSessionsCount();
-            if ($activeCount > 0) {
-                $activeFlowSessions[] = [
-                    'flow_id' => $flow->id,
-                    'flow_name' => $flow->name,
-                    'active_sessions_count' => $activeCount,
-                ];
-            }
-        }
-
-        $totalActiveSessions = \App\Models\BotSession::where('bot_id', $bot->id)
+        $activeSessions = \App\Models\BotSession::where('bot_id', $bot->id)
             ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
-            ->count();
+            ->with(['conversation.waba'])
+            ->get();
+
+        $totalActiveSessions = $activeSessions->count();
+
+        $wabas = $activeSessions
+            ->pluck('conversation.waba.name')
+            ->filter()
+            ->unique()
+            ->values();
 
         return response()->json([
             'total_active_sessions' => $totalActiveSessions,
             'has_active_sessions' => $totalActiveSessions > 0,
+            'waba_names' => $wabas,
         ]);
     }
 }

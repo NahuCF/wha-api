@@ -40,14 +40,14 @@ class BotFlowController extends Controller
         $input = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'nodes' => ['required', 'array'],
-            'nodes.*.id' => ['required', 'string', 'distinct'],  
+            'nodes.*.id' => ['required', 'string', 'distinct'],
             'nodes.*.type' => ['required', Rule::in(BotNodeType::values())],
             'nodes.*.position' => ['required', 'array'],
             'nodes.*.position.x' => ['required', 'numeric'],
             'nodes.*.position.y' => ['required', 'numeric'],
             'nodes.*.data' => ['nullable', 'array'],
             'edges' => ['required', 'array'],
-            'edges.*.id' => ['required', 'string', 'distinct'], 
+            'edges.*.id' => ['required', 'string', 'distinct'],
             'edges.*.source' => ['required', 'string'],
             'edges.*.target' => ['required', 'string'],
             'edges.*.data' => ['nullable', 'array'],
@@ -62,20 +62,20 @@ class BotFlowController extends Controller
         // Validate that edge sources and targets reference existing nodes
         $nodeIds = collect($nodes)->pluck('id')->toArray();
         $invalidEdges = [];
-        
+
         foreach ($edges as $index => $edge) {
             $source = data_get($edge, 'source');
             $target = data_get($edge, 'target');
-            
-            if (!in_array($source, $nodeIds)) {
+
+            if (! in_array($source, $nodeIds)) {
                 $invalidEdges["edges.{$index}.source"] = ["Source node '{$source}' does not exist"];
             }
-            if (!in_array($target, $nodeIds)) {
+            if (! in_array($target, $nodeIds)) {
                 $invalidEdges["edges.{$index}.target"] = ["Target node '{$target}' does not exist"];
             }
         }
-        
-        if (!empty($invalidEdges)) {
+
+        if (! empty($invalidEdges)) {
             return response()->json([
                 'message' => 'The given data was invalid.',
                 'errors' => $invalidEdges,
@@ -106,17 +106,17 @@ class BotFlowController extends Controller
             // Validate user and bot IDs exist if provided
             $assignToUserId = data_get($node, 'data.assign_to_user_id');
             $assignToBotId = data_get($node, 'data.assign_to_bot_id');
-            
+
             // Check if user exists in the tenant context
-            if ($assignToUserId && !\App\Models\User::where('id', $assignToUserId)->exists()) {
+            if ($assignToUserId && ! \App\Models\User::where('id', $assignToUserId)->exists()) {
                 $assignToUserId = null;
             }
-            
+
             // Check if bot exists in the tenant context
-            if ($assignToBotId && !\App\Models\Bot::where('id', $assignToBotId)->exists()) {
+            if ($assignToBotId && ! \App\Models\Bot::where('id', $assignToBotId)->exists()) {
                 $assignToBotId = null;
             }
-            
+
             BotNode::create([
                 'bot_id' => $bot->id,
                 'bot_flow_id' => $flow->id,
@@ -214,14 +214,14 @@ class BotFlowController extends Controller
         $input = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
             'nodes' => ['sometimes', 'array'],
-            'nodes.*.id' => ['required', 'string', 'distinct'], 
+            'nodes.*.id' => ['required', 'string', 'distinct'],
             'nodes.*.type' => ['required', Rule::in(BotNodeType::values())],
             'nodes.*.position' => ['required', 'array'],
             'nodes.*.position.x' => ['required', 'numeric'],
             'nodes.*.position.y' => ['required', 'numeric'],
             'nodes.*.data' => ['nullable', 'array'],
             'edges' => ['sometimes', 'array'],
-            'edges.*.id' => ['required', 'string', 'distinct'],  
+            'edges.*.id' => ['required', 'string', 'distinct'],
             'edges.*.source' => ['required', 'string'],
             'edges.*.target' => ['required', 'string'],
             'edges.*.data' => ['nullable', 'array'],
@@ -236,20 +236,20 @@ class BotFlowController extends Controller
         if ($nodes && $edges) {
             $nodeIds = collect($nodes)->pluck('id')->toArray();
             $invalidEdges = [];
-            
+
             foreach ($edges as $index => $edge) {
                 $source = data_get($edge, 'source');
                 $target = data_get($edge, 'target');
-                
-                if (!in_array($source, $nodeIds)) {
+
+                if (! in_array($source, $nodeIds)) {
                     $invalidEdges["edges.{$index}.source"] = ["Source node '{$source}' does not exist"];
                 }
-                if (!in_array($target, $nodeIds)) {
+                if (! in_array($target, $nodeIds)) {
                     $invalidEdges["edges.{$index}.target"] = ["Target node '{$target}' does not exist"];
                 }
             }
-            
-            if (!empty($invalidEdges)) {
+
+            if (! empty($invalidEdges)) {
                 return response()->json([
                     'message' => 'The given data was invalid.',
                     'errors' => $invalidEdges,
@@ -287,7 +287,7 @@ class BotFlowController extends Controller
             ->where('id', '!=', $flow->id)
             ->exists();
 
-        if($flowWithName) {
+        if ($flowWithName) {
             return response()->json([
                 'message' => 'Flow name already exists',
                 'message_code' => 'flow_already_exists',
@@ -311,15 +311,15 @@ class BotFlowController extends Controller
         foreach ($nodes as $node) {
             $assignToUserId = data_get($node, 'data.assign_to_user_id');
             $assignToBotId = data_get($node, 'data.assign_to_bot_id');
-            
-            if ($assignToUserId && !\App\Models\User::where('id', $assignToUserId)->exists()) {
+
+            if ($assignToUserId && ! \App\Models\User::where('id', $assignToUserId)->exists()) {
                 $assignToUserId = null;
             }
-            
-            if ($assignToBotId && !\App\Models\Bot::where('id', $assignToBotId)->exists()) {
+
+            if ($assignToBotId && ! \App\Models\Bot::where('id', $assignToBotId)->exists()) {
                 $assignToBotId = null;
             }
-            
+
             BotNode::create([
                 'bot_id' => $bot->id,
                 'bot_flow_id' => $flow->id,
@@ -455,20 +455,20 @@ class BotFlowController extends Controller
 
         $edges = $flow->edges->map(function ($edge) {
             $data = [];
-            
+
             if ($edge->condition_type !== FlowConditionType::ALWAYS) {
                 $data['condition_type'] = $edge->condition_type->value;
             }
-            
+
             if ($edge->condition_value) {
                 $data['condition_value'] = $edge->condition_value;
             }
-            
+
             return [
                 'id' => $edge->edge_id,
                 'source' => $edge->source_node_id,
                 'target' => $edge->target_node_id,
-                'data' => !empty($data) ? $data : null,
+                'data' => ! empty($data) ? $data : null,
             ];
         });
 
@@ -482,7 +482,7 @@ class BotFlowController extends Controller
             'created_at' => $flow->created_at,
             'updated_at' => $flow->updated_at,
             'created_by' => $flow->createdBy,
-            'updated_by' => $flow->updatedBy 
+            'updated_by' => $flow->updatedBy,
         ]);
     }
 
