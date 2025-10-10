@@ -168,6 +168,7 @@ class ConversationService
         return [
             'unassigned' => $baseQuery->clone()
                 ->whereNull('user_id')
+                ->where('is_solved', false)
                 ->where(function ($q) use ($lastUnassignedView) {
                     $q->where('created_at', '>', $lastUnassignedView)
                         ->orWhere('last_message_at', '>', $lastUnassignedView);
