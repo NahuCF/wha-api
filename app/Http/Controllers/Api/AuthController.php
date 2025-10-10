@@ -199,8 +199,6 @@ class AuthController extends Controller
 
         $token = (string) Str::uuid();
 
-        $now = now();
-
         TenantVerificationEmail::query()
             ->create([
                 'id' => (string) Str::ulid(),

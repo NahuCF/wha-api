@@ -30,7 +30,7 @@ class SendVerifyAccount extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: __('emails.verify_account.subject', [], $this->language),
+            subject: __('emails.verify_account.subject', ['app_name' => config('app.name', 'WHA-API')], $this->language),
         );
     }
 
