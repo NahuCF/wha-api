@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('token');
             $table->timestamp('created_at')->nullable();
 
-            $table->unique('token'); // Token must be unique for direct lookup
+            $table->unique('token');
             $table->index(['email', 'tenant_id']);
         });
     }
