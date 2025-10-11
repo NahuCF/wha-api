@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SystemRole;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
@@ -17,6 +18,7 @@ class RoleController extends Controller
     {
         $roles = Role::withoutGlobalScopes()
             ->with('permissions', 'user')
+            ->where('name', '!=', SystemRole::OWNER->value)
             ->where(function ($query) {
                 $query->whereNull('tenant_id')
                     ->orWhere('tenant_id', tenant('id'));
