@@ -7,7 +7,8 @@ use App\Enums\UserStatus;
 use App\Helpers\AppEnvironment;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
-use App\Jobs\SendUserCredentialsEmail;
+use App\Jobs\SendUserInvitationEmail;
+use App\Models\PasswordSetToken;
 use App\Models\TenantSettings;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -86,18 +87,14 @@ class UserController extends Controller
             ]);
         }
 
-        // Generate random password
-        $generatedPassword = Str::random(12);
-
         $userData = [
             'name' => $name,
             'email' => $email,
-            'password' => bcrypt($generatedPassword),
+            'password' => null,
             'status' => UserStatus::INVITED->value,
         ];
 
         if (AppEnvironment::isLocal()) {
-            $generatedPassword = 'password';
             $userData['password'] = bcrypt('password');
         }
 
@@ -117,19 +114,30 @@ class UserController extends Controller
 
         $user->load('roles', 'permissions', 'teams', 'wabas', 'defaultWaba');
 
-        // Get tenant settings for locale
         $tenantSettings = TenantSettings::where('tenant_id', $tenant->id)->first();
         $locale = $tenantSettings->language ?? 'en';
 
-        // Send credentials email
-        $loginUrl = config('app.client_url').'/login';
+        $token = Str::random(60);
 
-        dispatch(new SendUserCredentialsEmail(
+        PasswordSetToken::where('email', $email)
+            ->where('tenant_id', $tenant->id)
+            ->delete();
+
+        PasswordSetToken::create([
+            'email' => $email,
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'token' => $token,
+            'created_at' => now(),
+        ]);
+
+        $setPasswordUrl = config('app.client_url').'/set-password?token='.$token;
+
+        dispatch(new SendUserInvitationEmail(
             toEmail: $email,
             companyName: $tenant->company_name,
-            email: $email,
-            password: $generatedPassword,
-            link: $loginUrl,
+            userName: $name,
+            setPasswordLink: $setPasswordUrl,
             locale: $locale
         ));
 
@@ -239,5 +247,66 @@ class UserController extends Controller
         $user->update(['status' => UserStatus::INVITATION_ACCEPTED->value]);
 
         return UserResource::make($user);
+    }
+
+    public function resendInvitation(User $user)
+    {
+        if ($user->tenant_id !== tenant('id')) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'This action is unauthorized.',
+            ], 403));
+        }
+
+        if ($user->status !== UserStatus::INVITED->value) {
+            return response()->json([
+                'message' => 'User is not invited.',
+                'message_code' => 'user_already_accepted_invitation',
+            ]);
+        }
+
+        $existingToken = PasswordSetToken::where('user_id', $user->id)
+            ->where('tenant_id', tenant('id'))
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($existingToken && $existingToken->created_at->diffInSeconds(now()) < 60) {
+            return response()->json([
+                'message' => 'Too many requests.',
+                'message_code' => 'too_many_requests',
+            ]);
+        }
+
+        PasswordSetToken::where('user_id', $user->id)
+            ->where('tenant_id', tenant('id'))
+            ->delete();
+
+        $token = Str::random(60);
+
+        PasswordSetToken::create([
+            'email' => $user->email,
+            'tenant_id' => tenant('id'),
+            'user_id' => $user->id,
+            'token' => $token,
+            'created_at' => now(),
+        ]);
+
+        $tenant = tenant();
+        $tenantSettings = TenantSettings::where('tenant_id', $tenant->id)->first();
+        $locale = $tenantSettings->language ?? 'en';
+
+        $setPasswordUrl = config('app.client_url').'/set-password?token='.$token;
+
+        dispatch(new SendUserInvitationEmail(
+            toEmail: $user->email,
+            companyName: $tenant->company_name,
+            userName: $user->name,
+            setPasswordLink: $setPasswordUrl,
+            locale: $locale
+        ));
+
+        return response()->json([
+            'message' => 'Invitation has been resent successfully.',
+            'message_code' => 'invitation_resent',
+        ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
 use App\Jobs\SendVerifyAccountEmail;
+use App\Models\PasswordSetToken;
 use App\Models\Tenant;
 use App\Models\TenantSettings;
 use App\Models\TenantVerificationEmail;
@@ -192,12 +193,11 @@ class AuthController extends Controller
             ->latest('id')
             ->first();
 
-        // Prevent send too many emails
         if ($latestEmail && Carbon::parse($latestEmail->sent_at)->diffInSeconds(now()) < 60) {
             return response()->json([], 200);
         }
 
-        $token = (string) Str::uuid();
+        $token = Str::random(60);
 
         TenantVerificationEmail::query()
             ->create([
@@ -299,9 +299,9 @@ class AuthController extends Controller
             })
             ->first();
 
-        if (! $tenant->verified_email) {
+        if (! $tenant->is_verified_email) {
             $tenant->update([
-                'verified_email' => true,
+                'is_verified_email' => true,
             ]);
         }
 
@@ -343,5 +343,90 @@ class AuthController extends Controller
             ->get();
 
         return TenantResource::collection($tenants);
+    }
+
+    public function setPassword(Request $request)
+    {
+        $input = $request->validate([
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8'],
+            'password_confirmation' => ['required', 'same:password'],
+        ]);
+
+        $passwordSetToken = PasswordSetToken::where('token', $input['token'])->first();
+
+        if (! $passwordSetToken) {
+            return response()->json([
+                'message' => 'Invalid token',
+                'message_code' => 'invalid_token',
+            ], 200);
+        }
+
+        $tenantId = $passwordSetToken->tenant_id;
+
+        $tenant = Tenant::find($tenantId);
+        if (! $tenant) {
+            throw ValidationException::withMessages([
+                'token' => ['Invalid token.'],
+            ]);
+        }
+
+        tenancy()->initialize($tenant);
+
+        $user = User::find($passwordSetToken->user_id);
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'email' => ['User not found.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => bcrypt($input['password']),
+            'status' => UserStatus::INVITATION_ACCEPTED->value,
+        ]);
+
+        $passwordSetToken->delete();
+
+        $user->load('roles', 'defaultWaba', 'business', 'wabas');
+        $user->loadPermissionNames();
+
+        $user->tokens()->delete();
+        $accessToken = $user->createToken('tenant-token')->accessToken;
+
+        return TenantResource::make($tenant)->additional([
+            'meta' => [
+                'user' => UserResource::make($user),
+                'token' => $accessToken,
+            ],
+        ]);
+    }
+
+    public function validateSetPasswordToken(Request $request)
+    {
+        $input = $request->validate([
+            'token' => ['required', 'string'],
+        ]);
+
+        $passwordSetToken = PasswordSetToken::where('token', $input['token'])->first();
+
+        if (! $passwordSetToken) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Invalid token.',
+            ], 200);
+        }
+
+        // No expiration check for invitation tokens - they don't expire
+
+        $user = User::where('id', $passwordSetToken->user_id)->first();
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'Token is valid.',
+            'email' => $passwordSetToken->email,
+            'tenant_id' => $passwordSetToken->tenant_id,
+            'user_name' => $user->name ?? '',
+        ], 200);
     }
 }

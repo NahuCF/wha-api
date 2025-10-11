@@ -46,6 +46,8 @@ Route::get('/user-tenants', [AuthController::class, 'userTenants']);
 Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 Route::post('/validate-reset-token', [PasswordResetController::class, 'validateResetToken']);
+Route::post('/set-password', [AuthController::class, 'setPassword']);
+Route::post('/validate-set-password-token', [AuthController::class, 'validateSetPasswordToken']);
 
 Route::post('/send-verify-account', [AuthController::class, 'sendVerifyAccount']);
 
@@ -120,6 +122,7 @@ Route::group(['middleware' => [
 
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('users/{id}/restore', [UserController::class, 'restore']);
+    Route::post('users/{user}/resend-invitation', [UserController::class, 'resendInvitation']);
     Route::apiResource('users', UserController::class);
 
     Route::get('phone-numbers', [PhoneNumberController::class, 'index']);

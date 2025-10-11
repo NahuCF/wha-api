@@ -8,14 +8,13 @@ return [
         'action' => 'ACEPTAR INVITACIÓN',
         'unsubscribe' => 'Cancelar suscripción',
     ],
-    'user_credentials' => [
-        'subject' => 'Tu cuenta de :app_name ha sido creada',
-        'invited_to' => 'Has sido invitado a',
-        'accept_invite' => 'ACEPTAR INVITACIÓN',
-        'email_label' => 'Correo:',
-        'password_label' => 'Contraseña:',
-        'login_text' => 'Puedes iniciar sesión haciendo clic',
-        'login_link' => 'aquí',
+    'user_invitation' => [
+        'subject' => 'Has sido invitado a :app_name',
+        'greeting' => 'Hola :name,',
+        'invited_to' => 'Has sido invitado a unirte a',
+        'set_password_text' => 'Para comenzar, configura tu contraseña haciendo clic en el botón de abajo.',
+        'accept_button' => 'ACEPTAR INVITACIÓN',
+        'support_note' => 'Si necesitas ayuda, contacta a tu administrador.',
     ],
     'password_reset' => [
         'subject' => 'Restablecer tu contraseña',

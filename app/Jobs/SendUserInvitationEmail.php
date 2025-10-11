@@ -2,21 +2,20 @@
 
 namespace App\Jobs;
 
-use App\Mail\SendUserCredentials;
+use App\Mail\SendUserInvitation;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
 
-class SendUserCredentialsEmail implements ShouldQueue
+class SendUserInvitationEmail implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
         public string $toEmail,
         public string $companyName,
-        public string $email,
-        public string $password,
-        public string $link,
+        public string $userName,
+        public string $setPasswordLink,
         public string $locale = 'en'
     ) {
         $this->onQueue('emails');
@@ -24,11 +23,10 @@ class SendUserCredentialsEmail implements ShouldQueue
 
     public function handle(): void
     {
-        Mail::to($this->toEmail)->send(new SendUserCredentials(
+        Mail::to($this->toEmail)->send(new SendUserInvitation(
             $this->companyName,
-            $this->email,
-            $this->password,
-            $this->link,
+            $this->userName,
+            $this->setPasswordLink,
             $this->locale
         ));
     }

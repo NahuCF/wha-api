@@ -8,14 +8,13 @@ return [
         'action' => 'ACCEPT INVITATION',
         'unsubscribe' => 'Unsubscribe',
     ],
-    'user_credentials' => [
-        'subject' => 'Your :app_name Account Has Been Created',
-        'invited_to' => 'You have been invited to',
-        'accept_invite' => 'ACCEPT INVITE',
-        'email_label' => 'Email:',
-        'password_label' => 'Password:',
-        'login_text' => 'You can Log In by clicking',
-        'login_link' => 'here',
+    'user_invitation' => [
+        'subject' => 'You\'re Invited to :app_name',
+        'greeting' => 'Hi :name,',
+        'invited_to' => 'You have been invited to join',
+        'set_password_text' => 'To get started, please set up your password by clicking the button below.',
+        'accept_button' => 'ACCEPT INVITATION',
+        'support_note' => 'If you need assistance, please contact your administrator.',
     ],
     'password_reset' => [
         'subject' => 'Reset Your Password',

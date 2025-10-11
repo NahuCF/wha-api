@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('tenant_verification_emails', function (Blueprint $table) {
             $table->ulid('id');
             $table->foreignUlid('tenant_id');
-            $table->uuid('token')->unique();
+            $table->string('token')->unique();
             $table->timestamp('sent_at');
             $table->timestamps();
         });
