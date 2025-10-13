@@ -22,6 +22,7 @@ class Bot extends Model
         'timeout_action' => BotAction::class,
         'no_match_action' => BotAction::class,
         'end_conversation_action' => BotAction::class,
+        'about_to_end_action' => BotAction::class,
     ];
 
     public function flows(): HasMany
@@ -77,6 +78,16 @@ class Bot extends Model
     public function endConversationAssignUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'end_conversation_assign_user_id');
+    }
+
+    public function aboutToEndAssignBot(): BelongsTo
+    {
+        return $this->belongsTo(Bot::class, 'about_to_end_assign_bot_id');
+    }
+
+    public function aboutToEndAssignUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'about_to_end_assign_user_id');
     }
 
     public function matchesKeyword(string $message): bool

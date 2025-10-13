@@ -644,6 +644,37 @@ class BotService
         );
     }
 
+    public function handleAboutToEnd(BotSession $session): void
+    {
+        $bot = $session->bot;
+        $conversation = $session->conversation;
+
+        // Only proceed if session is still active/waiting
+        if (!in_array($session->status, [BotSessionStatus::ACTIVE, BotSessionStatus::WAITING])) {
+            return;
+        }
+
+        // Send about to end message if configured
+        if ($bot->about_to_end_message) {
+            $this->sendMessage($conversation, $bot->about_to_end_message);
+        }
+
+        // Execute about to end action if configured and not MESSAGE
+        if ($bot->about_to_end_action && $bot->about_to_end_action !== BotAction::MESSAGE) {
+            $this->executeAction(
+                $conversation,
+                $bot->about_to_end_action,
+                $bot->about_to_end_assign_user_id,
+                $bot->about_to_end_assign_bot_id
+            );
+            
+            // If action assigns to user or bot (not NO_ACTION), end the session
+            if (!in_array($bot->about_to_end_action, [BotAction::NO_ACTION])) {
+                $session->markAsCompleted();
+            }
+        }
+    }
+
     private function handleEndConversation(BotSession $session): void
     {
         $bot = $session->bot;

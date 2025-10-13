@@ -89,6 +89,7 @@ return [
         'redis:broadcasts' => 10,
         'redis:imports' => 30,
         'redis:heavy' => 60,
+        'redis:bot-warnings' => 3,
         'redis:default' => 15,
     ],
 
@@ -228,6 +229,22 @@ return [
                 'nice' => -5,
             ],
 
+            'supervisor-bot-warnings' => [
+                'connection' => 'redis',
+                'queue' => ['bot-warnings'],
+                'balance' => 'auto',
+                'minProcesses' => 2,
+                'maxProcesses' => 6,
+                'balanceMaxShift' => 2,
+                'balanceCooldown' => 2,
+                'autoScalingStrategy' => 'size',
+                'memory' => 128,
+                'tries' => 3,
+                'timeout' => 30,
+                'nice' => -8,
+                'sleep' => 1,
+            ],
+
             'supervisor-broadcasts' => [
                 'connection' => 'redis',
                 'queue' => ['broadcasts'],
@@ -292,6 +309,16 @@ return [
                 'memory' => 256,
                 'tries' => 3,
                 'timeout' => 60,
+            ],
+
+            'supervisor-bot-warnings' => [
+                'connection' => 'redis',
+                'queue' => ['bot-warnings'],
+                'balance' => 'simple',
+                'processes' => 2,
+                'memory' => 128,
+                'tries' => 3,
+                'timeout' => 30,
             ],
 
             'supervisor-messages' => [

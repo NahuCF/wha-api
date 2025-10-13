@@ -9,7 +9,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Active chat sessions tracking state and variables
         Schema::create('bot_sessions', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('tenant_id')->index();
@@ -25,9 +24,11 @@ return new class extends Migration
 
             $table->timestamp('last_interaction_at')->nullable();
             $table->timestamp('timeout_at')->nullable();
+            $table->timestamp('warning_sent_at')->nullable();
             $table->timestamps();
 
             $table->index(['tenant_id', 'status']);
+            $table->index(['status', 'warning_sent_at', 'timeout_at']);
             $table->index('timeout_at');
         });
     }

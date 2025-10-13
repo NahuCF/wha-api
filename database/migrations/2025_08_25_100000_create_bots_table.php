@@ -46,6 +46,14 @@ return new class extends Migration
             $table->ulid('end_conversation_assign_bot_id')->nullable();
             $table->foreignUlid('end_conversation_assign_user_id')->nullable()->constrained('users')->nullOnDelete();
 
+            // Conversation about to end warning
+            $table->integer('about_to_end_time_minutes')->nullable()->default(2);
+            $table->enum('about_to_end_action', BotAction::values())->nullable();
+            $table->text('about_to_end_message')->nullable();
+            $table->ulid('about_to_end_assign_bot_id')->nullable();
+            $table->foreignUlid('about_to_end_assign_user_id')->nullable()->constrained('users')->nullOnDelete();
+
+
             $table->json('viewport')->nullable();
 
             $table->timestamps();
@@ -55,6 +63,7 @@ return new class extends Migration
             $table->foreign('timeout_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('no_match_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
             $table->foreign('end_conversation_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
+            $table->foreign('about_to_end_assign_bot_id')->references('id')->on('bots')->nullOnDelete();
 
             $table->index('trigger_type');
         });

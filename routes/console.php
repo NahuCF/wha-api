@@ -14,8 +14,9 @@ Schedule::command('broadcasts:process-scheduled')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Clean up old bot versions daily
-Schedule::command('bot:cleanup-versions --days=30')
-    ->daily()
-    ->at('02:00')
-    ->withoutOverlapping();
+
+// Check for bot sessions about to expire and send warnings
+Schedule::command('bot:check-warnings')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
