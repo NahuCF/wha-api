@@ -120,7 +120,7 @@ class BotService
     {
         // Check if session has timed out
         if ($session->isExpired()) {
-            $this->handleTimeout($session);
+            $this->handleAbandoned($session);
 
             return;
         }
@@ -202,7 +202,7 @@ class BotService
     {
         // Check if session has expired before executing
         if ($session->isExpired()) {
-            $this->handleTimeout($session);
+            $this->handleAbandoned($session);
 
             return;
         }
@@ -624,18 +624,18 @@ class BotService
         }
     }
 
-    private function handleTimeout(BotSession $session): void
+    private function handleAbandoned(BotSession $session): void
     {
-        $session->markAsTimeout();
+        $session->markAsAbandoned();
         $bot = $session->bot;
         $conversation = $session->conversation;
 
-        // Send timeout message if configured
+        // Send abandoned message if configured
         if ($bot->timeout_message) {
             $this->sendMessage($conversation, $bot->timeout_message);
         }
 
-        // Execute timeout action
+        // Execute abandoned action
         $this->executeAction(
             $conversation,
             $bot->timeout_action,
@@ -650,7 +650,7 @@ class BotService
         $conversation = $session->conversation;
 
         // Only proceed if session is still active/waiting
-        if (!in_array($session->status, [BotSessionStatus::ACTIVE, BotSessionStatus::WAITING])) {
+        if (! in_array($session->status, [BotSessionStatus::ACTIVE, BotSessionStatus::WAITING])) {
             return;
         }
 
@@ -667,9 +667,9 @@ class BotService
                 $bot->about_to_end_assign_user_id,
                 $bot->about_to_end_assign_bot_id
             );
-            
+
             // If action assigns to user or bot (not NO_ACTION), end the session
-            if (!in_array($bot->about_to_end_action, [BotAction::NO_ACTION])) {
+            if (! in_array($bot->about_to_end_action, [BotAction::NO_ACTION])) {
                 $session->markAsCompleted();
             }
         }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BotAnalyticsController;
 use App\Http\Controllers\Api\BotController;
 use App\Http\Controllers\Api\BotFlowController;
 use App\Http\Controllers\Api\BotVariableController;
@@ -155,8 +156,6 @@ Route::group(['middleware' => [
     });
 
     Route::prefix('bots')->group(function () {
-        Route::get('settings', [BotController::class, 'getSettings']);
-        Route::put('settings', [BotController::class, 'updateSettings']);
         Route::put('{bot}/configuration', [BotController::class, 'updateConfiguration']);
         Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
@@ -164,12 +163,15 @@ Route::group(['middleware' => [
         Route::get('{bot}/active-sessions', [BotController::class, 'checkActiveSessions']);
         Route::delete('{bot}', [BotController::class, 'destroy']);
 
-        Route::get('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'index']);
-        Route::post('{bot}/flows', [\App\Http\Controllers\Api\BotFlowController::class, 'store']);
-        Route::put('{bot}/flows/{flow}', [\App\Http\Controllers\Api\BotFlowController::class, 'update']);
+        Route::get('{bot}/flows', [BotFlowController::class, 'index']);
+        Route::post('{bot}/flows', [BotFlowController::class, 'store']);
+        Route::put('{bot}/flows/{flow}', [BotFlowController::class, 'update']);
         Route::get('{bot}/flows/{flow}/data', [BotFlowController::class, 'flowData']);
         Route::delete('{bot}/flows/{flow}', [BotFlowController::class, 'destroy']);
         Route::put('{bot}/flows/{flow}/status', [BotFlowController::class, 'changeStatus']);
+
+        Route::get('{bot}/analytics', [BotAnalyticsController::class, 'getAnalytics']);
+        Route::get('{bot}/analytics/flow', [BotAnalyticsController::class, 'getFlowAnalytics']);
     });
     Route::apiResource('bots', BotController::class);
 

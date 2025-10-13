@@ -7,7 +7,7 @@ enum BotSessionStatus: string
     case ACTIVE = 'active';
     case WAITING = 'waiting';
     case COMPLETED = 'completed';
-    case TIMEOUT = 'timeout';
+    case ABANDONED = 'abandoned';
 
     public static function values(): array
     {

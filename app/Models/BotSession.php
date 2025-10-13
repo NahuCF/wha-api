@@ -121,7 +121,7 @@ class BotSession extends Model
         ]);
     }
 
-    public function markAsTimeout(): void
+    public function markAsAbandoned(): void
     {
         if ($this->status === BotSessionStatus::ACTIVE || $this->status === BotSessionStatus::WAITING) {
             // Update both bot and flow analytics
@@ -132,7 +132,7 @@ class BotSession extends Model
         }
 
         $this->update([
-            'status' => BotSessionStatus::TIMEOUT,
+            'status' => BotSessionStatus::ABANDONED,
         ]);
     }
 }

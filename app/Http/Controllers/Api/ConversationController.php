@@ -76,8 +76,7 @@ class ConversationController extends Controller
                 ->first();
 
             if ($activeSession) {
-                $activeSession->bot->increment('abandoned_sessions');
-                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+                $activeSession->markAsAbandoned();
             }
         } else {
             $conversation->is_solved = false;
@@ -171,8 +170,7 @@ class ConversationController extends Controller
                 ->first();
 
             if ($activeSession) {
-                $activeSession->bot->increment('abandoned_sessions');
-                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+                $activeSession->markAsAbandoned();
             }
 
             $activityType = ConversationActivityType::ASSIGNED;
@@ -194,8 +192,7 @@ class ConversationController extends Controller
                 ->first();
 
             if ($activeSession) {
-                $activeSession->bot->increment('abandoned_sessions');
-                $activeSession->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
+                $activeSession->markAsAbandoned();
             }
 
             $activityType = ConversationActivityType::UNASSIGNED;

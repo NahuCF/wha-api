@@ -131,7 +131,7 @@ class BotController extends Controller
     public function updateConfiguration(Request $request, Bot $bot)
     {
         $input = $request->validate([
-            'is_active' => ['boolean'],
+            'name' => ['required', 'string'],
             'wait_time_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
             'timeout_action' => ['nullable', Rule::in(BotAction::values())],
             'timeout_assign_bot_id' => ['nullable', 'exists:bots,id'],
@@ -145,9 +145,14 @@ class BotController extends Controller
             'end_conversation_message' => ['nullable', 'string'],
             'end_conversation_assign_bot_id' => ['nullable', 'exists:bots,id'],
             'end_conversation_assign_user_id' => ['nullable', 'exists:users,id'],
+            'about_to_end_time_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
+            'about_to_end_action' => ['nullable', Rule::in(BotAction::values())],
+            'about_to_end_message' => ['nullable', 'string'],
+            'about_to_end_assign_bot_id' => ['nullable', 'exists:bots,id'],
+            'about_to_end_assign_user_id' => ['nullable', 'exists:users,id'],
         ]);
 
-        $isActive = data_get($input, 'is_active');
+        $name = data_get($input, 'name');
         $waitTimeMinutes = data_get($input, 'wait_time_minutes');
         $timeoutAction = data_get($input, 'timeout_action');
         $timeoutAssignBotId = data_get($input, 'timeout_assign_bot_id');
@@ -161,22 +166,43 @@ class BotController extends Controller
         $endConversationMessage = data_get($input, 'end_conversation_message');
         $endConversationAssignBotId = data_get($input, 'end_conversation_assign_bot_id');
         $endConversationAssignUserId = data_get($input, 'end_conversation_assign_user_id');
+        $aboutToEndTimeMinutes = data_get($input, 'about_to_end_time_minutes');
+        $aboutToEndAction = data_get($input, 'about_to_end_action');
+        $aboutToEndMessage = data_get($input, 'about_to_end_message');
+        $aboutToEndAssignBotId = data_get($input, 'about_to_end_assign_bot_id');
+        $aboutToEndAssignUserId = data_get($input, 'about_to_end_assign_user_id');
+
+        $botWithNameExists = Bot::query()
+            ->where('name', $name)
+            ->where('id', '!=', $bot->id)
+            ->exists();
+
+        if ($botWithNameExists) {
+            return response()->json([
+                'message' => 'Bot with this name already exists',
+                'message_code' => 'bot_already_exists',
+            ], 422);
+        }
 
         $bot->update([
-            'is_active' => $isActive,
             'wait_time_minutes' => $waitTimeMinutes,
             'timeout_action' => $timeoutAction,
-            'timeout_assign_bot_id' => $timeoutAssignBotId,
-            'timeout_assign_user_id' => $timeoutAssignUserId,
-            'timeout_message' => $timeoutMessage,
-            'no_match_message' => $noMatchMessage,
+            'timeout_assign_bot_id' => $timeoutAction === BotAction::NO_ACTION->value ? null : $timeoutAssignBotId,
+            'timeout_assign_user_id' => $timeoutAction === BotAction::NO_ACTION->value ? null : $timeoutAssignUserId,
+            'timeout_message' => $timeoutAction === BotAction::NO_ACTION->value ? null : $timeoutMessage,
+            'no_match_message' => $noMatchAction === BotAction::NO_ACTION->value ? null : $noMatchMessage,
             'no_match_action' => $noMatchAction,
-            'no_match_assign_bot_id' => $noMatchAssignBotId,
-            'no_match_assign_user_id' => $noMatchAssignUserId,
+            'no_match_assign_bot_id' => $noMatchAction === BotAction::NO_ACTION->value ? null : $noMatchAssignBotId,
+            'no_match_assign_user_id' => $noMatchAction === BotAction::NO_ACTION->value ? null : $noMatchAssignUserId,
             'end_conversation_action' => $endConversationAction,
-            'end_conversation_message' => $endConversationMessage,
-            'end_conversation_assign_bot_id' => $endConversationAssignBotId,
-            'end_conversation_assign_user_id' => $endConversationAssignUserId,
+            'end_conversation_message' => $endConversationAction === BotAction::NO_ACTION->value ? null : $endConversationMessage,
+            'end_conversation_assign_bot_id' => $endConversationAction === BotAction::NO_ACTION->value ? null : $endConversationAssignBotId,
+            'end_conversation_assign_user_id' => $endConversationAction === BotAction::NO_ACTION->value ? null : $endConversationAssignUserId,
+            'about_to_end_time_minutes' => $aboutToEndTimeMinutes,
+            'about_to_end_action' => $aboutToEndAction,
+            'about_to_end_message' => $aboutToEndAction === BotAction::NO_ACTION->value ? null : $aboutToEndMessage,
+            'about_to_end_assign_bot_id' => $aboutToEndAction === BotAction::NO_ACTION->value ? null : $aboutToEndAssignBotId,
+            'about_to_end_assign_user_id' => $aboutToEndAction === BotAction::NO_ACTION->value ? null : $aboutToEndAssignUserId,
         ]);
 
         return new BotResource($bot->load(['flows']));

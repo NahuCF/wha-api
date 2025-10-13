@@ -14,7 +14,6 @@ Schedule::command('broadcasts:process-scheduled')
     ->withoutOverlapping()
     ->runInBackground();
 
-
 // Check for bot sessions about to expire and send warnings
 Schedule::command('bot:check-warnings')
     ->everyMinute()

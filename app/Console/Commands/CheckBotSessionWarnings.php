@@ -6,7 +6,6 @@ use App\Enums\BotSessionStatus;
 use App\Jobs\ProcessBotSessionWarning;
 use App\Models\BotSession;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CheckBotSessionWarnings extends Command
 {
@@ -38,11 +37,11 @@ class CheckBotSessionWarnings extends Command
             ->whereRaw('bot_sessions.timeout_at <= NOW() + INTERVAL \'1 minute\' * bots.about_to_end_time_minutes')
             ->whereRaw('bot_sessions.timeout_at > NOW()')
             ->select('bot_sessions.id', 'bot_sessions.tenant_id')
-            ->limit(500) 
+            ->limit(500)
             ->get();
 
         $count = $sessionsToWarn->count();
-        
+
         if ($count === 0) {
             return;
         }

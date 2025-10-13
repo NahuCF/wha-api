@@ -15,10 +15,8 @@ class ProcessBotSessionWarning implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-
     public $tries = 3;
 
-    
     public $maxExceptions = 3;
 
     public function __construct(
@@ -40,11 +38,11 @@ class ProcessBotSessionWarning implements ShouldQueue
                 ->lockForUpdate()
                 ->first();
 
-            if (!$session) {
+            if (! $session) {
                 return;
             }
 
-            if (!in_array($session->status->value ?? $session->status, ['active', 'waiting'])) {
+            if (! in_array($session->status->value ?? $session->status, ['active', 'waiting'])) {
                 return;
             }
 
@@ -52,12 +50,10 @@ class ProcessBotSessionWarning implements ShouldQueue
                 return;
             }
 
-            $botService = new BotService();
+            $botService = new BotService;
             $botService->handleAboutToEnd($session);
 
             $session->update(['warning_sent_at' => now()]);
         });
     }
-
-
 }
