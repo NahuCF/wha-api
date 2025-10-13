@@ -53,7 +53,6 @@ return new class extends Migration
             $table->ulid('about_to_end_assign_bot_id')->nullable();
             $table->foreignUlid('about_to_end_assign_user_id')->nullable()->constrained('users')->nullOnDelete();
 
-
             $table->json('viewport')->nullable();
 
             $table->timestamps();
