@@ -152,11 +152,30 @@ class BotService
             $nextNode = $currentNode->getNextNode($message->content, $session->variables ?? []);
 
             if (! $nextNode && ! $useFallback) {
-                // No match and no fallback - send no match message
-                if ($session->bot->no_match_message) {
-                    $this->sendMessage($session->conversation, $session->bot->no_match_message);
+                $bot = $session->bot;
+
+                if ($bot->no_match_message) {
+                    $this->sendMessage($session->conversation, $bot->no_match_message);
                 }
-                // Stay on current node
+
+                // Execute no match action if configured and not MESSAGE
+                if ($bot->no_match_action && $bot->no_match_action !== BotAction::MESSAGE) {
+                    $this->executeAction(
+                        $session->conversation,
+                        $bot->no_match_action,
+                        $bot->no_match_assign_user_id,
+                        $bot->no_match_assign_bot_id
+                    );
+
+                    // If action is not NO_ACTION, end the session
+                    if ($bot->no_match_action !== BotAction::NO_ACTION) {
+                        $session->markAsCompleted();
+
+                        return;
+                    }
+                }
+
+                // Stay on current node if NO_ACTION, MESSAGE or no action configured
                 $session->markAsWaiting();
 
                 return;
@@ -653,6 +672,9 @@ class BotService
         }
 
         switch ($action) {
+            case BotAction::NO_ACTION:
+                break;
+
             case BotAction::UNASSIGN:
                 $conversation->update(['assigned_user_id' => null]);
                 break;
@@ -671,6 +693,9 @@ class BotService
                         $this->startBotSession($bot, $conversation, $contact);
                     }
                 }
+                break;
+
+            case BotAction::MESSAGE:
                 break;
         }
     }

@@ -32,7 +32,12 @@ class BotFlowController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return BotFlowResource::collection($flows);
+        return BotFlowResource::collection($flows)
+            ->additional([
+                'meta' => [
+                    'has_active_version' => $bot->activeFlow()->exists(),
+                ],
+            ]);
     }
 
     public function store(Request $request, Bot $bot)
@@ -175,32 +180,29 @@ class BotFlowController extends Controller
         return new BotFlowResource($flow);
     }
 
-    public function activate(Bot $bot, BotFlow $flow)
+    public function changeStatus(Request $request, Bot $bot, BotFlow $flow)
     {
+        $input = $request->validate([
+            'status' => ['required', Rule::in(FlowStatus::values())],
+        ]);
+
         if ($flow->bot_id !== $bot->id) {
             return response()->json(['message' => 'Flow not found'], 404);
         }
 
-        if ($flow->nodes()->count() === 0) {
-            return response()->json([
-                'message' => 'Flow must have at least one node to be activated',
-                'message_code' => 'flow_has_no_nodes',
-            ], 422);
+        $status = FlowStatus::from($input['status']);
+
+        if ($status === FlowStatus::ACTIVE) {
+            if ($flow->nodes()->count() === 0) {
+                return response()->json([
+                    'message' => 'Flow must have at least one node to be activated',
+                    'message_code' => 'flow_has_no_nodes',
+                ], 422);
+            }
+            $flow->activate();
+        } elseif ($status === FlowStatus::DRAFT) {
+            $flow->deactivate();
         }
-
-        $flow->activate();
-
-        return new BotFlowResource($flow->load(['createdBy', 'updatedBy']));
-    }
-
-    public function deactivate(Bot $bot, BotFlow $flow)
-    {
-        if ($flow->bot_id !== $bot->id) {
-            return response()->json(['message' => 'Flow not found'], 404);
-        }
-
-        // Use the model's deactivate method
-        $flow->deactivate();
 
         return new BotFlowResource($flow->load(['createdBy', 'updatedBy']));
     }

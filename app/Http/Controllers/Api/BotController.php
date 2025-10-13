@@ -65,13 +65,24 @@ class BotController extends Controller
             ], 422);
         }
 
+        $tenantSettings = \App\Models\TenantSettings::where('tenant_id', tenant('id'))->first();
+        $language = $tenantSettings?->language ?? 'en';
+
+        $defaultTimeoutMessages = [
+            'es' => 'Estamos esperando tu respuesta',
+            'en' => 'We are waiting for your response',
+        ];
+
+        $timeoutMessage = $defaultTimeoutMessages[$language] ?? $defaultTimeoutMessages['en'];
+
         $bot = Bot::create([
             'name' => $name,
             'user_id' => $user->id,
             'updated_user_id' => $user->id,
             'trigger_type' => $triggerType,
             'keywords' => $keywords,
-            'status' => \App\Enums\BotStatus::DRAFT,
+            'timeout_action' => BotAction::MESSAGE,
+            'timeout_message' => $timeoutMessage,
         ]);
 
         $bot->load(['createdBy', 'updatedBy']);
@@ -461,7 +472,6 @@ class BotController extends Controller
         $newBot->name = $newName;
         $newBot->user_id = $user->id;
         $newBot->updated_user_id = $user->id;
-        $newBot->status = \App\Enums\BotStatus::DRAFT; // Start with draft status
         $newBot->created_at = now();
         $newBot->updated_at = now();
         $newBot->save();
@@ -504,51 +514,6 @@ class BotController extends Controller
             'message' => 'Bot cloned successfully',
             'data' => new BotResource($newBot),
         ], 201);
-    }
-
-    public function activate(Bot $bot)
-    {
-        if ($bot->tenant_id !== tenant('id')) {
-            return response()->json([
-                'message' => 'Bot not found',
-                'message_code' => 'bot_not_found',
-            ], 404);
-        }
-
-        if (collect($bot->nodes)->isEmpty()) {
-            return response()->json([
-                'message' => 'Bot must have at least one node to be activated',
-                'message_code' => 'bot_has_no_nodes',
-            ], 422);
-        }
-
-        $bot->status = \App\Enums\BotStatus::ACTIVE;
-        $bot->save();
-
-        $bot->load(['createdBy', 'updatedBy']);
-
-        return BotResource::make($bot);
-    }
-
-    public function deactivate(Bot $bot)
-    {
-        if ($bot->tenant_id !== tenant('id')) {
-            return response()->json([
-                'message' => 'Bot not found',
-                'message_code' => 'bot_not_found',
-            ], 404);
-        }
-
-        $bot->status = \App\Enums\BotStatus::DRAFT;
-        $bot->save();
-
-        \App\Models\BotSession::where('bot_id', $bot->id)
-            ->whereIn('status', [\App\Enums\BotSessionStatus::ACTIVE, \App\Enums\BotSessionStatus::WAITING])
-            ->update(['status' => \App\Enums\BotSessionStatus::COMPLETED]);
-
-        $bot->load(['createdBy', 'updatedBy']);
-
-        return BotResource::make($bot);
     }
 
     public function checkActiveSessions(Bot $bot)

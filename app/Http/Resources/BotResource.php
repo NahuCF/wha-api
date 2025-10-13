@@ -11,7 +11,6 @@ class BotResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'status' => $this->status,
             'trigger_type' => $this->trigger_type,
             'keywords' => $this->keywords,
             'wait_time_minutes' => $this->wait_time_minutes,

@@ -22,10 +22,6 @@ class Bot extends Model
         'timeout_action' => BotAction::class,
         'no_match_action' => BotAction::class,
         'end_conversation_action' => BotAction::class,
-        // Bot-specific default se
-        'default_no_match_action' => BotAction::class,
-        'default_timeout_action' => BotAction::class,
-        'default_expire_action' => BotAction::class,
     ];
 
     public function flows(): HasMany
@@ -81,37 +77,6 @@ class Bot extends Model
     public function endConversationAssignUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'end_conversation_assign_user_id');
-    }
-
-    // Bot default settings relationships
-    public function defaultNoMatchUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'default_no_match_user_id');
-    }
-
-    public function defaultNoMatchBot(): BelongsTo
-    {
-        return $this->belongsTo(Bot::class, 'default_no_match_bot_id');
-    }
-
-    public function defaultTimeoutUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'default_timeout_user_id');
-    }
-
-    public function defaultTimeoutBot(): BelongsTo
-    {
-        return $this->belongsTo(Bot::class, 'default_timeout_bot_id');
-    }
-
-    public function defaultExpireUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'default_expire_user_id');
-    }
-
-    public function defaultExpireBot(): BelongsTo
-    {
-        return $this->belongsTo(Bot::class, 'default_expire_bot_id');
     }
 
     public function matchesKeyword(string $message): bool

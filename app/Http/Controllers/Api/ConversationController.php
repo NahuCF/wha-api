@@ -135,11 +135,11 @@ class ConversationController extends Controller
                 ], 404);
             }
 
-            // Check if bot is active
-            if ($bot->status !== \App\Enums\BotStatus::ACTIVE) {
+            // Check if bot has an active flow
+            if (! $bot->activeFlow()->exists()) {
                 return response()->json([
-                    'message' => 'Bot must be active to be assigned',
-                    'message_code' => 'bot_not_active',
+                    'message' => 'Bot must have an active flow to be assigned',
+                    'message_code' => 'bot_has_no_active_flow',
                 ], 422);
             }
 

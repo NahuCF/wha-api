@@ -15,12 +15,10 @@ return new class extends Migration
             $table->string('name');
             $table->enum('status', FlowStatus::values())->default(FlowStatus::DRAFT->value);
 
-            // Analytics columns
             $table->integer('total_sessions')->default(0);
             $table->integer('completed_sessions')->default(0);
             $table->integer('abandoned_sessions')->default(0);
 
-            // Track who created and modified
             $table->foreignUlid('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignUlid('updated_user_id')->nullable()->constrained('users')->nullOnDelete();
 

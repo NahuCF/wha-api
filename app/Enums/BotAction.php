@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum BotAction: string
 {
+    case NO_ACTION = 'no_action';
     case UNASSIGN = 'unassign';
     case ASSIGN_USER = 'assign_user';
     case ASSIGN_BOT = 'assign_bot';

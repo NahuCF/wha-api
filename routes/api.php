@@ -160,7 +160,6 @@ Route::group(['middleware' => [
         Route::put('{bot}/configuration', [BotController::class, 'updateConfiguration']);
         Route::post('{bot}/upload-media', [BotController::class, 'uploadNodeMedia']);
         Route::delete('{bot}/delete-media', [BotController::class, 'deleteNodeMedia']);
-        Route::put('{bot}/activate', [BotController::class, 'activate']);
         Route::post('{bot}/clone', [BotController::class, 'clone']);
         Route::get('{bot}/active-sessions', [BotController::class, 'checkActiveSessions']);
         Route::delete('{bot}', [BotController::class, 'destroy']);
@@ -170,7 +169,7 @@ Route::group(['middleware' => [
         Route::put('{bot}/flows/{flow}', [\App\Http\Controllers\Api\BotFlowController::class, 'update']);
         Route::get('{bot}/flows/{flow}/data', [BotFlowController::class, 'flowData']);
         Route::delete('{bot}/flows/{flow}', [BotFlowController::class, 'destroy']);
-        Route::post('{bot}/flows/{flow}/activate', [BotFlowController::class, 'activate']);
+        Route::put('{bot}/flows/{flow}/status', [BotFlowController::class, 'changeStatus']);
     });
     Route::apiResource('bots', BotController::class);
 
