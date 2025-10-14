@@ -63,6 +63,7 @@ class UserController extends Controller
         $defaultWabaId = data_get($input, 'default_waba_id');
 
         $tenant = tenant();
+        $business_id = auth()->user()->business_id;
 
         if ($role == SystemRole::OWNER->value) {
             throw ValidationException::withMessages([
@@ -92,6 +93,7 @@ class UserController extends Controller
             'email' => $email,
             'password' => null,
             'status' => UserStatus::INVITED->value,
+            'business_id' => $business_id,
         ];
 
         if (AppEnvironment::isLocal()) {
