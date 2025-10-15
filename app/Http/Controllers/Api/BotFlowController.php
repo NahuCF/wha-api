@@ -51,7 +51,7 @@ class BotFlowController extends Controller
             'nodes.*.position.x' => ['required', 'numeric'],
             'nodes.*.position.y' => ['required', 'numeric'],
             'nodes.*.data' => ['nullable', 'array'],
-            'edges' => ['required', 'array'],
+            'edges' => ['sometimes', 'array'],
             'edges.*.id' => ['required', 'string', 'distinct'],
             'edges.*.source' => ['required', 'string'],
             'edges.*.target' => ['required', 'string'],
@@ -155,19 +155,21 @@ class BotFlowController extends Controller
             ]);
         }
 
-        foreach ($edges as $edge) {
-            $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
-            $conditionValue = data_get($edge, 'data.condition_value');
+        if ($edges) {
+            foreach ($edges as $edge) {
+                $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
+                $conditionValue = data_get($edge, 'data.condition_value');
 
-            BotEdge::create([
-                'bot_id' => $bot->id,
-                'bot_flow_id' => $flow->id,
-                'edge_id' => data_get($edge, 'id'),
-                'source_node_id' => data_get($edge, 'source'),
-                'target_node_id' => data_get($edge, 'target'),
-                'condition_type' => $conditionType,
-                'condition_value' => $conditionValue,
-            ]);
+                BotEdge::create([
+                    'bot_id' => $bot->id,
+                    'bot_flow_id' => $flow->id,
+                    'edge_id' => data_get($edge, 'id'),
+                    'source_node_id' => data_get($edge, 'source'),
+                    'target_node_id' => data_get($edge, 'target'),
+                    'condition_type' => $conditionType,
+                    'condition_value' => $conditionValue,
+                ]);
+            }
         }
 
         // Update bot viewport if provided
@@ -273,8 +275,8 @@ class BotFlowController extends Controller
             ]);
         }
 
-        if (! $nodes || ! $edges) {
-            return response()->json(['message' => 'Nodes and edges are required for flow update'], 422);
+        if (! $nodes) {
+            return response()->json(['message' => 'Nodes are required for flow update'], 422);
         }
 
         if ($flow->status === FlowStatus::ACTIVE && $flow->hasActiveSessions()) {
@@ -355,21 +357,21 @@ class BotFlowController extends Controller
             ]);
         }
 
-        // Create edges
-        foreach ($edges as $edge) {
-            // Determine condition type from edge or source node
-            $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
-            $conditionValue = data_get($edge, 'data.condition_value');
+        if ($edges) {
+            foreach ($edges as $edge) {
+                $conditionType = data_get($edge, 'data.condition_type', FlowConditionType::ALWAYS->value);
+                $conditionValue = data_get($edge, 'data.condition_value');
 
-            BotEdge::create([
-                'bot_id' => $bot->id,
-                'bot_flow_id' => $flow->id,
-                'edge_id' => data_get($edge, 'id'),
-                'source_node_id' => data_get($edge, 'source'),
-                'target_node_id' => data_get($edge, 'target'),
-                'condition_type' => $conditionType,
-                'condition_value' => $conditionValue,
-            ]);
+                BotEdge::create([
+                    'bot_id' => $bot->id,
+                    'bot_flow_id' => $flow->id,
+                    'edge_id' => data_get($edge, 'id'),
+                    'source_node_id' => data_get($edge, 'source'),
+                    'target_node_id' => data_get($edge, 'target'),
+                    'condition_type' => $conditionType,
+                    'condition_value' => $conditionValue,
+                ]);
+            }
         }
 
         if ($viewport) {
