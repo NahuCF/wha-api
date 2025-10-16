@@ -41,16 +41,20 @@ class MessageController extends Controller
         $search = data_get($input, 'search');
 
         $messages = Message::query()
-            ->with(['replyToMessage'])
+            ->with(['replyToMessage', 'template'])
             ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
             ->when($broadcastId, fn ($q) => $q->where('broadcast_id', $broadcastId))
-            ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%'))
+            ->when($search, fn ($q) => 
+                $q->where('content', 'ILIKE', '%'.$search.'%')
+                    ->orWhere('rendered_content', 'ILIKE', '%'.$search.'%')
+            )
             ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
 
         if ($search && $conversationId) {
             $matchingMessages = $messages->filter(function ($message) use ($search) {
-                return stripos($message->content, $search) !== false;
+                return stripos($message->content, $search) !== false || 
+                       stripos($message->rendered_content, $search) !== false;
             });
 
             if ($matchingMessages->isNotEmpty()) {
@@ -117,6 +121,8 @@ class MessageController extends Controller
             ], 404);
         }
 
+        $messageTime = now();
+        
         $message = Message::create([
             'tenant_id' => tenant('id'),
             'conversation_id' => $conversation->id,
@@ -128,8 +134,13 @@ class MessageController extends Controller
             'type' => MessageType::from($type),
             'status' => MessageStatus::DELIVERED,
             'to_phone' => $displayNumber,
-            'delivered_at' => now(),
+            'delivered_at' => $messageTime,
         ]);
+
+        $conversation->update([
+            'last_message_at' => $messageTime,
+        ]);
+        $conversation->incrementUnreadCount();
 
         $message->load('replyToMessage');
 
@@ -166,9 +177,6 @@ class MessageController extends Controller
         $media = data_get($input, 'media');
         $toPhone = data_get($input, 'to_phone');
         $mentions = data_get($input, 'mentions');
-        $mentionUserIds = collect($mentions)
-            ->map(fn ($mention) => array_values($mention)[0])
-            ->toArray();
 
         $now = CarbonImmutable::now();
         $nextDay = $now->addDays(1);
@@ -214,6 +222,18 @@ class MessageController extends Controller
 
         $isTypeNote = $type === MessageType::NOTE->value;
 
+        $renderedContent = null;
+        if ($templateId && $type === MessageType::TEMPLATE->value) {
+            $template = \App\Models\Template::find($templateId);
+            if ($template) {
+                $templateBuilder = new \App\Services\TemplateComponentBuilderService();
+                $contact = $conversation->contact;
+                
+                $contactVariables = $templateBuilder->getContactVariables($contact, $variables ?? []);
+                $renderedContent = $templateBuilder->buildFullTemplateContent($template, $contactVariables, $contact);
+            }
+        }
+
         $message = Message::create([
             'conversation_id' => $conversationId ?: $conversation->id,
             'template_id' => $templateId,
@@ -226,10 +246,18 @@ class MessageController extends Controller
             'status' => MessageStatus::PENDING->value,
             'source' => MessageSource::CHAT->value,
             'content' => $content,
+            'rendered_content' => $renderedContent,
             'media' => $media,
             'mentions' => $mentions,
             'to_phone' => $toPhone,
         ]);
+
+        // Update last_message_at for outbound messages (even if conversation was already started)
+        if (!$notStarted) {
+            $conversation->update([
+                'last_message_at' => $now,
+            ]);
+        }
 
         $message->load('replyToMessage');
 

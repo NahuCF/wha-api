@@ -79,7 +79,7 @@ class AuthController extends Controller
 
         $user->loadPermissionNames();
 
-        $user->tokens()->delete();
+        //$user->tokens()->delete();
         $token = $user->createToken('tenant-token')->accessToken;
 
         $user->update(['status' => UserStatus::ACTIVE->value]);

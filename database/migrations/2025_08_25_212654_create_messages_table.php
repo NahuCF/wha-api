@@ -31,6 +31,7 @@ return new class extends Migration
             $table->enum('source', MessageSource::values())->default(MessageSource::WHATSAPP->value);
             $table->text('content')->nullable();
             $table->text('display_content')->nullable();
+            $table->text('rendered_content')->nullable();
             $table->json('media')->nullable();
             $table->json('interactive_data')->nullable();
             $table->json('location_data')->nullable();

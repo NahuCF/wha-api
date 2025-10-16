@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\TemplateStatus;
+use App\Models\Template;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -24,6 +25,19 @@ return new class extends Migration
 
             $table->json('header')->nullable();
             $table->json('buttons')->nullable();
+
+            $table->enum('header_type', array_merge(['NONE'], Template::HEADER_TYPES))
+                  ->default('NONE');
+            
+            $table->string('header_text', 60)->nullable();
+            
+            $table->text('header_media_url')->nullable();
+            $table->string('header_media_filename')->nullable();
+            
+            $table->decimal('header_location_latitude', 10, 8)->nullable();
+            $table->decimal('header_location_longitude', 11, 8)->nullable();
+            $table->string('header_location_name')->nullable();
+            $table->text('header_location_address')->nullable();
 
             $table->enum('status', TemplateStatus::values())->default(TemplateStatus::PENDING->value);
             $table->text('reason')->nullable();

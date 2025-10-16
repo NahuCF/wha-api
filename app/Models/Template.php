@@ -42,6 +42,8 @@ class Template extends Model
         'status' => TemplateStatus::class,
         'meta_updated_at' => 'datetime',
         'updated_count_while_approved' => 'integer',
+        'header_location_latitude' => 'decimal:8',
+        'header_location_longitude' => 'decimal:8',
     ];
 
     public function waba()

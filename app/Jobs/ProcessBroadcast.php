@@ -132,6 +132,9 @@ class ProcessBroadcast implements ShouldQueue
                     // Get conversation for this specific phone number
                     $conversation = $conversations[$contact->id.'_'.$phoneNumber];
 
+                    // Build the rendered template content for searching
+                    $renderedContent = $this->buildMessageContent($contact, $templateBuilder);
+
                     $messagesToInsert[] = [
                         'id' => \Illuminate\Support\Str::ulid(),
                         'tenant_id' => $this->broadcast->tenant_id,
@@ -143,7 +146,8 @@ class ProcessBroadcast implements ShouldQueue
                         'type' => MessageType::TEMPLATE->value,
                         'status' => MessageStatus::PENDING->value,
                         'source' => MessageSource::BROADCAST->value,
-                        'content' => $this->buildMessageContent($contact, $templateBuilder),
+                        'content' => $renderedContent,
+                        'rendered_content' => $renderedContent, // Store rendered content for search
                         'to_phone' => $phoneNumber,
                         'meta_id' => uniqid('broadcast_', true),
                         'created_at' => $now,

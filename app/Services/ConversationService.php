@@ -29,7 +29,8 @@ class ConversationService
 
         if ($search && $searchType === 'message') {
             $query->whereHas('messages', function ($q) use ($search) {
-                $q->where('content', 'ILIKE', '%'.$search.'%');
+                $q->where('content', 'ILIKE', '%'.$search.'%')
+                    ->orWhere('rendered_content', 'ILIKE', '%'.$search.'%');
             });
         } elseif ($search && $searchType === 'contact') {
             $query->whereHas('contact', function ($q) use ($search) {
@@ -60,7 +61,7 @@ class ConversationService
                 $query->where('user_id', $user->id);
             }]));
 
-        $conversations = $query->orderBy('last_message_at', 'asc')->paginate($rowsPerPage);
+        $conversations = $query->orderBy('last_message_at', 'desc')->paginate($rowsPerPage);
 
         if ($search && $searchType === 'message') {
             $messagesPerPage = data_get($filters, 'messages_per_page', 15);
@@ -109,7 +110,7 @@ class ConversationService
                     ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY created_at DESC) as rn
                 FROM messages
                 WHERE conversation_id IN ('".implode("','", $conversationIds)."')
-                  AND content ILIKE ?
+                  AND (content ILIKE ? OR rendered_content ILIKE ?)
                   AND tenant_id = ?
             ),
             message_positions AS (
@@ -128,7 +129,7 @@ class ConversationService
                 GROUP BY lm.conversation_id, lm.id, lm.content, lm.created_at
             )
             SELECT * FROM message_positions
-        ", [$searchPattern, $tenantId, $tenantId]);
+        ", [$searchPattern, $searchPattern, $tenantId, $tenantId]);
 
         // Convert to keyed collection
         return collect($matchingMessages)->mapWithKeys(function ($item) use ($messagesPerPage) {
@@ -187,6 +188,10 @@ class ConversationService
             'opened' => $baseQuery->clone()
                 ->where('expires_at', '>', now())
                 ->where('is_solved', false)
+                ->where(function ($q) use ($user) {
+                    $q->whereNull('user_id')
+                        ->orWhere('user_id', '!=', $user->id);
+                })
                 ->where(function ($q) use ($lastOpenedView) {
                     $q->where('created_at', '>', $lastOpenedView)
                         ->orWhere('last_message_at', '>', $lastOpenedView);

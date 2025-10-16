@@ -81,6 +81,7 @@ Route::group(['middleware' => [
         Route::put('/conversations/{conversation}/change-owner', [ConversationController::class, 'changeOwner']);
         Route::post('/conversations/{conversation}/pin', [ConversationController::class, 'pin']);
         Route::delete('/conversations/{conversation}/pin', [ConversationController::class, 'unpin']);
+        Route::post('/conversations/{conversation}/mark-as-read', [ConversationController::class, 'markAsRead']);
         Route::get('/conversations/{conversation}/activities', [ConversationController::class, 'activities']);
         Route::apiResource('/conversations', ConversationController::class)->only(['index', 'store', 'show']);
         Route::post('/message-contact', [MessageController::class, 'storeTest']);

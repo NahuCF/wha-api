@@ -230,6 +230,8 @@ class MessageHandler implements HandlerInterface
                     'to_phone' => $contact->phone,
                 ]);
 
+                $conversation->update(['last_message_at' => now()]);
+
                 // Send the message via WhatsApp
                 $phoneNumber = $conversation->phoneNumber;
                 SendWhatsAppMessage::dispatch(

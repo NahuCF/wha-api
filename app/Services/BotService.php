@@ -307,6 +307,16 @@ class BotService
             }
         }
 
+        $renderedContent = null;
+        $template = \App\Models\Template::find($templateId);
+        if ($template) {
+            $templateBuilder = new \App\Services\TemplateComponentBuilderService();
+            $contact = $session->contact;
+            
+            $contactVariables = $templateBuilder->getContactVariables($contact, []);
+            $renderedContent = $templateBuilder->buildFullTemplateContent($template, $contactVariables, $contact);
+        }
+
         $message = Message::create([
             'tenant_id' => $conversation->tenant_id,
             'conversation_id' => $conversation->id,
@@ -317,8 +327,11 @@ class BotService
             'source' => MessageSource::BOT,
             'template_id' => $templateId,
             'template_parameters' => $parameters,
+            'rendered_content' => $renderedContent,
             'to_phone' => $conversation->contact_phone,
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         SendWhatsAppMessage::dispatch(
             messageData: $message->toArray(),
@@ -359,6 +372,8 @@ class BotService
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         SendWhatsAppMessage::dispatch(
             messageData: $message->toArray(),
@@ -415,6 +430,8 @@ class BotService
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         SendWhatsAppMessage::dispatch(
             messageData: $message->toArray(),
@@ -546,6 +563,8 @@ class BotService
             ],
             'to_phone' => $conversation->contact_phone,
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         SendWhatsAppMessage::dispatch(
             messageData: $message->toArray(),
@@ -747,6 +766,8 @@ class BotService
             'content' => $content,
             'to_phone' => $conversation->contact_phone,
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         SendWhatsAppMessage::dispatch(
             messageData: $message->toArray(),

@@ -14,14 +14,57 @@ class TemplateComponentBuilderService
     {
         $components = [];
 
-        // Handle header variables if template has header text with variables
-        if ($template->header_type === 'text' && ! empty($template->header_text)) {
-            $headerParams = $this->extractParameters($template->header_text, $variables);
-            if (! empty($headerParams)) {
-                $components[] = [
-                    'type' => 'header',
-                    'parameters' => $headerParams,
-                ];
+        if ($template->header_type && $template->header_type !== 'NONE') {
+            switch ($template->header_type) {
+                case 'TEXT':
+                    if (!empty($template->header_text)) {
+                        $headerParams = $this->extractParameters($template->header_text, $variables);
+                        if (!empty($headerParams)) {
+                            $components[] = [
+                                'type' => 'header',
+                                'parameters' => $headerParams,
+                            ];
+                        }
+                    }
+                    break;
+                    
+                case 'IMAGE':
+                case 'VIDEO':
+                case 'DOCUMENT':
+                    if (!empty($template->header_media_url)) {
+                        $components[] = [
+                            'type' => 'header',
+                            'parameters' => [
+                                [
+                                    'type' => strtolower($template->header_type),
+                                    strtolower($template->header_type) => [
+                                        'link' => $template->header_media_url,
+                                        'filename' => $template->header_media_filename ?? null,
+                                    ]
+                                ]
+                            ]
+                        ];
+                    }
+                    break;
+                    
+                case 'LOCATION':
+                    if (!empty($template->header_location_latitude) && !empty($template->header_location_longitude)) {
+                        $components[] = [
+                            'type' => 'header',
+                            'parameters' => [
+                                [
+                                    'type' => 'location',
+                                    'location' => [
+                                        'latitude' => $template->header_location_latitude,
+                                        'longitude' => $template->header_location_longitude,
+                                        'name' => $template->header_location_name ?? null,
+                                        'address' => $template->header_location_address ?? null,
+                                    ]
+                                ]
+                            ]
+                        ];
+                    }
+                    break;
             }
         }
 
@@ -208,5 +251,58 @@ class TemplateComponentBuilderService
         }
 
         return $content;
+    }
+
+    /**
+     * Build full template content for search purposes (header + body + footer)
+     */
+    public function buildFullTemplateContent(Template $template, array $variables, Contact $contact = null): string
+    {
+        $content = [];
+
+        // If contact is provided, create automatic field mappings
+        $finalVariables = $variables;
+        if ($contact) {
+            $finalVariables = array_merge($this->getAutomaticContactVariables($contact), $variables);
+        }
+
+        if ($template->header_type === 'TEXT' && !empty($template->header_text)) {
+            $content[] = $template->header_text;
+        }
+
+        if (!empty($template->body)) {
+            $content[] = $this->replaceVariablesInContent($template->body, $finalVariables);
+        }
+
+        if (!empty($template->footer)) {
+            $content[] = $template->footer;
+        }
+
+        return implode(' ', array_filter($content));
+    }
+
+    /**
+     * Get automatic contact field mappings for common field names
+     */
+    private function getAutomaticContactVariables(Contact $contact): array
+    {
+        $variables = [];
+        
+        foreach ($contact->fieldValues as $fieldValue) {
+            if (!$fieldValue->field) continue;
+            
+            $fieldName = $fieldValue->field->internal_name;
+            $value = is_array($fieldValue->value) ? implode(', ', $fieldValue->value) : (string) $fieldValue->value;
+            
+            // Map common field names
+            $variables[$fieldName] = $value;
+            
+            // Also map by display name
+            if ($fieldValue->field->display_name) {
+                $variables[$fieldValue->field->display_name] = $value;
+            }
+        }
+        
+        return $variables;
     }
 }

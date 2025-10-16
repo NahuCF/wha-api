@@ -94,6 +94,8 @@ class TemplateController extends Controller
             ], 422));
         }
 
+        $headerData = $this->extractHeaderData($header);
+        
         $template = Template::create([
             'name' => $name,
             'language' => $language,
@@ -105,6 +107,7 @@ class TemplateController extends Controller
             'buttons' => json_encode($buttons),
             'status' => AppEnvironment::isProduction() ? TemplateStatus::PENDING : TemplateStatus::APPROVED,
             'updated_count_while_approved' => 0,
+            ...$headerData,
         ]);
 
         if (AppEnvironment::isProduction()) {
@@ -205,6 +208,8 @@ class TemplateController extends Controller
             ], 422));
         }
 
+        $headerData = $this->extractHeaderData($header);
+        
         $template->update([
             'name' => $name,
             'language' => $language,
@@ -217,6 +222,7 @@ class TemplateController extends Controller
             'status' => 'PENDING',
             'updated_count_while_approved' => $template->updated_count_while_approved + 1,
             'meta_updated_at' => now(),
+            ...$headerData,
         ]);
 
         if (AppEnvironment::isProduction() && $template->meta_id) {
@@ -266,5 +272,60 @@ class TemplateController extends Controller
         $activeBroadcasts = (new TemplateService)->getActiveBroadcasts($template);
 
         return BroadcastResource::collection($activeBroadcasts);
+    }
+
+    /**
+     * Extract header data from JSON structure into individual fields
+     */
+    private function extractHeaderData(?array $header): array
+    {
+        if (!$header) {
+            return [
+                'header_type' => 'NONE',
+                'header_text' => null,
+                'header_media_url' => null,
+                'header_media_filename' => null,
+                'header_location_latitude' => null,
+                'header_location_longitude' => null,
+                'header_location_name' => null,
+                'header_location_address' => null,
+            ];
+        }
+
+        $type = strtoupper($header['type'] ?? 'NONE');
+        $data = [
+            'header_type' => $type,
+            'header_text' => null,
+            'header_media_url' => null,
+            'header_media_filename' => null,
+            'header_location_latitude' => null,
+            'header_location_longitude' => null,
+            'header_location_name' => null,
+            'header_location_address' => null,
+        ];
+
+        switch ($type) {
+            case 'TEXT':
+                $data['header_text'] = $header['text'] ?? null;
+                break;
+                
+            case 'IMAGE':
+            case 'VIDEO':
+            case 'DOCUMENT':
+                $data['header_media_url'] = $header['media_url'] ?? null;
+                if ($type === 'DOCUMENT') {
+                    $data['header_media_filename'] = $header['filename'] ?? null;
+                }
+                break;
+                
+            case 'LOCATION':
+                $data['header_location_latitude'] = $header['latitude'] ?? null;
+                $data['header_location_longitude'] = $header['longitude'] ?? null;
+                $data['header_location_name'] = $header['name'] ?? null;
+                $data['header_location_address'] = $header['address'] ?? null;
+                break;
+        }
+
+        return $data;
     }
 }

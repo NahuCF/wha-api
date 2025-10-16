@@ -285,6 +285,13 @@ class ConversationController extends Controller
         return new ConversationResource($conversation);
     }
 
+    public function markAsRead(Conversation $conversation)
+    {
+        $conversation->markAsRead();
+
+        return response()->noContent();
+    }
+
     public function store(Request $request)
     {
         $input = $request->validate([
