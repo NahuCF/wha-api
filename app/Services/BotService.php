@@ -310,9 +310,9 @@ class BotService
         $renderedContent = null;
         $template = \App\Models\Template::find($templateId);
         if ($template) {
-            $templateBuilder = new \App\Services\TemplateComponentBuilderService();
+            $templateBuilder = new \App\Services\TemplateComponentBuilderService;
             $contact = $session->contact;
-            
+
             $contactVariables = $templateBuilder->getContactVariables($contact, []);
             $renderedContent = $templateBuilder->buildFullTemplateContent($template, $contactVariables, $contact);
         }

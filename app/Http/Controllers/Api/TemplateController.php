@@ -95,7 +95,7 @@ class TemplateController extends Controller
         }
 
         $headerData = $this->extractHeaderData($header);
-        
+
         $template = Template::create([
             'name' => $name,
             'language' => $language,
@@ -209,7 +209,7 @@ class TemplateController extends Controller
         }
 
         $headerData = $this->extractHeaderData($header);
-        
+
         $template->update([
             'name' => $name,
             'language' => $language,
@@ -279,7 +279,7 @@ class TemplateController extends Controller
      */
     private function extractHeaderData(?array $header): array
     {
-        if (!$header) {
+        if (! $header) {
             return [
                 'header_type' => 'NONE',
                 'header_text' => null,
@@ -308,7 +308,7 @@ class TemplateController extends Controller
             case 'TEXT':
                 $data['header_text'] = $header['text'] ?? null;
                 break;
-                
+
             case 'IMAGE':
             case 'VIDEO':
             case 'DOCUMENT':
@@ -317,7 +317,7 @@ class TemplateController extends Controller
                     $data['header_media_filename'] = $header['filename'] ?? null;
                 }
                 break;
-                
+
             case 'LOCATION':
                 $data['header_location_latitude'] = $header['latitude'] ?? null;
                 $data['header_location_longitude'] = $header['longitude'] ?? null;

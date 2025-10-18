@@ -17,9 +17,9 @@ class TemplateComponentBuilderService
         if ($template->header_type && $template->header_type !== 'NONE') {
             switch ($template->header_type) {
                 case 'TEXT':
-                    if (!empty($template->header_text)) {
+                    if (! empty($template->header_text)) {
                         $headerParams = $this->extractParameters($template->header_text, $variables);
-                        if (!empty($headerParams)) {
+                        if (! empty($headerParams)) {
                             $components[] = [
                                 'type' => 'header',
                                 'parameters' => $headerParams,
@@ -27,11 +27,11 @@ class TemplateComponentBuilderService
                         }
                     }
                     break;
-                    
+
                 case 'IMAGE':
                 case 'VIDEO':
                 case 'DOCUMENT':
-                    if (!empty($template->header_media_url)) {
+                    if (! empty($template->header_media_url)) {
                         $components[] = [
                             'type' => 'header',
                             'parameters' => [
@@ -40,15 +40,15 @@ class TemplateComponentBuilderService
                                     strtolower($template->header_type) => [
                                         'link' => $template->header_media_url,
                                         'filename' => $template->header_media_filename ?? null,
-                                    ]
-                                ]
-                            ]
+                                    ],
+                                ],
+                            ],
                         ];
                     }
                     break;
-                    
+
                 case 'LOCATION':
-                    if (!empty($template->header_location_latitude) && !empty($template->header_location_longitude)) {
+                    if (! empty($template->header_location_latitude) && ! empty($template->header_location_longitude)) {
                         $components[] = [
                             'type' => 'header',
                             'parameters' => [
@@ -59,9 +59,9 @@ class TemplateComponentBuilderService
                                         'longitude' => $template->header_location_longitude,
                                         'name' => $template->header_location_name ?? null,
                                         'address' => $template->header_location_address ?? null,
-                                    ]
-                                ]
-                            ]
+                                    ],
+                                ],
+                            ],
                         ];
                     }
                     break;
@@ -256,7 +256,7 @@ class TemplateComponentBuilderService
     /**
      * Build full template content for search purposes (header + body + footer)
      */
-    public function buildFullTemplateContent(Template $template, array $variables, Contact $contact = null): string
+    public function buildFullTemplateContent(Template $template, array $variables, ?Contact $contact = null): string
     {
         $content = [];
 
@@ -266,15 +266,15 @@ class TemplateComponentBuilderService
             $finalVariables = array_merge($this->getAutomaticContactVariables($contact), $variables);
         }
 
-        if ($template->header_type === 'TEXT' && !empty($template->header_text)) {
+        if ($template->header_type === 'TEXT' && ! empty($template->header_text)) {
             $content[] = $template->header_text;
         }
 
-        if (!empty($template->body)) {
+        if (! empty($template->body)) {
             $content[] = $this->replaceVariablesInContent($template->body, $finalVariables);
         }
 
-        if (!empty($template->footer)) {
+        if (! empty($template->footer)) {
             $content[] = $template->footer;
         }
 
@@ -287,22 +287,24 @@ class TemplateComponentBuilderService
     private function getAutomaticContactVariables(Contact $contact): array
     {
         $variables = [];
-        
+
         foreach ($contact->fieldValues as $fieldValue) {
-            if (!$fieldValue->field) continue;
-            
+            if (! $fieldValue->field) {
+                continue;
+            }
+
             $fieldName = $fieldValue->field->internal_name;
             $value = is_array($fieldValue->value) ? implode(', ', $fieldValue->value) : (string) $fieldValue->value;
-            
+
             // Map common field names
             $variables[$fieldName] = $value;
-            
+
             // Also map by display name
             if ($fieldValue->field->display_name) {
                 $variables[$fieldValue->field->display_name] = $value;
             }
         }
-        
+
         return $variables;
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TemplateCategory;
 use App\Enums\TemplateStatus;
 use App\Models\Template;
 use Illuminate\Database\Migrations\Migration;
@@ -17,7 +18,7 @@ return new class extends Migration
             $table->foreignUlid('waba_id')->constrained();
             $table->string('name', '512');
             $table->string('language');
-            $table->enum('category', ['AUTHENTICATION', 'MARKETING', 'UTILITY']);
+            $table->enum('category', TemplateCategory::values());
 
             $table->string('body', '1024');
             $table->json('body_example_variables')->nullable();
@@ -27,13 +28,13 @@ return new class extends Migration
             $table->json('buttons')->nullable();
 
             $table->enum('header_type', array_merge(['NONE'], Template::HEADER_TYPES))
-                  ->default('NONE');
-            
+                ->default('NONE');
+
             $table->string('header_text', 60)->nullable();
-            
+
             $table->text('header_media_url')->nullable();
             $table->string('header_media_filename')->nullable();
-            
+
             $table->decimal('header_location_latitude', 10, 8)->nullable();
             $table->decimal('header_location_longitude', 11, 8)->nullable();
             $table->string('header_location_name')->nullable();

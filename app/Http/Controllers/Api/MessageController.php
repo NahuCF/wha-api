@@ -44,16 +44,15 @@ class MessageController extends Controller
             ->with(['replyToMessage', 'template'])
             ->when($conversationId, fn ($q) => $q->where('conversation_id', $conversationId))
             ->when($broadcastId, fn ($q) => $q->where('broadcast_id', $broadcastId))
-            ->when($search, fn ($q) => 
-                $q->where('content', 'ILIKE', '%'.$search.'%')
-                    ->orWhere('rendered_content', 'ILIKE', '%'.$search.'%')
+            ->when($search, fn ($q) => $q->where('content', 'ILIKE', '%'.$search.'%')
+                ->orWhere('rendered_content', 'ILIKE', '%'.$search.'%')
             )
             ->orderBy('created_at', 'desc')
             ->paginate($rowsPerPage);
 
         if ($search && $conversationId) {
             $matchingMessages = $messages->filter(function ($message) use ($search) {
-                return stripos($message->content, $search) !== false || 
+                return stripos($message->content, $search) !== false ||
                        stripos($message->rendered_content, $search) !== false;
             });
 
@@ -122,7 +121,7 @@ class MessageController extends Controller
         }
 
         $messageTime = now();
-        
+
         $message = Message::create([
             'tenant_id' => tenant('id'),
             'conversation_id' => $conversation->id,
@@ -226,9 +225,9 @@ class MessageController extends Controller
         if ($templateId && $type === MessageType::TEMPLATE->value) {
             $template = \App\Models\Template::find($templateId);
             if ($template) {
-                $templateBuilder = new \App\Services\TemplateComponentBuilderService();
+                $templateBuilder = new \App\Services\TemplateComponentBuilderService;
                 $contact = $conversation->contact;
-                
+
                 $contactVariables = $templateBuilder->getContactVariables($contact, $variables ?? []);
                 $renderedContent = $templateBuilder->buildFullTemplateContent($template, $contactVariables, $contact);
             }
@@ -253,7 +252,7 @@ class MessageController extends Controller
         ]);
 
         // Update last_message_at for outbound messages (even if conversation was already started)
-        if (!$notStarted) {
+        if (! $notStarted) {
             $conversation->update([
                 'last_message_at' => $now,
             ]);
