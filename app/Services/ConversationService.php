@@ -48,9 +48,11 @@ class ConversationService
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
             ->when($onlyPinned && $user, fn ($q) => $q->pinnedBy($user))
             ->when($onlySolved, fn ($q) => $q->where('is_solved', true))
-            ->when($onlyOpened, fn ($q) => $q->where(function ($q) {
-                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-            }))
+            ->when($onlyOpened, fn ($q) => $q
+                ->where('is_solved', false)
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                }))
             ->when($onlyMentioned && $user, fn ($q) => $q->whereHas('messages', function ($query) use ($user) {
                 $query->whereRaw('EXISTS (
                     SELECT 1 FROM jsonb_array_elements(mentions::jsonb) AS elem
