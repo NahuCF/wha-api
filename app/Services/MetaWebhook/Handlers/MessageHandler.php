@@ -371,7 +371,7 @@ class MessageHandler implements HandlerInterface
             ->where('contact_id', $contact->id)
             ->first();
 
-        if (! $conversation) {
+        if ($conversation && $conversation->expires_at && $conversation->expires_at->isPast()) {
             $conversation = Conversation::create([
                 'tenant_id' => $waba->tenant_id,
                 'waba_id' => $waba->id,
@@ -383,7 +383,33 @@ class MessageHandler implements HandlerInterface
                 'started_at' => now(),
             ]);
 
-            // Create activity for new conversation created by incoming message
+            ConversationActivity::create([
+                'tenant_id' => $waba->tenant_id,
+                'conversation_id' => $conversation->id,
+                'user_id' => null,
+                'type' => ConversationActivityType::CONVERSATION_STARTED,
+                'data' => [
+                    'contact_name' => $contact->name ?? $phone
+                ],
+            ]);
+
+            broadcast(new ConversationNew(
+                conversation: $conversation,
+                tenantId: $waba->tenant_id,
+                wabaId: $waba->id
+            ));
+        } elseif (! $conversation) {
+            $conversation = Conversation::create([
+                'tenant_id' => $waba->tenant_id,
+                'waba_id' => $waba->id,
+                'contact_id' => $contact->id,
+                'contact_phone' => $phone,
+                'waba_phone_id' => $phoneNumberId,
+                'last_message_at' => now(),
+                'expires_at' => now()->addDays(1),
+                'started_at' => now(),
+            ]);
+
             ConversationActivity::create([
                 'tenant_id' => $waba->tenant_id,
                 'conversation_id' => $conversation->id,
