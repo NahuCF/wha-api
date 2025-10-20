@@ -164,7 +164,8 @@ class MessageHandler implements HandlerInterface
         $contactInfo = $this->findContactInfo($from, $contacts);
         $contact = $this->findOrCreateContact($from, $contactInfo, $waba);
 
-        $conversation = $this->findOrCreateConversation($contact, $waba, $from, $phoneNumberId);
+        $messageTimestamp = $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now();
+        $conversation = $this->findOrCreateConversation($contact, $waba, $from, $phoneNumberId, $messageTimestamp);
 
         $message = new Message([
             'tenant_id' => $waba->tenant_id,
@@ -175,7 +176,7 @@ class MessageHandler implements HandlerInterface
             'type' => MessageType::from($type),
             'status' => MessageStatus::DELIVERED,
             'to_phone' => $displayPhoneNumber,
-            'delivered_at' => $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now(),
+            'delivered_at' => $messageTimestamp,
         ]);
 
         broadcast(new MessageNew(
@@ -364,7 +365,7 @@ class MessageHandler implements HandlerInterface
         return $contact;
     }
 
-    private function findOrCreateConversation(Contact $contact, Waba $waba, string $phone, string $phoneNumberId): Conversation
+    private function findOrCreateConversation(Contact $contact, Waba $waba, string $phone, string $phoneNumberId, \Carbon\Carbon $messageTimestamp): Conversation
     {
         $conversation = Conversation::where('tenant_id', $waba->tenant_id)
             ->where('waba_id', $waba->id)
@@ -378,9 +379,9 @@ class MessageHandler implements HandlerInterface
                 'contact_id' => $contact->id,
                 'contact_phone' => $phone,
                 'waba_phone_id' => $phoneNumberId,
-                'last_message_at' => now(),
-                'expires_at' => now()->addDays(1),
-                'started_at' => now(),
+                'last_message_at' => $messageTimestamp,
+                'expires_at' => $messageTimestamp->copy()->addHours(24),
+                'started_at' => $messageTimestamp,
             ]);
 
             ConversationActivity::create([
@@ -389,7 +390,7 @@ class MessageHandler implements HandlerInterface
                 'user_id' => null,
                 'type' => ConversationActivityType::CONVERSATION_STARTED,
                 'data' => [
-                    'contact_name' => $contact->name ?? $phone
+                    'contact_name' => $contact->name ?? $phone,
                 ],
             ]);
 
@@ -405,9 +406,9 @@ class MessageHandler implements HandlerInterface
                 'contact_id' => $contact->id,
                 'contact_phone' => $phone,
                 'waba_phone_id' => $phoneNumberId,
-                'last_message_at' => now(),
-                'expires_at' => now()->addDays(1),
-                'started_at' => now(),
+                'last_message_at' => $messageTimestamp,
+                'expires_at' => $messageTimestamp->copy()->addHours(24),
+                'started_at' => $messageTimestamp,
             ]);
 
             ConversationActivity::create([
