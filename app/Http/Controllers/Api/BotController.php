@@ -24,17 +24,24 @@ class BotController extends Controller
         $input = $request->validate([
             'rows_per_page' => ['sometimes', 'integer'],
             'search' => ['sometimes', 'string'],
+            'should_paginate' => ['sometimes', 'boolean'],
+            'with_relationships' => ['sometimes', 'boolean'],
+            'columns' => ['sometimes', 'array'],
+            'columns.*' => ['string'],
         ]);
 
         $rowsPerPage = data_get($input, 'rows_per_page', 20);
         $search = data_get($input, 'search');
+        $shouldPaginate = data_get($input, 'should_paginate', true);
+        $withRelationships = data_get($input, 'with_relationships', true);
+        $columns = data_get($input, 'columns', ['*']);
 
-        $bots = Bot::query()
-            ->with(['createdBy', 'updatedBy', 'flows'])
-            ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'))
-            ->paginate($rowsPerPage);
+        $query = Bot::query()
+            ->select($columns)
+            ->when($withRelationships, fn ($q) => $q->with(['createdBy', 'updatedBy', 'flows']))
+            ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'));
 
-        return BotResource::collection($bots);
+        return BotResource::collection($shouldPaginate ? $query->paginate($rowsPerPage) : $query->get());
     }
 
     public function store(Request $request)
