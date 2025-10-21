@@ -41,7 +41,11 @@ class BotController extends Controller
             ->when($withRelationships, fn ($q) => $q->with(['createdBy', 'updatedBy', 'flows']))
             ->when($search, fn ($q) => $q->where('name', 'ILIKE', '%'.$search.'%'));
 
-        return BotResource::collection($shouldPaginate ? $query->paginate($rowsPerPage) : $query->get());
+        $results = $shouldPaginate ? $query->paginate($rowsPerPage) : $query->get();
+
+        request()->merge(['resource_columns' => $columns !== ['*'] ? $columns : null]);
+
+        return BotResource::collection($results);
     }
 
     public function store(Request $request)
