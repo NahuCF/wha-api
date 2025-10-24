@@ -9,7 +9,7 @@ class BotResource extends JsonResource
     public function toArray($request)
     {
         $columns = $request->get('resource_columns');
-        
+
         $allFields = [
             'id' => $this->id,
             'name' => $this->name,
@@ -41,11 +41,11 @@ class BotResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
-        
+
         if ($columns) {
             return collect($allFields)->only($columns)->toArray();
         }
-        
+
         return $allFields;
     }
 }

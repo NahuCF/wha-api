@@ -17,12 +17,14 @@ use App\Http\Controllers\Api\EmailPreviewController;
 use App\Http\Controllers\Api\GroupController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\KnownPlaceController;
+use App\Http\Controllers\Api\MercadoPagoWebhookController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PhoneNumberController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\TemplateCategoryController;
 use App\Http\Controllers\Api\TemplateController;
@@ -68,6 +70,8 @@ Route::prefix('meta/callback')->group(function () {
     Route::get('/', [MetaController::class, 'handshake']);
     Route::post('/post', [MetaController::class, 'callback']);
 });
+
+Route::post('mercadopago/webhook', [MercadoPagoWebhookController::class, 'handle']);
 
 Route::group(['middleware' => [
     InitializeTenancyByRequestData::class,
@@ -177,4 +181,11 @@ Route::group(['middleware' => [
     Route::apiResource('bots', BotController::class);
 
     Route::apiResource('bot-variables', BotVariableController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    Route::prefix('subscription')->group(function () {
+        Route::post('/mercadopago/subscription-link', [SubscriptionController::class, 'generateMercadoPagoLink']);
+        Route::get('/current', [SubscriptionController::class, 'current']);
+        Route::post('/cancel', [SubscriptionController::class, 'cancel']);
+        Route::post('/purchase-extra-users', [SubscriptionController::class, 'purchaseExtraUsers']);
+    });
 });

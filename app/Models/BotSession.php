@@ -11,19 +11,6 @@ class BotSession extends Model
 {
     use HasUlids;
 
-    protected $fillable = [
-        'tenant_id',
-        'bot_id',
-        'bot_flow_id',
-        'conversation_id',
-        'contact_id',
-        'current_node_id',
-        'status',
-        'variables',
-        'history',
-        'last_interaction_at',
-        'timeout_at',
-    ];
 
     protected $casts = [
         'variables' => 'array',

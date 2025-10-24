@@ -13,10 +13,6 @@ class UserWaba extends Pivot
 
     public $timestamps = false;
 
-    protected $fillable = [
-        'user_id',
-        'waba_id',
-    ];
 
     public function user(): BelongsTo
     {

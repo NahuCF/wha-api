@@ -17,15 +17,6 @@ class BotEdge extends Model
         'condition_type' => FlowConditionType::class,
     ];
 
-    protected $fillable = [
-        'bot_id',
-        'bot_flow_id',
-        'edge_id',
-        'source_node_id',
-        'target_node_id',
-        'condition_type',
-        'condition_value',
-    ];
 
     public function bot(): BelongsTo
     {

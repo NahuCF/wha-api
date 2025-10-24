@@ -19,3 +19,9 @@ Schedule::command('bot:check-warnings')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Check for expired subscriptions and update their status
+Schedule::command('subscriptions:expire')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();

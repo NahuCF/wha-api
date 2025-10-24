@@ -42,4 +42,11 @@ return [
         'webhook_verify_token' => env('META_WEBHOOK_VERIFY_TOKEN'),
     ],
 
+    'mercadopago' => [
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
+        'base_url' => env('MERCADOPAGO_BASE_URL', 'https://api.mercadopago.com'),
+    ],
+
 ];

@@ -14,26 +14,6 @@ class PhoneNumber extends Model
 {
     use BelongsToTenant, HasUlids;
 
-    protected $fillable = [
-        'waba_id',
-        'meta_id',
-        'display_phone_number',
-        'verified_name',
-        'quality_rating',
-        'code_verification_status',
-        'pin',
-        'is_registered',
-        'status',
-        'about',
-        'address',
-        'description',
-        'email',
-        'vertical',
-        'websites',
-        'profile_picture_path',
-        'profile_picture_handle',
-        'profile_updated_at',
-    ];
 
     protected $casts = [
         'quality_rating' => QualityRating::class,

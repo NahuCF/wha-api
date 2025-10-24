@@ -7,12 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ConversationPin extends Model
 {
-    protected $fillable = [
-        'user_id',
-        'conversation_id',
-        'position',
-        'pinned_at',
-    ];
 
     protected $casts = [
         'position' => 'integer',

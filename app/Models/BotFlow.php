@@ -12,16 +12,6 @@ class BotFlow extends Model
 {
     use HasUlids;
 
-    protected $fillable = [
-        'bot_id',
-        'name',
-        'status',
-        'total_sessions',
-        'completed_sessions',
-        'abandoned_sessions',
-        'user_id',
-        'updated_user_id',
-    ];
 
     protected $casts = [
         'status' => FlowStatus::class,

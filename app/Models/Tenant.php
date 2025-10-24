@@ -12,14 +12,6 @@ class Tenant extends BaseTenant
 {
     use HasUlids, SoftDeletes;
 
-    protected $fillable = [
-        'company_name',
-        'id',
-        'is_profile_completed',
-        'default_business_id',
-        'default_waba_id',
-        'timezone_id',
-    ];
 
     public static function getCustomColumns(): array
     {

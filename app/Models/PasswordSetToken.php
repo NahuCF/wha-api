@@ -17,13 +17,6 @@ class PasswordSetToken extends Model
 
     public $incrementing = false;
 
-    protected $fillable = [
-        'email',
-        'tenant_id',
-        'user_id',
-        'token',
-        'created_at',
-    ];
 
     protected $casts = [
         'created_at' => 'datetime',
