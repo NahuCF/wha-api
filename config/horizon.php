@@ -205,7 +205,7 @@ return [
         'production' => [
             'supervisor-emails' => [
                 'connection' => 'redis',
-                'queue' => ['emails'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':emails'],
                 'balance' => 'simple',
                 'processes' => 3,
                 'memory' => 128,
@@ -216,7 +216,7 @@ return [
 
             'supervisor-messages' => [
                 'connection' => 'redis',
-                'queue' => ['messages'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':messages'],
                 'balance' => 'auto',
                 'minProcesses' => 5,
                 'maxProcesses' => 10,
@@ -231,7 +231,7 @@ return [
 
             'supervisor-bot-warnings' => [
                 'connection' => 'redis',
-                'queue' => ['bot-warnings'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':bot-warnings'],
                 'balance' => 'auto',
                 'minProcesses' => 2,
                 'maxProcesses' => 6,
@@ -247,7 +247,7 @@ return [
 
             'supervisor-broadcasts' => [
                 'connection' => 'redis',
-                'queue' => ['broadcasts'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':broadcasts'],
                 'balance' => 'auto',
                 'minProcesses' => 2,
                 'maxProcesses' => 4,
@@ -263,7 +263,7 @@ return [
 
             'supervisor-heavy' => [
                 'connection' => 'redis',
-                'queue' => ['imports', 'heavy'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':imports', env('QUEUE_PREFIX', 'default') . ':heavy'],
                 'balance' => 'auto',
                 'minProcesses' => 1,
                 'maxProcesses' => 3,
@@ -279,7 +279,7 @@ return [
 
             'supervisor-default' => [
                 'connection' => 'redis',
-                'queue' => ['default'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':default'],
                 'balance' => 'simple',
                 'processes' => 2,
                 'memory' => 256,
@@ -293,7 +293,7 @@ return [
         'local' => [
             'supervisor-emails' => [
                 'connection' => 'redis',
-                'queue' => ['emails'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':emails'],
                 'balance' => 'simple',
                 'processes' => 2,
                 'memory' => 128,
@@ -303,7 +303,7 @@ return [
 
             'supervisor-critical' => [
                 'connection' => 'redis',
-                'queue' => ['critical', 'fast'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':critical', env('QUEUE_PREFIX', 'default') . ':fast'],
                 'balance' => 'simple',
                 'processes' => 1,
                 'memory' => 256,
@@ -313,7 +313,7 @@ return [
 
             'supervisor-bot-warnings' => [
                 'connection' => 'redis',
-                'queue' => ['bot-warnings'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':bot-warnings'],
                 'balance' => 'simple',
                 'processes' => 2,
                 'memory' => 128,
@@ -323,7 +323,7 @@ return [
 
             'supervisor-messages' => [
                 'connection' => 'redis',
-                'queue' => ['messages'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':messages'],
                 'balance' => 'auto',
                 'processes' => 2,
                 'memory' => 256,
@@ -333,7 +333,7 @@ return [
 
             'supervisor-broadcasts' => [
                 'connection' => 'redis',
-                'queue' => ['broadcasts'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':broadcasts'],
                 'balance' => 'auto',
                 'processes' => 1,
                 'memory' => 512,
@@ -343,7 +343,7 @@ return [
 
             'supervisor-imports' => [
                 'connection' => 'redis',
-                'queue' => ['imports'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':imports'],
                 'balance' => 'auto',
                 'processes' => 1,
                 'memory' => 512,
@@ -353,7 +353,7 @@ return [
 
             'supervisor-groups' => [
                 'connection' => 'redis',
-                'queue' => ['groups', 'heavy'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':groups', env('QUEUE_PREFIX', 'default') . ':heavy'],
                 'balance' => 'auto',
                 'processes' => 1,
                 'memory' => 384,
@@ -363,7 +363,7 @@ return [
 
             'supervisor-default' => [
                 'connection' => 'redis',
-                'queue' => ['default'],
+                'queue' => [env('QUEUE_PREFIX', 'default') . ':default'],
                 'balance' => 'auto',
                 'processes' => 1,
                 'memory' => 256,

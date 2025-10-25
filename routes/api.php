@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\BotAnalyticsController;
 use App\Http\Controllers\Api\BotController;
 use App\Http\Controllers\Api\BotFlowController;
@@ -41,6 +42,7 @@ use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
 Route::get('/up', fn () => response('', 200));
+Route::get('/health', [HealthController::class, 'check']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

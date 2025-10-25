@@ -1,25 +1,31 @@
-name: Deploy
+name: Production Deployment
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build:
+  deploy:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-
+    if: github.ref == 'refs/heads/main'
+    
     steps:
-      - name: Deploy using ssh
-        uses: appleboy/ssh-action@master
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          host: ${{ secrets.PRODUCTION_HOST }}
-          username: ${{ secrets.PRODUCTION_USERNAME }}
-          password: ${{ secrets.PRODUCTION_PASSWORD }}
-          script: |
-            cd /home/wha-api
-            git checkout -B main
-            git pull origin main
-            composer install
-            php artisan migrate
-            php artisan tenants:migrate
-            php artisan optimize
+          ssh-private-key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Execute deployment script
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} "/home/deploy/scripts/wizzova-deploy.sh"
