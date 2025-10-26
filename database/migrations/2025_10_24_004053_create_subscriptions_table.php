@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->ulid('id')->primary();
 
-            $table->foreignUuid('tenant_id')->nullable()->constrained('tenants')->nullOnDelete();
+            $table->foreignUlid('tenant_id')->constrained('tenants')->nullOnDelete();
 
             $table->enum('plan_type', PlanType::values());
             $table->enum('billing_cycle', BillingCycle::values());
